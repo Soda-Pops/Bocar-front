@@ -1,0 +1,17 @@
+:root {
+  --bocar-blue-100: #002e5d;
+  --bocar-blue-90: #1f3a61;
+  --bocar-blue-70: #4e6484;
+  --bocar-blue-50: #7f8fa3;
+  --bocar-blue-30: #a7b1c2;
+  --bocar-white: #ffffff;
+  --bocar-bg: #f5f7fa;
+  --bocar-border: #d9dee5;
+  --bocar-text: #1a1a1a;
+  --bocar-review: #fff200;
+  --bocar-done: #8dc63f;
+  --bocar-error: #aa000f;
+  --bocar-neutral: #aeb3b8;
+  color: var(--bocar-text);
+  background: var(--bocar-bg);
+}

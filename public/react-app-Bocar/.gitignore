@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Playwright MCP artifacts
+.playwright-mcp/
+*.png
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+
+documentacion/
+output/
+/scripts
+/specs
+/.codex
+/.github
+/.playwright-cli
+*.stp
+
+
