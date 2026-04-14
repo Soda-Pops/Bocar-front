@@ -2,6 +2,7 @@ import { ROUTES } from '@/app/config/routes';
 import DashboardPage from '@/pages/industrializacion/DashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import LoginPage from '@/pages/auth/LoginPage';
+import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
 import { Navigate, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 
 function resolvePreviewScreen(search: string) {
@@ -47,6 +48,22 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_EDIT,
     element: <RfqFormPage />,
+  },
+  {
+    path: ROUTES.INDUSTRIALIZATION.RFQ_DETAIL,
+    element: <RfqDetailPage />,
+  },
+  {
+    path: ROUTES.PURCHASING.RFQ_DETAIL,
+    element: <RfqDetailPage />,
+  },
+  {
+    path: ROUTES.SUPPLIER.RFQ_DETAIL,
+    element: <RfqDetailPage />,
+  },
+  {
+    path: ROUTES.SUPPLIER.QUOTATION_DETAIL,
+    element: <RfqDetailPage />,
   },
   {
     path: '*',

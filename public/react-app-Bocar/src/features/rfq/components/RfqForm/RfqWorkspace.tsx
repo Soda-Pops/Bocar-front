@@ -1,5 +1,9 @@
-import type { DragEvent } from 'react';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { DragEvent, InputHTMLAttributes } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { FieldError, SubmitErrorHandler, UseFormRegisterReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { Button } from '@/shared/components/ui/Button';
 
@@ -14,7 +18,9 @@ type UploadedAsset = {
   uploadedAt: string;
 };
 
-type RfqFormState = {
+type RfqAttachments = Record<UploadKind, UploadedAsset | null>;
+
+type RfqFormValues = {
   rfqName: string;
   material: string;
   hardware: string;
@@ -25,15 +31,6 @@ type RfqFormState = {
   region: string;
   plant: string;
   requiredDate: string;
-  attachments: Record<UploadKind, UploadedAsset | null>;
-};
-
-type ValidationResult = {
-  canSubmit: boolean;
-  completionPercentage: number;
-  completedCount: number;
-  totalCount: number;
-  missingItems: string[];
 };
 
 type RfqWorkspaceProps = {
@@ -43,22 +40,23 @@ type RfqWorkspaceProps = {
 };
 
 type SectionField = {
-  field: keyof Omit<RfqFormState, 'attachments'>;
+  field: keyof RfqFormValues;
   helper: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode'];
   label: string;
   placeholder: string;
   type?: 'date' | 'number' | 'text';
 };
 
 type FormFieldProps = {
+  error?: FieldError;
   helper: string;
-  invalid: boolean;
+  id: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode'];
   label: string;
-  onChange: (value: string) => void;
   placeholder: string;
-  required?: boolean;
+  registration: UseFormRegisterReturn;
   type?: 'date' | 'number' | 'text';
-  value: string;
 };
 
 type UploadStatusCardProps = {
@@ -70,25 +68,25 @@ type UploadStatusCardProps = {
 const BASE_FIELDS: readonly SectionField[] = [
   {
     field: 'rfqName',
-    helper: 'Nombre del proyecto o de la RFQ',
+    helper: 'Usa al menos 3 caracteres para identificar el proyecto.',
     label: 'Nombre del RFQ',
     placeholder: 'Ingresa el nombre del RFQ',
   },
   {
     field: 'material',
-    helper: 'Material principal solicitado',
+    helper: 'Material principal solicitado.',
     label: 'Material',
     placeholder: 'Ingresa el material',
   },
   {
     field: 'hardware',
-    helper: 'Herramental o hardware esperado',
+    helper: 'Herramental o hardware esperado.',
     label: 'Hardware',
     placeholder: 'Ingresa el hardware',
   },
   {
     field: 'description',
-    helper: 'Contexto tecnico o alcance del requerimiento',
+    helper: 'Incluye alcance tecnico con al menos 10 caracteres.',
     label: 'Descripcion',
     placeholder: 'Ingresa una descripcion adicional',
   },
@@ -97,26 +95,27 @@ const BASE_FIELDS: readonly SectionField[] = [
 const SPECIFICATION_FIELDS: readonly SectionField[] = [
   {
     field: 'partNumber',
-    helper: 'Identificador de parte interno',
+    helper: 'Solo letras, numeros, puntos, guiones o guion bajo.',
     label: 'Numero de parte',
     placeholder: 'Ingresa el numero de parte',
   },
   {
     field: 'machineType',
-    helper: 'Proceso o celda de manufactura',
+    helper: 'Proceso o celda de manufactura.',
     label: 'Tipo de maquina',
     placeholder: 'Ingresa el tipo de maquina',
   },
   {
     field: 'estimatedVolume',
-    helper: 'Volumen anual estimado',
+    helper: 'Numero entero mayor a cero.',
+    inputMode: 'numeric',
     label: 'Volumen estimado',
     placeholder: 'Ingresa el volumen estimado',
     type: 'number',
   },
   {
     field: 'region',
-    helper: 'Region principal del proyecto',
+    helper: 'Region principal del proyecto.',
     label: 'Region',
     placeholder: 'Ingresa la region',
   },
@@ -125,35 +124,89 @@ const SPECIFICATION_FIELDS: readonly SectionField[] = [
 const LOCATION_FIELDS: readonly SectionField[] = [
   {
     field: 'plant',
-    helper: 'Planta o localizacion objetivo',
+    helper: 'Planta o localizacion objetivo.',
     label: 'Planta o pais',
     placeholder: 'Ingresa la planta o el pais',
   },
   {
     field: 'requiredDate',
-    helper: 'Debe ser una fecha futura',
+    helper: 'Debe ser una fecha futura.',
     label: 'Fecha requerida',
     placeholder: '',
     type: 'date',
   },
 ] as const;
 
-const FIELD_LABELS: Record<keyof Omit<RfqFormState, 'attachments'>, string> = {
-  description: 'Descripcion',
-  estimatedVolume: 'Volumen estimado',
-  hardware: 'Hardware',
-  machineType: 'Tipo de maquina',
-  material: 'Material',
-  partNumber: 'Numero de parte',
-  plant: 'Planta o pais',
-  region: 'Region',
-  requiredDate: 'Fecha requerida',
-  rfqName: 'Nombre del RFQ',
-};
-
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-function createEmptyState(): RfqFormState {
+function isFutureDate(value: string) {
+  if (!value) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const selectedDate = new Date(`${value}T00:00:00`).getTime();
+
+  return selectedDate > todayAtMidnight;
+}
+
+const rfqFormSchema = z.object({
+  rfqName: z
+    .string()
+    .trim()
+    .min(3, 'Ingresa un nombre de RFQ de al menos 3 caracteres.')
+    .max(80, 'El nombre del RFQ no debe exceder 80 caracteres.'),
+  material: z
+    .string()
+    .trim()
+    .min(2, 'Ingresa el material principal.')
+    .max(80, 'El material no debe exceder 80 caracteres.'),
+  hardware: z
+    .string()
+    .trim()
+    .min(2, 'Ingresa el hardware o herramental esperado.')
+    .max(80, 'El hardware no debe exceder 80 caracteres.'),
+  description: z
+    .string()
+    .trim()
+    .min(10, 'Agrega una descripcion de al menos 10 caracteres.')
+    .max(320, 'La descripcion no debe exceder 320 caracteres.'),
+  partNumber: z
+    .string()
+    .trim()
+    .min(3, 'Ingresa un numero de parte de al menos 3 caracteres.')
+    .max(60, 'El numero de parte no debe exceder 60 caracteres.')
+    .regex(/^[A-Za-z0-9._-]+$/, 'Usa solo letras, numeros, puntos, guiones o guion bajo.'),
+  machineType: z
+    .string()
+    .trim()
+    .min(2, 'Ingresa el tipo de maquina o proceso.')
+    .max(80, 'El tipo de maquina no debe exceder 80 caracteres.'),
+  estimatedVolume: z
+    .string()
+    .trim()
+    .min(1, 'Ingresa el volumen estimado.')
+    .regex(/^\d+$/, 'El volumen debe ser un numero entero sin letras ni simbolos.')
+    .refine((value) => Number(value) > 0, 'El volumen debe ser mayor a cero.')
+    .refine((value) => Number(value) <= 10000000, 'El volumen no puede exceder 10,000,000.'),
+  region: z
+    .string()
+    .trim()
+    .min(2, 'Ingresa la region principal.')
+    .max(80, 'La region no debe exceder 80 caracteres.'),
+  plant: z
+    .string()
+    .trim()
+    .min(2, 'Ingresa la planta o pais destino.')
+    .max(80, 'La planta o pais no debe exceder 80 caracteres.'),
+  requiredDate: z
+    .string()
+    .min(1, 'Selecciona la fecha requerida.')
+    .refine(isFutureDate, 'Selecciona una fecha posterior al dia de hoy.'),
+});
+
+function createEmptyValues(): RfqFormValues {
   return {
     rfqName: '',
     material: '',
@@ -165,14 +218,10 @@ function createEmptyState(): RfqFormState {
     region: '',
     plant: '',
     requiredDate: '',
-    attachments: {
-      ppt: null,
-      stp: null,
-    },
   };
 }
 
-function createEditState(rfqId: string): RfqFormState {
+function createEditValues(rfqId: string): RfqFormValues {
   return {
     rfqName: 'Soporte lateral de puerta',
     material: 'PA66 con fibra',
@@ -184,29 +233,47 @@ function createEditState(rfqId: string): RfqFormState {
     region: 'Norteamerica',
     plant: 'Saltillo, MX',
     requiredDate: '2026-05-28',
-    attachments: {
-      ppt: {
-        kind: 'ppt',
-        name: 'presentacion-tecnica-rfq.pptx',
-        sizeLabel: '18.4 MB',
-        uploadedAt: '07 Abr 2026 | 16:30',
-      },
-      stp: {
-        kind: 'stp',
-        name: 'modelo-molde-rfq.step',
-        sizeLabel: '82.6 MB',
-        uploadedAt: '07 Abr 2026 | 16:28',
-      },
+  };
+}
+
+function createEmptyAttachments(): RfqAttachments {
+  return {
+    ppt: null,
+    stp: null,
+  };
+}
+
+function createEditAttachments(): RfqAttachments {
+  return {
+    ppt: {
+      kind: 'ppt',
+      name: 'presentacion-tecnica-rfq.pptx',
+      sizeLabel: '18.4 MB',
+      uploadedAt: '07 Abr 2026 | 16:30',
+    },
+    stp: {
+      kind: 'stp',
+      name: 'modelo-molde-rfq.step',
+      sizeLabel: '82.6 MB',
+      uploadedAt: '07 Abr 2026 | 16:28',
     },
   };
 }
 
-function getInitialState(mode: RfqWorkspaceMode, rfqId?: string) {
+function getInitialValues(mode: RfqWorkspaceMode, rfqId?: string) {
   if (mode === 'edit') {
-    return createEditState((rfqId ?? 'RFQ-021').toUpperCase());
+    return createEditValues((rfqId ?? 'RFQ-021').toUpperCase());
   }
 
-  return createEmptyState();
+  return createEmptyValues();
+}
+
+function getInitialAttachments(mode: RfqWorkspaceMode) {
+  if (mode === 'edit') {
+    return createEditAttachments();
+  }
+
+  return createEmptyAttachments();
 }
 
 function getModeFeedback(mode: RfqWorkspaceMode, rfqId?: string) {
@@ -255,57 +322,6 @@ function getUploadLimit(kind: UploadKind) {
   return kind === 'stp' ? 100 : 25;
 }
 
-function isFutureDate(value: string) {
-  if (!value) {
-    return false;
-  }
-
-  const today = new Date();
-  const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const selectedDate = new Date(`${value}T00:00:00`).getTime();
-
-  return selectedDate > todayAtMidnight;
-}
-
-function buildValidation(state: RfqFormState): ValidationResult {
-  const missingItems: string[] = [];
-
-  Object.entries(FIELD_LABELS).forEach(([fieldName, label]) => {
-    const value = state[fieldName as keyof Omit<RfqFormState, 'attachments'>];
-
-    if (!`${value}`.trim()) {
-      missingItems.push(label);
-    }
-  });
-
-  if (state.requiredDate && !isFutureDate(state.requiredDate)) {
-    missingItems.push('Fecha requerida futura');
-  }
-
-  if (!state.attachments.stp) {
-    missingItems.push('Archivo STP');
-  }
-
-  if (!state.attachments.ppt) {
-    missingItems.push('Archivo PPT');
-  }
-
-  const totalCount = Object.keys(FIELD_LABELS).length + 2;
-  const completedCount = totalCount - missingItems.length;
-
-  return {
-    canSubmit: missingItems.length === 0,
-    completedCount,
-    completionPercentage: Math.round((completedCount / totalCount) * 100),
-    missingItems,
-    totalCount,
-  };
-}
-
-function getFieldStateLabel(invalid: boolean) {
-  return invalid ? 'border-[rgba(170,0,15,0.3)] bg-[#fff7f7]' : 'border-[rgba(217,222,229,0.9)] bg-white';
-}
-
 function getFeedbackToneStyles(tone: FeedbackTone) {
   if (tone === 'success') {
     return 'border-[rgba(141,198,63,0.32)] bg-[rgba(141,198,63,0.12)] text-[var(--bocar-blue-100)]';
@@ -318,37 +334,67 @@ function getFeedbackToneStyles(tone: FeedbackTone) {
   return 'border-[rgba(31,58,97,0.14)] bg-[rgba(31,58,97,0.05)] text-[var(--bocar-blue-90)]';
 }
 
+function getInputStateClasses(error?: FieldError) {
+  if (error) {
+    return 'border-[rgba(170,0,15,0.44)] bg-[#fff8f8] text-[var(--bocar-text)] focus:border-[var(--bocar-error)] focus:shadow-[0_0_0_3px_rgba(170,0,15,0.1)]';
+  }
+
+  return 'border-[rgba(217,222,229,0.9)] bg-white text-[var(--bocar-text)] focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]';
+}
+
 function FormField({
+  error,
   helper,
-  invalid,
+  id,
+  inputMode,
   label,
-  onChange,
   placeholder,
-  required = true,
+  registration,
   type = 'text',
-  value,
 }: FormFieldProps) {
+  const helpId = `${id}-help`;
+  const errorId = `${id}-error`;
+
   return (
-    <label className="grid gap-2">
-      <span className="flex items-center justify-between gap-3">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <label
+          className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]"
+          htmlFor={id}
+        >
           {label}
-        </span>
-        <span className="text-[11px] text-[var(--bocar-blue-30)]">{helper}</span>
-      </span>
+        </label>
+        <span className="shrink-0 text-[11px] font-medium text-[var(--bocar-blue-30)]">Obligatorio</span>
+      </div>
 
       <input
+        aria-describedby={error ? errorId : helpId}
+        aria-invalid={Boolean(error)}
         className={[
-          'h-12 rounded-[8px] border px-4 text-[14px] text-[var(--bocar-text)] outline-none transition placeholder:text-[var(--bocar-blue-30)] focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]',
-          getFieldStateLabel(invalid),
+          'h-12 rounded-[8px] border px-4 text-[14px] outline-none transition placeholder:text-[var(--bocar-blue-30)]',
+          getInputStateClasses(error),
         ].join(' ')}
+        id={id}
+        inputMode={inputMode}
         placeholder={placeholder}
-        required={required}
         type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        {...registration}
       />
-    </label>
+
+      {error ? (
+        <p
+          className="m-0 rounded-[8px] border border-[rgba(170,0,15,0.18)] bg-[rgba(170,0,15,0.06)] px-3 py-2 text-[12px] leading-[1.45] text-[var(--bocar-error)]"
+          id={errorId}
+          role="alert"
+        >
+          {error.message}
+        </p>
+      ) : (
+        <p className="m-0 text-[12px] leading-[1.45] text-[var(--bocar-blue-50)]" id={helpId}>
+          {helper}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -358,12 +404,13 @@ function UploadStatusCard({ asset, invalid, kind }: UploadStatusCardProps) {
 
   return (
     <div
+      aria-invalid={invalid}
       className={[
         'rounded-[12px] border px-4 py-4 transition',
         asset
           ? 'border-[rgba(31,58,97,0.14)] bg-[rgba(31,58,97,0.03)]'
           : invalid
-            ? 'border-[rgba(170,0,15,0.24)] bg-[rgba(170,0,15,0.06)]'
+            ? 'border-[rgba(170,0,15,0.28)] bg-[rgba(170,0,15,0.07)]'
             : 'border-[rgba(217,222,229,0.9)] bg-white',
       ].join(' ')}
     >
@@ -378,7 +425,9 @@ function UploadStatusCard({ asset, invalid, kind }: UploadStatusCardProps) {
             'inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]',
             asset
               ? 'bg-[rgba(141,198,63,0.18)] text-[var(--bocar-blue-100)]'
-              : 'bg-[rgba(167,177,194,0.18)] text-[var(--bocar-blue-70)]',
+              : invalid
+                ? 'bg-[rgba(170,0,15,0.12)] text-[var(--bocar-error)]'
+                : 'bg-[rgba(167,177,194,0.18)] text-[var(--bocar-blue-70)]',
           ].join(' ')}
         >
           {asset ? 'Cargado' : 'Pendiente'}
@@ -393,8 +442,16 @@ function UploadStatusCard({ asset, invalid, kind }: UploadStatusCardProps) {
           </p>
         </div>
       ) : (
-        <p className="mt-4 text-[12px] leading-[1.5] text-[var(--bocar-blue-50)]">
-          Aun no hay un archivo {kind === 'stp' ? 'STP' : 'PPT'} adjunto.
+        <p
+          className={[
+            'mt-4 text-[12px] leading-[1.5]',
+            invalid ? 'font-medium text-[var(--bocar-error)]' : 'text-[var(--bocar-blue-50)]',
+          ].join(' ')}
+          role={invalid ? 'alert' : undefined}
+        >
+          {invalid
+            ? `Adjunta un archivo ${kind === 'stp' ? 'STP o STEP' : 'PPT o PPTX'} antes de enviar.`
+            : `Aun no hay un archivo ${kind === 'stp' ? 'STP' : 'PPT'} adjunto.`}
         </p>
       )}
     </div>
@@ -446,30 +503,36 @@ function SectionHeader({
 export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formState, setFormState] = useState<RfqFormState>(() => getInitialState(mode, rfqId));
+  const [attachments, setAttachments] = useState<RfqAttachments>(() => getInitialAttachments(mode));
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() => getModeFeedback(mode, rfqId));
-  const [shouldHighlightValidation, setShouldHighlightValidation] = useState(false);
-  const validation = useMemo(() => buildValidation(formState), [formState]);
+  const [shouldValidateAttachments, setShouldValidateAttachments] = useState(false);
+
+  const {
+    formState: { errors, isSubmitting },
+    handleSubmit,
+    register,
+    reset,
+    setFocus,
+  } = useForm<RfqFormValues>({
+    defaultValues: getInitialValues(mode, rfqId),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: zodResolver(rfqFormSchema),
+  });
 
   useEffect(() => {
-    setFormState(getInitialState(mode, rfqId));
+    reset(getInitialValues(mode, rfqId));
+    setAttachments(getInitialAttachments(mode));
     setFeedback(getModeFeedback(mode, rfqId));
-    setShouldHighlightValidation(false);
-  }, [mode, rfqId]);
-
-  function updateField(field: keyof Omit<RfqFormState, 'attachments'>, value: string) {
-    setFormState((currentState) => ({
-      ...currentState,
-      [field]: value,
-    }));
-  }
+    setShouldValidateAttachments(false);
+  }, [mode, reset, rfqId]);
 
   function handleFileSelection(files: FileList | null) {
     if (!files || files.length === 0) {
       return;
     }
 
-    const nextAttachments = { ...formState.attachments };
+    const nextAttachments = { ...attachments };
     const acceptedFiles: string[] = [];
     const rejectedFiles: string[] = [];
 
@@ -498,10 +561,11 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
       acceptedFiles.push(file.name);
     });
 
-    setFormState((currentState) => ({
-      ...currentState,
-      attachments: nextAttachments,
-    }));
+    setAttachments(nextAttachments);
+
+    if (nextAttachments.stp && nextAttachments.ppt) {
+      setShouldValidateAttachments(false);
+    }
 
     if (acceptedFiles.length > 0 && rejectedFiles.length === 0) {
       setFeedback({
@@ -531,7 +595,7 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   }
 
   function handleSaveDraft() {
-    setShouldHighlightValidation(false);
+    setShouldValidateAttachments(false);
     setFeedback({
       text:
         mode === 'edit'
@@ -541,12 +605,12 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
     });
   }
 
-  function handleSubmit() {
-    setShouldHighlightValidation(true);
+  async function handleValidSubmit() {
+    setShouldValidateAttachments(true);
 
-    if (!validation.canSubmit) {
+    if (!attachments.stp || !attachments.ppt) {
       setFeedback({
-        text: 'No se puede enviar. Completa los campos obligatorios, adjunta STP y PPT y usa una fecha futura.',
+        text: 'Adjunta los archivos obligatorios STP y PPT antes de enviar la RFQ.',
         tone: 'error',
       });
       return;
@@ -561,13 +625,24 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
     });
   }
 
+  const handleInvalidSubmit: SubmitErrorHandler<RfqFormValues> = (fieldErrors) => {
+    setShouldValidateAttachments(true);
+    setFeedback({
+      text: 'Revisa los campos marcados. Cada error indica exactamente que dato debes corregir.',
+      tone: 'error',
+    });
+
+    const firstInvalidField = Object.keys(fieldErrors)[0] as keyof RfqFormValues | undefined;
+
+    if (firstInvalidField) {
+      setFocus(firstInvalidField);
+    }
+  };
+
   const isEditMode = mode === 'edit';
-  const missingItems = validation.missingItems;
-  const missingItemsPreview = missingItems.slice(0, 4);
   const pageTitle = isEditMode ? 'EDITAR RFQ' : 'CREAR RFQ';
   const sectionTitle = isEditMode ? 'Correccion tecnica del RFQ' : 'Informacion del RFQ';
   const sectionEyebrow = isEditMode ? 'Workspace de correccion' : 'Workspace de captura';
-  const completionLabel = `${validation.completedCount}/${validation.totalCount}`;
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-12 pt-10 sm:px-8 lg:px-12 xl:px-14">
@@ -587,12 +662,9 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
       <section className="mt-8 overflow-hidden rounded-[12px] border border-[rgba(217,222,229,0.96)] bg-white shadow-[0_18px_40px_rgba(0,46,93,0.05)]">
         <div className="flex flex-col gap-4 border-b border-[rgba(217,222,229,0.92)] px-7 py-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
-            <h3 className="m-0 text-[24px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)]">
+            <h3 className="m-0 mt-3 text-[24px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)]">
               {sectionTitle}
             </h3>
-            <p className="mt-2 text-[13px] leading-[1.55] text-[var(--bocar-blue-50)]">
-              Formulario tecnico para captura, validacion y preparacion previa al envio.
-            </p>
           </div>
 
           <div className="grid gap-1 self-start text-right">
@@ -606,12 +678,13 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
           </div>
         </div>
 
-        <div className="px-7 py-7 lg:px-8 lg:py-8">
+        <form className="px-7 py-7 lg:px-8 lg:py-8" noValidate onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
           <div
             className={[
               'rounded-[12px] border px-4 py-3 text-[13px] leading-[1.55]',
               getFeedbackToneStyles(feedback.tone),
             ].join(' ')}
+            role={feedback.tone === 'error' ? 'alert' : 'status'}
           >
             {feedback.text}
           </div>
@@ -634,13 +707,14 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
                 {BASE_FIELDS.map((field) => (
                   <FormField
                     key={field.field}
+                    error={errors[field.field]}
                     helper={field.helper}
-                    invalid={shouldHighlightValidation && !`${formState[field.field]}`.trim()}
+                    id={`rfq-${field.field}`}
+                    inputMode={field.inputMode}
                     label={field.label}
                     placeholder={field.placeholder}
+                    registration={register(field.field)}
                     type={field.type}
-                    value={formState[field.field]}
-                    onChange={(value) => updateField(field.field, value)}
                   />
                 ))}
               </div>
@@ -660,33 +734,17 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
               </div>
 
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                {SPECIFICATION_FIELDS.map((field) => (
+                {[...SPECIFICATION_FIELDS, ...LOCATION_FIELDS].map((field) => (
                   <FormField
                     key={field.field}
+                    error={errors[field.field]}
                     helper={field.helper}
-                    invalid={shouldHighlightValidation && !`${formState[field.field]}`.trim()}
+                    id={`rfq-${field.field}`}
+                    inputMode={field.inputMode}
                     label={field.label}
                     placeholder={field.placeholder}
+                    registration={register(field.field)}
                     type={field.type}
-                    value={formState[field.field]}
-                    onChange={(value) => updateField(field.field, value)}
-                  />
-                ))}
-
-                {LOCATION_FIELDS.map((field) => (
-                  <FormField
-                    key={field.field}
-                    helper={field.helper}
-                    invalid={
-                      shouldHighlightValidation &&
-                      (!`${formState[field.field]}`.trim() ||
-                        (field.field === 'requiredDate' && !isFutureDate(formState.requiredDate)))
-                    }
-                    label={field.label}
-                    placeholder={field.placeholder}
-                    type={field.type}
-                    value={formState[field.field]}
-                    onChange={(value) => updateField(field.field, value)}
                   />
                 ))}
               </div>
@@ -710,14 +768,19 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={handleDrop}
-                className="mt-5 flex w-full flex-col items-center justify-center rounded-[16px] border border-dashed border-[rgba(167,177,194,0.8)] bg-[rgba(245,247,250,0.7)] px-6 py-10 text-center transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.96)]"
+                className={[
+                  'mt-5 flex w-full flex-col items-center justify-center rounded-[16px] border border-dashed px-6 py-10 text-center transition',
+                  shouldValidateAttachments && (!attachments.stp || !attachments.ppt)
+                    ? 'border-[rgba(170,0,15,0.34)] bg-[rgba(170,0,15,0.05)] hover:border-[var(--bocar-error)]'
+                    : 'border-[rgba(167,177,194,0.8)] bg-[rgba(245,247,250,0.7)] hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.96)]',
+                ].join(' ')}
               >
                 <UploadArrowIcon />
                 <p className="mt-5 text-[28px] font-semibold tracking-[-0.03em] text-[var(--bocar-blue-100)] sm:text-[31px]">
                   Arrastra y suelta aqui tus archivos
                 </p>
                 <p className="mt-3 max-w-[680px] text-[14px] leading-[1.6] text-[var(--bocar-blue-70)]">
-                  Archivos requeridos: STP y PPT. Tamanos maximos visibles antes de la carga para evitar errores de envio.
+                  Archivos requeridos: STP y PPT.
                 </p>
                 <p className="mt-3 text-[13px] font-medium text-[var(--bocar-blue-50)]">
                   STP hasta 100 MB | PPT hasta 25 MB | Haz clic para seleccionar archivos
@@ -739,106 +802,36 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 <UploadStatusCard
-                  asset={formState.attachments.stp}
-                  invalid={shouldHighlightValidation && !formState.attachments.stp}
+                  asset={attachments.stp}
+                  invalid={shouldValidateAttachments && !attachments.stp}
                   kind="stp"
                 />
                 <UploadStatusCard
-                  asset={formState.attachments.ppt}
-                  invalid={shouldHighlightValidation && !formState.attachments.ppt}
+                  asset={attachments.ppt}
+                  invalid={shouldValidateAttachments && !attachments.ppt}
                   kind="ppt"
                 />
               </div>
             </section>
           </div>
 
-          <section className="mt-8 rounded-[16px] border border-[rgba(217,222,229,0.9)] bg-[rgba(245,247,250,0.74)] px-5 py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="m-0 text-[18px] font-semibold tracking-[-0.02em] text-[var(--bocar-text)]">
-                  Resumen de validacion
-                </p>
-                <p className="mt-1 text-[13px] text-[var(--bocar-blue-50)]">
-                  Esta pantalla esta pensada para dejar claro que falta completar antes del envio.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 self-start">
-                <span className="rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--bocar-blue-100)] shadow-[0_6px_16px_rgba(0,46,93,0.08)]">
-                  Completitud {completionLabel}
-                </span>
-                <span className="text-[12px] font-medium text-[var(--bocar-blue-70)]">
-                  {validation.completionPercentage}% listo
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 h-2.5 rounded-full bg-white">
-              <div
-                className={[
-                  'h-full rounded-full transition-all',
-                  validation.canSubmit ? 'bg-[var(--bocar-done)]' : 'bg-[var(--bocar-blue-100)]',
-                ].join(' ')}
-                style={{ width: `${validation.completionPercentage}%` }}
-              />
-            </div>
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_292px]">
-              <div className="rounded-[12px] border border-[rgba(217,222,229,0.9)] bg-white px-4 py-4">
-                <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                  Pendientes visibles
-                </p>
-                {missingItems.length > 0 ? (
-                  <ul className="mt-3 grid gap-2 p-0 text-[13px] text-[var(--bocar-text)]">
-                    {missingItemsPreview.map((item) => (
-                      <li key={item} className="flex items-center gap-2 list-none">
-                        <span className="h-2 w-2 rounded-full bg-[var(--bocar-error)]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                    {missingItems.length > missingItemsPreview.length ? (
-                      <li className="list-none text-[13px] text-[var(--bocar-blue-70)]">
-                        +{missingItems.length - missingItemsPreview.length} pendientes adicionales
-                      </li>
-                    ) : null}
-                  </ul>
-                ) : (
-                  <p className="mt-3 text-[13px] leading-[1.55] text-[var(--bocar-blue-100)]">
-                    Todo listo. La RFQ ya cumple con campos obligatorios, archivos requeridos y fecha futura.
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-[12px] border border-[rgba(217,222,229,0.9)] bg-white px-4 py-4">
-                <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                  Estado del envio
-                </p>
-                <p className="mt-3 text-[20px] font-semibold tracking-[-0.03em] text-[var(--bocar-blue-100)]">
-                  {validation.canSubmit ? 'Habilitado' : 'Bloqueado'}
-                </p>
-                <p className="mt-2 text-[13px] leading-[1.55] text-[var(--bocar-blue-70)]">
-                  {validation.canSubmit
-                    ? 'Puedes guardar y enviar sin perder el contexto de captura.'
-                    : 'El boton de envio valida el formulario y evita continuar si falta informacion.'}
-                </p>
-              </div>
-            </div>
-          </section>
-
           <div className="mt-8 flex flex-col items-center gap-3 border-t border-[rgba(217,222,229,0.82)] pt-7">
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
               <Button
-                className="h-12 min-w-[210px] rounded-[10px] bg-[rgba(167,177,194,0.92)] px-8 text-[14px] font-semibold text-white shadow-none hover:bg-[rgba(127,143,163,0.96)]"
+                className="h-12 min-w-[210px] rounded-[10px] bg-[rgba(167,177,194,0.92)] px-8 text-[14px] font-semibold text-white shadow-none hover:bg-[rgba(127,143,163,0.96)] disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isSubmitting}
                 onClick={handleSaveDraft}
+                type="button"
               >
                 {isEditMode ? 'Guardar cambios' : 'Guardar borrador'}
               </Button>
 
               <Button
-                className="h-12 min-w-[210px] rounded-[10px] bg-[var(--bocar-blue-100)] px-8 text-[14px] font-semibold text-white shadow-[0_14px_28px_rgba(0,46,93,0.18)] hover:bg-[#0b3b6b]"
-                onClick={handleSubmit}
+                className="h-12 min-w-[210px] rounded-[10px] bg-[var(--bocar-blue-100)] px-8 text-[14px] font-semibold text-white shadow-[0_14px_28px_rgba(0,46,93,0.18)] hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isSubmitting}
+                type="submit"
               >
-                {isEditMode ? 'Actualizar y enviar' : 'Enviar RFQ'}
+                {isSubmitting ? 'Validando...' : isEditMode ? 'Actualizar y enviar' : 'Enviar RFQ'}
               </Button>
             </div>
 
@@ -846,7 +839,7 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
               No se permite el envio sin campos obligatorios, STP, PPT y una fecha requerida futura.
             </p>
           </div>
-        </div>
+        </form>
       </section>
     </div>
   );
