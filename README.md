@@ -16,9 +16,57 @@ Puerto: 1433
 
 ---
 
-### Back
+## Back
+
+He usado conda para poder generar el ambiente unciamente leyendo el archivo que se encuentra en la ruta 
+
+```bash
+./public/django-app-Bocar/
+```
+
+para poder crearlo y activarlo unicamente tienes que encontrarte en el directorio antes mencionado, donde se encuentra el archivo ***"environment.yml"***.
+
+```bash
+cd ./public/django-app-Bocar/
+```
+
+Posteriormente ejecuta el siguiente comando
+
+```bash
+conda env create -f environment.yml
+```
+
+Esto leera todas las dependencias, librerias, paquetes y versiones que estan puestas, asi como crear el ambiente con el nombre ***"django_env"***, que para activar el ambiente usa el sigueinte comando
+
+```bash
+conda activate django_app
+```
+
+> [!CAUTION]  
+> Debes de ya tener Conda instalado, y usar la terminal de conda
+
+> [!NOTE]  
+> En caso de descargar mas librerias de python deberas de actualizar el archivo ***"environment.yml"***. Para hacer esto mas sencillo sigue los siguientes paso  
+>
+> ```bash
+> # Ejemplo de descarga de librerias
+> pip install numpy, cartopy...
+> 
+> # Deberas realizar este comando dentro del directorio donde se encuentra "environment.yml"
+> conda env export > environment.yml
+> ```
+
+---  
 
 Para poder hacer efectivos los nuevos cambios del back escencialmente por como se desarrolle y agreguen las cosas, la base de datos tiene que estar siempre con los nuevos cambios
+
+dentro del directorio
+
+```bash
+./public/django-app-Bocar
+````
+
+Ejecuta
 
 ```bash
 python manage.py migrate
@@ -32,9 +80,9 @@ Finalmente para ejecutar el servidor django en modo desarrollo
 ```bash
 python manage.py runserver
 ```
+---
 
-
-### Front
+## Front
 
 Primero instalemos las dependencias, para esto debes de estar en el directorio del proyecto, y navegar hasta el proyecto de react
 
