@@ -2,6 +2,7 @@ import { ROUTES } from '@/app/config/routes';
 import DashboardPage from '@/pages/industrializacion/DashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import LoginPage from '@/pages/auth/LoginPage';
+import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
 import { Navigate, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 
@@ -33,38 +34,55 @@ function FallbackRoute() {
 }
 
 const appRouter = createBrowserRouter([
+  // Programada: login y redireccion de preview.
   {
     path: ROUTES.AUTH.LOGIN,
     element: <LoginRoute />,
   },
+  // Programada: dashboard principal de Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
     element: <DashboardPage />,
   },
+  // Programada: creacion de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_CREATE,
     element: <RfqFormPage />,
   },
+  // Programada: edicion de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_EDIT,
     element: <RfqFormPage />,
   },
+  // Programada: detalle de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_DETAIL,
     element: <RfqDetailPage />,
   },
+  // Programada: seleccion de proveedores desde Compras.
+  {
+    path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
+    element: <SupplierSelectionPage />,
+  },
+  // Programada: detalle de RFQ en Compras con pantalla compartida.
   {
     path: ROUTES.PURCHASING.RFQ_DETAIL,
     element: <RfqDetailPage />,
   },
+  // Programada: detalle de RFQ para Proveedor con pantalla compartida.
   {
     path: ROUTES.SUPPLIER.RFQ_DETAIL,
     element: <RfqDetailPage />,
   },
+  // Programada: detalle de cotizacion para Proveedor con pantalla compartida.
   {
     path: ROUTES.SUPPLIER.QUOTATION_DETAIL,
     element: <RfqDetailPage />,
   },
+  // No programada: ROUTES.PURCHASING.RFQ_LIST necesita pantalla de listado de Compras.
+  // No programada: ROUTES.SUPPLIER.RFQ_LIST necesita pantalla de listado de RFQs del Proveedor.
+  // No programada: ROUTES.SUPPLIER.QUOTATION_LIST necesita pantalla de listado de cotizaciones.
+  // Programada: fallback para rutas no reconocidas.
   {
     path: '*',
     element: <FallbackRoute />,

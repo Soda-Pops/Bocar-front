@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 type UploadedFile = {
   name: string;
 };
@@ -6,6 +8,8 @@ type SelectedSupplier = {
   category: string;
   contact: string;
   name: string;
+  score: string;
+  scoreTone: 'success' | 'warning' | 'danger';
   status: string;
 };
 
@@ -20,6 +24,7 @@ type SupplierBenchmark = {
 
 type RfqDetailWorkspaceProps = {
   backHref?: string;
+  mode?: 'readonly' | 'assign';
   referenceId?: string;
 };
 
@@ -34,18 +39,24 @@ const selectedSuppliers: SelectedSupplier[] = [
     category: 'Inyeccion Plastica',
     contact: 'Laura Gomez',
     name: 'PLASTIMEX',
+    score: '92',
+    scoreTone: 'success',
     status: 'Seleccionado',
   },
   {
     category: 'Metalmecanica',
     contact: 'Juan Perez',
     name: 'RAMCO',
+    score: '100',
+    scoreTone: 'success',
     status: 'Seleccionado',
   },
   {
     category: 'Componentes',
     contact: 'Sofia Ruiz',
     name: 'HERTOLAB',
+    score: '92',
+    scoreTone: 'success',
     status: 'Seleccionado',
   },
 ];
@@ -118,17 +129,87 @@ function getScoreToneClass(tone: SupplierBenchmark['scoreTone']) {
   return 'bg-[var(--bocar-error)]';
 }
 
+function getRowStateClass(isInvalid: boolean) {
+  if (isInvalid) {
+    return 'border-t border-[rgba(170,0,15,0.2)] bg-[rgba(170,0,15,0.045)]';
+  }
+
+  return 'border-t border-[rgba(217,222,229,0.72)]';
+}
+
 export function RfqDetailWorkspace({
   backHref = '/industrializacion/dashboard',
+  mode = 'readonly',
   referenceId = 'RFQ-001',
 }: RfqDetailWorkspaceProps) {
   const normalizedId = referenceId.toUpperCase();
+  const isAssignMode = mode === 'assign';
+  const [selectedSupplierNames, setSelectedSupplierNames] = useState<string[]>(
+    () => (isAssignMode ? selectedSuppliers.map((supplier) => supplier.name) : []),
+  );
+  const [supplierDeadlines, setSupplierDeadlines] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ tone: 'neutral' | 'success' | 'error'; text: string } | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
+
+  function isSupplierSelected(supplierName: string) {
+    return selectedSupplierNames.includes(supplierName);
+  }
+
+  function handleSupplierToggle(supplierName: string) {
+    setSelectedSupplierNames((currentNames) => {
+      if (currentNames.includes(supplierName)) {
+        return currentNames.filter((name) => name !== supplierName);
+      }
+
+      return [...currentNames, supplierName];
+    });
+    setFeedback(null);
+  }
+
+  function handleDeadlineChange(supplierName: string, value: string) {
+    setSupplierDeadlines((currentDeadlines) => ({
+      ...currentDeadlines,
+      [supplierName]: value,
+    }));
+    setFeedback(null);
+  }
+
+  function handleCancelAssignment() {
+    window.location.assign(backHref);
+  }
+
+  function handleSendSuppliers() {
+    setShowValidation(true);
+
+    if (selectedSupplierNames.length === 0) {
+      setFeedback({
+        tone: 'error',
+        text: 'Selecciona al menos un proveedor antes de enviar la asignacion.',
+      });
+      return;
+    }
+
+    const hasMissingDeadline = selectedSupplierNames.some((name) => !supplierDeadlines[name]);
+
+    if (hasMissingDeadline) {
+      setFeedback({
+        tone: 'error',
+        text: 'Cada proveedor seleccionado necesita una fecha limite.',
+      });
+      return;
+    }
+
+    setFeedback({
+      tone: 'success',
+      text: 'Proveedores listos para enviarse al siguiente paso del flujo.',
+    });
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 pb-10 pt-6 sm:px-8 lg:px-0 lg:pt-7">
+    <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 pb-10 pt-6 sm:px-8 lg:px-8 lg:pt-7 xl:px-0">
       <div className="flex items-center justify-between gap-4">
         <h1 className="m-0 text-[24px] font-semibold tracking-[0.02em] text-[var(--bocar-text)] lg:text-[22px]">
-          DETALLE RFQ
+          {isAssignMode ? 'SELECCIÓN DE PROVEEDORES' : 'DETALLE RFQ'}
         </h1>
 
         <a
@@ -171,21 +252,28 @@ export function RfqDetailWorkspace({
               <div className="font-medium text-[var(--bocar-text)]">
                 <p className="m-0">RFQ para piezas del motor</p>
                 <p className="m-0">20/06/2024</p>
-                <span className="mt-1 inline-flex rounded-[4px] bg-[var(--bocar-review)] px-4 py-1 text-[10px] font-semibold text-[var(--bocar-text)]">
-                  Review
+                <span
+                  className={[
+                    'mt-1 inline-flex rounded-[4px] px-4 py-1 text-[10px] font-semibold text-[var(--bocar-text)]',
+                    isAssignMode ? 'bg-[var(--bocar-done)]' : 'bg-[var(--bocar-review)]',
+                  ].join(' ')}
+                >
+                  {isAssignMode ? 'Activo' : 'Review'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-7 flex justify-center">
-            <button
-              className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-100)] px-8 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.14)]"
-              type="button"
-            >
-              Editar RFQ
-            </button>
-          </div>
+          {!isAssignMode ? (
+            <div className="mt-7 flex justify-center">
+              <button
+                className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-100)] px-8 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.14)]"
+                type="button"
+              >
+                Editar RFQ
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
@@ -213,24 +301,87 @@ export function RfqDetailWorkspace({
         </div>
 
         <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
-          <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Proveedores Seleccionados</h2>
+          <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">
+            {isAssignMode ? 'Seleccionar Proveedores' : 'Proveedores Seleccionados'}
+          </h2>
+
+          {isAssignMode && feedback ? (
+            <div
+              className={[
+                'mt-4 rounded-[8px] border px-4 py-3 text-[13px] leading-[1.45]',
+                feedback.tone === 'success'
+                  ? 'border-[rgba(141,198,63,0.32)] bg-[rgba(141,198,63,0.12)] text-[var(--bocar-blue-100)]'
+                  : feedback.tone === 'error'
+                    ? 'border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]'
+                    : 'border-[rgba(31,58,97,0.14)] bg-[rgba(31,58,97,0.05)] text-[var(--bocar-blue-90)]',
+              ].join(' ')}
+              role={feedback.tone === 'error' ? 'alert' : 'status'}
+            >
+              {feedback.text}
+            </div>
+          ) : null}
 
           <div className="mt-4 grid gap-3 sm:hidden">
             {selectedSuppliers.map((supplier) => (
               <article
                 key={`${supplier.name}-mobile`}
-                className="rounded-[6px] border border-[var(--bocar-border)] bg-white px-4 py-3"
+                className={[
+                  'rounded-[6px] border bg-white px-4 py-3',
+                  isAssignMode && showValidation && isSupplierSelected(supplier.name) && !supplierDeadlines[supplier.name]
+                    ? 'border-[rgba(170,0,15,0.42)]'
+                    : 'border-[var(--bocar-border)]',
+                ].join(' ')}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="m-0 text-[12px] font-semibold text-[var(--bocar-text)]">{supplier.name}</p>
-                    <p className="mt-1 text-[12px] text-[var(--bocar-blue-70)]">{supplier.category}</p>
-                  </div>
-                  <span className="rounded-[4px] bg-[var(--bocar-neutral)] px-2 py-1 text-[10px] font-medium text-[var(--bocar-text)]">
-                    {supplier.status}
-                  </span>
+                  <label className="flex min-w-0 items-start gap-3">
+                    {isAssignMode ? (
+                      <input
+                        checked={isSupplierSelected(supplier.name)}
+                        className="mt-0.5 h-4 w-4 rounded border-[var(--bocar-border)] accent-[var(--bocar-blue-100)]"
+                        onChange={() => handleSupplierToggle(supplier.name)}
+                        type="checkbox"
+                      />
+                    ) : null}
+                    <span className="min-w-0">
+                      <span className="block text-[12px] font-semibold text-[var(--bocar-text)]">{supplier.name}</span>
+                      {isAssignMode ? (
+                        <span className="mt-1 block text-[12px] text-[var(--bocar-blue-70)]">{supplier.category}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                  {isAssignMode ? (
+                    <div className="flex min-w-[82px] items-center justify-end gap-2">
+                      <span className={`h-1 w-10 rounded-full ${getScoreToneClass(supplier.scoreTone)}`} />
+                      <span className="text-[12px] font-medium text-[var(--bocar-text)]">{supplier.score}</span>
+                    </div>
+                  ) : (
+                    <span className="rounded-[4px] bg-[var(--bocar-neutral)] px-2 py-1 text-[10px] font-medium text-[var(--bocar-text)]">
+                      {supplier.status}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-3 text-[12px] text-[var(--bocar-text)]">Contacto: {supplier.contact}</p>
+
+                {isAssignMode ? (
+                  <div className="mt-3 grid gap-2">
+                    <p className="m-0 text-[12px] text-[var(--bocar-text)]">Contacto: {supplier.contact}</p>
+                    <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+                      Fecha limite
+                      <input
+                        aria-label={`Fecha limite ${supplier.name}`}
+                        className="h-10 rounded-[6px] border border-[var(--bocar-border)] px-3 text-[12px] font-normal tracking-normal text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]"
+                        disabled={!isSupplierSelected(supplier.name)}
+                        onChange={(event) => handleDeadlineChange(supplier.name, event.target.value)}
+                        type="date"
+                        value={supplierDeadlines[supplier.name] ?? ''}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-1 text-[12px] text-[var(--bocar-blue-70)]">{supplier.category}</p>
+                    <p className="mt-3 text-[12px] text-[var(--bocar-text)]">Contacto: {supplier.contact}</p>
+                  </>
+                )}
               </article>
             ))}
           </div>
@@ -239,7 +390,10 @@ export function RfqDetailWorkspace({
             <table className="w-full max-w-[1040px] border-separate border-spacing-0 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] text-left">
               <thead>
                 <tr className="bg-[var(--bocar-bg)]">
-                  {['Proveedor', 'Categoria', 'Contacto', 'Estado'].map((header) => (
+                  {(isAssignMode
+                    ? ['Proveedor', 'Categoria', 'Contacto', 'Fecha limite', 'Score']
+                    : ['Proveedor', 'Categoria', 'Contacto', 'Estado']
+                  ).map((header) => (
                     <th
                       key={header}
                       className="px-6 py-3 text-[12px] font-semibold text-[var(--bocar-text)]"
@@ -250,18 +404,61 @@ export function RfqDetailWorkspace({
                 </tr>
               </thead>
               <tbody>
-                {selectedSuppliers.map((supplier) => (
-                  <tr key={supplier.name} className="border-t border-[rgba(217,222,229,0.72)]">
-                    <td className="px-6 py-3.5 text-[12px] font-medium text-[var(--bocar-text)]">{supplier.name}</td>
+                {selectedSuppliers.map((supplier) => {
+                  const isSelected = isSupplierSelected(supplier.name);
+                  const isInvalid = isAssignMode && showValidation && isSelected && !supplierDeadlines[supplier.name];
+
+                  return (
+                  <tr key={supplier.name} className={getRowStateClass(isInvalid)}>
+                    <td className="px-6 py-3.5 text-[12px] font-medium text-[var(--bocar-text)]">
+                      {isAssignMode ? (
+                        <label className="inline-flex items-center gap-3">
+                          <input
+                            checked={isSelected}
+                            className="h-4 w-4 rounded border-[var(--bocar-border)] accent-[var(--bocar-blue-100)]"
+                            onChange={() => handleSupplierToggle(supplier.name)}
+                            type="checkbox"
+                          />
+                          <span>{supplier.name}</span>
+                        </label>
+                      ) : (
+                        supplier.name
+                      )}
+                    </td>
                     <td className="px-6 py-3.5 text-[12px] text-[var(--bocar-text)]">{supplier.category}</td>
                     <td className="px-6 py-3.5 text-[12px] text-[var(--bocar-text)]">{supplier.contact}</td>
                     <td className="px-6 py-3.5">
-                      <span className="rounded-[4px] bg-[var(--bocar-neutral)] px-2 py-1 text-[10px] font-medium text-[var(--bocar-text)]">
-                        {supplier.status}
-                      </span>
+                      {isAssignMode ? (
+                        <input
+                          aria-label={`Fecha limite ${supplier.name}`}
+                          className={[
+                            'h-8 w-[150px] rounded-[6px] border bg-white px-3 text-[12px] text-[var(--bocar-text)] outline-none transition disabled:bg-[var(--bocar-bg)] disabled:text-[var(--bocar-blue-30)]',
+                            isInvalid
+                              ? 'border-[rgba(170,0,15,0.52)] focus:border-[var(--bocar-error)] focus:shadow-[0_0_0_3px_rgba(170,0,15,0.1)]'
+                              : 'border-[var(--bocar-border)] focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]',
+                          ].join(' ')}
+                          disabled={!isSelected}
+                          onChange={(event) => handleDeadlineChange(supplier.name, event.target.value)}
+                          type="date"
+                          value={supplierDeadlines[supplier.name] ?? ''}
+                        />
+                      ) : (
+                        <span className="rounded-[4px] bg-[var(--bocar-neutral)] px-2 py-1 text-[10px] font-medium text-[var(--bocar-text)]">
+                          {supplier.status}
+                        </span>
+                      )}
                     </td>
+                    {isAssignMode ? (
+                      <td className="px-6 py-3.5">
+                        <div className="flex min-w-[110px] items-center gap-5">
+                          <span className={`h-1 w-[72px] rounded-full ${getScoreToneClass(supplier.scoreTone)}`} />
+                          <span className="text-[12px] font-medium text-[var(--bocar-text)]">{supplier.score}</span>
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -327,16 +524,18 @@ export function RfqDetailWorkspace({
 
           <div className="mt-8 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-[88px]">
             <button
+              onClick={isAssignMode ? handleCancelAssignment : undefined}
               className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-30)] px-8 text-[13px] font-semibold text-white transition hover:bg-[var(--bocar-blue-50)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(167,177,194,0.28)]"
               type="button"
             >
-              Rechazar RFQ
+              {isAssignMode ? 'Cancelar' : 'Rechazar RFQ'}
             </button>
             <button
+              onClick={isAssignMode ? handleSendSuppliers : undefined}
               className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-100)] px-8 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.14)]"
               type="button"
             >
-              Aprobar RFQ
+              {isAssignMode ? 'Enviar Proveedores' : 'Aprobar RFQ'}
             </button>
           </div>
         </div>
