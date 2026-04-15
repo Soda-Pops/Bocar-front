@@ -1,38 +1,28 @@
 # Bocar
 
-## Introduccion
-Este repositorio es la pagina que se esta desarrolando para grupo Bocar, como parte de la materia TC3005B
-
 ## Get Started...
 
-### Back
+## Front
 
-Activaremos primeramente el ambiente virtual
+Primero instalemos las dependencias, para esto debes de estar en el directorio del proyecto, y navegar hasta el proyecto de react
 
-```bash
-source venv/bin/activate
-```
-
-posteriormente si tenemos migraciones pendientes por aplicar usaremos
+Puedes usar el siguiente comando:
 
 ```bash
-python manage.py migrate
+cd ./public/react_app_Bocar
 ```
 
-Finalmente para ejecutar el servidor
+Una vez dentro de la carpeta del proyecto del front instalaremos los paquetes necesarios
 
 ```bash
-python manage.py runserver
+npm install
 ```
 
+> [!CAUTION]  
+> Como precaución, cada que instalen las dependencias verifiquen el numero de vulnerabilidades que contiene, en su defecto corrijanlas, o solo mantengan las menores posibles
 
-### Front
-
-Ahora bien, para ejecutar el frontend desarrolado en react
+Con dependencias y paquetes listos unicamente debemos de correr el servicio en modo desarrollo
 
 ```bash
-npm start
+npm run dev
 ```
-
-## Consideraciones
-Considera que el back ya tiene una conexion a la base de datos por lo que es de suma importancia que tengas la base de datos con las creedenciales predeterminadas por defecto
