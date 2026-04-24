@@ -6,13 +6,13 @@ import {
   type FieldErrors,
   type FieldPath,
   type SubmitErrorHandler,
-  useFieldArray,
   useForm,
   useFormContext,
   useWatch,
 } from 'react-hook-form';
 import { z } from 'zod';
 
+import logoBocar from '@/assets/images/Logo-Bocar.png';
 import { dashboardUser } from '@/features/analytics/services/analyticsService';
 import { Button } from '@/shared/components/ui/Button';
 
@@ -33,42 +33,33 @@ const costRowSchema = z.object({
 });
 
 const workspaceSchema = z.object({
+  alloy: z.string(),
   buhler: z.string(),
   comments: z.string(),
-  considerations: z.record(z.string(), z.object({ notes: z.string() })),
+  considerations: z.record(z.string(), z.object({ checked: z.string(), notes: z.string() })),
   costs: z.record(z.string(), z.record(z.string(), costRowSchema)),
   cust: z.string(),
-  description: z.string(),
+  dtq: z.string(),
+  elab: z.string(),
   gates: z.string(),
   hydr_slides: z.string(),
   mech_slides: z.string(),
   num_cav: z.string(),
   num_tools: z.string(),
-  ot_inf: z.string(),
   part_dim: z.string(),
   part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
   part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
   part_tech: z.string(),
   parts_stroke: z.string(),
+  pnum: z.string(),
   ppy: z.string(),
+  prlf: z.string(),
   projected: z.string(),
   rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
-  spareparts: z.array(
-    z.object({
-      name: z.string(),
-      notes: z.string(),
-      price: z.string(),
-      qty: z.string(),
-      weeks: z.string(),
-    }),
-  ),
+  sk_part: z.string(),
   surface: z.string(),
-  tdim_ej: z.string(),
-  tdim_fixed: z.string(),
   three_plate: z.string(),
-  tool_type: z.string(),
-  tw_ej: z.string(),
-  tw_fixed: z.string(),
+  tt: z.string(),
   volume: z.string(),
   wall_max: z.string(),
   wall_min: z.string(),
@@ -103,7 +94,7 @@ type CostPageKey =
   | 'logistics'
   | 'sampling';
 
-type ConsiderationGroupKey = 'DCM' | 'DIRITPOTD' | 'OTHER';
+type ConsiderationGroupKey = 'DCM' | 'DIRITPOTD' | 'OTHER' | 'OT_INF';
 
 type ConsiderationItem = {
   id: string;
@@ -114,8 +105,8 @@ type ConsiderationItem = {
 type ConsiderationGroup = {
   key: ConsiderationGroupKey;
   page: PageKey;
-  title: string;
   subtitle: string;
+  title: string;
   items: ConsiderationItem[];
 };
 
@@ -147,12 +138,6 @@ const PAGES: readonly PageKey[] = [
   'other_cons',
   'ot_inf',
   'spareparts',
-  'accessories',
-  'materials',
-  'manufacturing',
-  'corrections',
-  'logistics',
-  'sampling',
   'geometry',
   'tool_spec',
   'comments',
@@ -186,7 +171,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   comments: {
     navLabel: 'COMMENTS',
     subtitle: 'Notas finales y contexto adicional para el proveedor.',
-    title: '16. Comments',
+    title: '10. Comments',
   },
   corrections: {
     navLabel: 'COST BREAKDOWN',
@@ -206,7 +191,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   geometry: {
     navLabel: 'PART GEOMETRY',
     subtitle: 'Dimensiones y propiedades del componente.',
-    title: '14. Part Geometry',
+    title: '8. Part Geometry',
   },
   logistics: {
     navLabel: 'COST BREAKDOWN',
@@ -230,7 +215,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   },
   ot_inf: {
     navLabel: 'OT INF',
-    subtitle: 'Datos complementarios de la orden de trabajo.',
+    subtitle: 'Documentacion adicional requerida al proveedor.',
     title: '6. OT INF',
   },
   sampling: {
@@ -245,58 +230,69 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   },
   tool_eng: {
     navLabel: 'TOOL ENG.',
-    subtitle: 'Configuracion de maquina y parametros del herramental.',
+    subtitle: 'Configuracion y parametros del herramental.',
     title: '2. Tool Engineering',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
     subtitle: 'Dimensiones y configuracion detallada del herramental.',
-    title: '15. Tool Specification',
+    title: '9. Tool Specification',
   },
 };
 
-const SIDEBAR_NAV: ReadonlyArray<{ costGroup?: boolean; isStatic?: boolean; key: PageKey | null; label: string }> = [
-  { isStatic: true, key: null, label: 'MOLD' },
-  { key: 'basic', label: 'RFQ' },
-  { key: 'tool_eng', label: 'TOOL ENG.' },
-  { key: 'dcm', label: 'DCM' },
-  { key: 'diritpotd', label: 'DIRITPOTD' },
-  { key: 'other_cons', label: 'OTHER' },
-  { key: 'ot_inf', label: 'OT INF' },
-  { key: 'spareparts', label: 'SK PART' },
-  { costGroup: true, key: 'accessories', label: 'COST BREAKDOWN' },
-  { key: 'geometry', label: 'PART GEOMETRY' },
-  { key: 'tool_spec', label: 'TOOL SPECIFICATION' },
-  { key: 'comments', label: 'COMMENTS' },
-];
+type NavItem = { key: PageKey; label: string };
+type NavGroup = { key: 'MOLD' | 'COST_BREAKDOWN'; label: string; items: readonly NavItem[] };
 
-const TOOL_TYPES = ['PRODUCTION', 'EVOLUTION', 'PROTOTYPE'];
+const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    items: [
+      { key: 'basic', label: 'RFQ' },
+      { key: 'tool_eng', label: 'TOOL ENG.' },
+      { key: 'dcm', label: 'DCM' },
+      { key: 'diritpotd', label: 'DIRITPOTD' },
+      { key: 'other_cons', label: 'OTHER' },
+      { key: 'ot_inf', label: 'OT INF' },
+      { key: 'spareparts', label: 'SK PART' },
+    ],
+    key: 'MOLD',
+    label: 'MOLD',
+  },
+  {
+    items: [
+      { key: 'geometry', label: 'PART GEOMETRY' },
+      { key: 'tool_spec', label: 'TOOL SPECIFICATION' },
+      { key: 'comments', label: 'COMMENTS' },
+    ],
+    key: 'COST_BREAKDOWN',
+    label: 'COST BREAKDOWN',
+  },
+];
 
 const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   {
     items: [
-      { id: 'smach', label: 'Maquina de inyeccion (Smach)' },
-      { id: 'no_cav', label: 'No. de cavidades' },
-      { id: 'no_hs', label: 'No. de hot slides' },
-      { id: 'no_ms', label: 'No. de mech. slides' },
+      { id: 'smach', label: 'Smash' },
+      { id: 'no_cav', label: 'No.CAV' },
+      { id: 'no_hs', label: 'No.ofHS' },
+      { id: 'no_ms', label: 'No.ofMS' },
       {
         id: 'third_p_supp',
-        label: '3er proveedor (estructural AlSi10)',
+        label: '3thPSupp',
         noteExample: 'Para partes estructurales con aleacion AlSi10, considerar acero 3D forjado.',
       },
-      { id: 'no_subc', label: 'No. de sub-cores' },
-      { id: 'jco', label: 'Jet cooling (Jco)' },
-      { id: 'qc_sys', label: 'Sistema de enfriamiento controlado' },
-      { id: 'ihtcs', label: 'IHTCS' },
-      { id: 'spin', label: 'Squeeze pin (Spin)' },
+      { id: 'no_subc', label: 'No.subc' },
+      { id: 'jco', label: 'Jco' },
+      { id: 'qc_sys', label: 'QcSys' },
+      { id: 'ihtcs', label: 'Ihtcs' },
+      { id: 'spin', label: 'Spin' },
       { id: 'hics', label: 'HICS' },
-      { id: 'cm_gom', label: 'CMM / GOM' },
-      { id: 'sp_thermo', label: 'Spare parts termorregulador' },
-      { id: 'n_return_v', label: 'Valvula de no retorno' },
-      { id: 'vac_v', label: 'Valvula de vacio' },
-      { id: 'chill_bl', label: 'Chill blocks' },
-      { id: 'no_pl_jco', label: 'No. de placas jet cooling' },
-      { id: 'ctbd', label: 'Cost Breakdown adjunto' },
+      { id: 'cm_gom', label: 'CMGOM' },
+      { id: 'sp_thermo', label: 'SPforThermoR' },
+      { id: 'n_return_v', label: 'NReturnV' },
+      { id: 'vac_v', label: 'VacV' },
+      { id: 'chill_bl', label: 'ChillBl' },
+      { id: 'no_pl_jco', label: 'No.Pl.Jco sys' },
+      { id: 'ctbd', label: 'Oth' },
     ],
     key: 'DCM',
     page: 'dcm',
@@ -305,36 +301,24 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   },
   {
     items: [
-      { id: 'd_3d', label: 'Modelo 3D' },
-      { id: 'flan', label: 'Analisis de flujo (FlAn)' },
-      { id: 'run_des', label: 'Runner design' },
-      { id: 'run_over', label: 'Runner y sobre-mod' },
+      { id: 'd_3d', label: '3D' },
+      { id: 'flan', label: 'FiAn' },
+      { id: 'run_des', label: 'Run des' },
+      { id: 'run_over', label: 'Run and over mod' },
       {
         id: 'man_prop',
-        label: 'Propuesta de manufactura',
+        label: 'ManProp',
         noteExample: 'Para partes estructurales con aleacion AlSi10, acero 3D forjado requerido.',
       },
-      { id: 'ldi', label: 'Listado de insertos (Ldi)' },
-      { id: 'add_mach', label: 'Adicion de stock de maquinado' },
-      { id: 'sketch', label: 'Sketch del concepto con dim.' },
+      { id: 'ldi', label: 'Ldi' },
+      { id: 'add_mach', label: 'Add of mach st.' },
+      { id: 'sketch', label: 'Sketch d conc, inc s dim' },
       {
         id: 'drw_2d',
-        label: 'Plano 2D de fabricacion (PDF + CNF)',
+        label: '2D Dr DesPDF and CNFl',
         noteExample: 'Incluir componentes, cavidades, insertos, core pins, ejector pins y spare parts criticos.',
       },
-      { id: 'drw_3d', label: 'Modelo solido 3D (formato nativo)' },
-      { id: 'ot_inf', label: 'Informacion adicional (OT INF)' },
-      { id: 'comp_d', label: 'Diseno completo (M1)' },
-      { id: 'subseq_d', label: 'Disenos subsecuentes (M2+)' },
-      {
-        id: 'repl_h13',
-        label: 'Set de reemplazo H-13',
-        noteExample: 'Cavidades de reemplazo.',
-      },
-      { id: 'sp_ei', label: 'Spare set de insertos eyector' },
-      { id: 'ficf', label: 'FICF' },
-      { id: 'hcls', label: 'HCLS' },
-      { id: 'fr_refur', label: 'Refurbishment de marco' },
+      { id: 'drw_3d', label: '3D D. Mod. solid. (Native Format)' },
     ],
     key: 'DIRITPOTD',
     page: 'diritpotd',
@@ -343,31 +327,50 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   },
   {
     items: [
-      { id: 'eyeb', label: 'Eyebolts' },
-      { id: 'ow_conn', label: 'Conectores O&W' },
-      { id: 'stm', label: 'STM (1 & 2)' },
+      { id: 'eyeb', label: 'Eyeb' },
+      { id: 'ow_conn', label: 'C&W Conn' },
+      { id: 'stm', label: 'STM (1&2)' },
       {
         id: 'cmm_rep',
-        label: 'Reporte dimensional CMM (cavidades principales)',
+        label: 'CMM dim rep cal',
         noteExample: 'Tolerancia de posicion 10% del producto.',
       },
       {
         id: 'gom_rep',
-        label: 'Reporte GOM (cavidades, slides, insertos, core pins)',
+        label: 'GOM rep. Ass cav, sl, in, cpln',
         noteExample: 'Tolerancia superficies de aluminio 10% del producto.',
       },
       {
         id: 'h_val',
-        label: 'Dureza subcores e insertos',
+        label: 'H val subc& in',
         noteExample: '44 - 46 HRC (H11 - H13).',
       },
-      { id: 'dim_corr', label: 'Correccion dimensional y optimizacion' },
-      { id: 'sp_pt', label: 'Spare parts' },
+      { id: 'dim_corr', label: 'Dim con&opt' },
+      { id: 'sp_pt', label: 'Sp Pl' },
     ],
     key: 'OTHER',
     page: 'other_cons',
     subtitle: PAGE_META.other_cons.subtitle,
     title: PAGE_META.other_cons.title,
+  },
+  {
+    items: [
+      { id: 'comp_d', label: 'Comp. D.' },
+      { id: 'subseq_d', label: 'Subseq. D.' },
+      {
+        id: 'repl_h13',
+        label: 'Set of repl. H-13',
+        noteExample: 'Cavidades de reemplazo.',
+      },
+      { id: 'sp_ei', label: 'Sp. set of E.I.' },
+      { id: 'ficf', label: 'FICF' },
+      { id: 'hcls', label: 'HCLS' },
+      { id: 'fr_refur', label: 'Fr Refur.' },
+    ],
+    key: 'OT_INF',
+    page: 'ot_inf',
+    subtitle: PAGE_META.ot_inf.subtitle,
+    title: PAGE_META.ot_inf.title,
   },
 ];
 
@@ -533,34 +536,33 @@ function readStoredPage(storageBaseKey: string) {
 
 function getCreateDefaultValues(): WorkspaceFormValues {
   return {
+    alloy: '',
     buhler: '',
     comments: '',
     considerations: {},
     costs: {},
     cust: '',
-    description: '',
+    dtq: '',
+    elab: '',
     gates: '',
     hydr_slides: '',
     mech_slides: '',
     num_cav: '',
     num_tools: '',
-    ot_inf: '',
     part_dim: '',
     part_name: '',
     part_number: '',
-    part_tech: 'POWERTRAIN',
+    part_tech: '',
     parts_stroke: '',
+    pnum: '',
     ppy: '',
+    prlf: '',
     projected: '',
     rfq_name: '',
-    spareparts: [],
+    sk_part: '',
     surface: '',
-    tdim_ej: '',
-    tdim_fixed: '',
     three_plate: '',
-    tool_type: '',
-    tw_ej: '',
-    tw_fixed: '',
+    tt: '',
     volume: '',
     wall_max: '',
     wall_min: '',
@@ -570,14 +572,16 @@ function getCreateDefaultValues(): WorkspaceFormValues {
 
 function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
   return {
+    alloy: 'AlSi10MnMg',
     buhler: '3400',
     comments: 'Validar paquete dimensional con el proveedor antes del release final.',
     considerations: {
-      ctbd: { notes: 'Adjuntar desglose en USD y EUR.' },
-      d_3d: { notes: 'Modelo preliminar disponible en revision M1.' },
-      drw_2d: { notes: 'Se requiere PDF + CNF con componentes criticos.' },
-      man_prop: { notes: 'Cotizar propuesta con acero 3D forjado.' },
-      smach: { notes: 'Buhler 3400T confirmada para la corrida.' },
+      cmm_rep: { checked: 'yes', notes: 'Tolerancia de posicion 10% del producto.' },
+      comp_d: { checked: 'yes', notes: '' },
+      d_3d: { checked: 'yes', notes: 'Modelo preliminar disponible en revision M1.' },
+      drw_2d: { checked: 'yes', notes: 'Se requiere PDF + CNF con componentes criticos.' },
+      man_prop: { checked: 'yes', notes: 'Cotizar propuesta con acero 3D forjado.' },
+      smach: { checked: '', notes: 'Buhler 3400T confirmada para la corrida.' },
     },
     costs: {
       accessories: {
@@ -592,31 +596,27 @@ function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
       },
     },
     cust: 'Name XX',
-    description: 'Soporte lateral de puerta con revision de flujo y liberacion de drawing final.',
+    dtq: '12',
+    elab: 'Ing. Torres',
     gates: '2',
     hydr_slides: '1',
     mech_slides: '2',
     num_cav: '2',
     num_tools: '1',
-    ot_inf: 'Proyecto vinculado a programa MY27. Revisar folio tecnico con Compras.',
     part_dim: '410 x 180 x 88',
     part_name: 'Door side support',
     part_number: `${(rfqId ?? 'RFQ-021').toUpperCase()}-MAT`,
     part_tech: 'POWERTRAIN',
     parts_stroke: '1',
+    pnum: 'MAT-2024-001',
     ppy: '240000',
+    prlf: '5',
     projected: '336',
     rfq_name: 'Proyecto soporte puerta',
-    spareparts: [
-      { name: 'Inserto lateral H13', notes: 'Set de seguridad', price: '950', qty: '2', weeks: '3' },
-    ],
+    sk_part: 'Inserto lateral H13 (Set de seguridad) - 2 pzas.\nCavidad principal de reemplazo (H13 forjado) - 1 pza.',
     surface: '522',
-    tdim_ej: '690 x 620 x 280',
-    tdim_fixed: '720 x 640 x 300',
-    three_plate: 'No',
-    tool_type: 'PRODUCTION',
-    tw_ej: '1480',
-    tw_fixed: '1620',
+    three_plate: '0',
+    tt: 'PRODUCTION',
     volume: '418',
     wall_max: '4.2',
     wall_min: '2.6',
@@ -640,7 +640,6 @@ function mergeFormValues(baseValues: WorkspaceFormValues, storedValues: Partial<
       ...baseValues.costs,
       ...(storedValues.costs ?? {}),
     },
-    spareparts: Array.isArray(storedValues.spareparts) ? storedValues.spareparts : baseValues.spareparts,
   };
 }
 
@@ -819,42 +818,6 @@ function TextAreaField({
   );
 }
 
-function SelectField({
-  hint,
-  label,
-  name,
-  options,
-  placeholder = 'Selecciona una opcion',
-  span = 1,
-}: {
-  hint?: string;
-  label: string;
-  name: FieldPath<WorkspaceFormValues>;
-  options: readonly string[];
-  placeholder?: string;
-  span?: 1 | 2;
-}) {
-  const {
-    formState,
-    getFieldState,
-    register,
-  } = useFormContext<WorkspaceFormValues>();
-  const { error } = getFieldState(name, formState);
-
-  return (
-    <FieldShell error={error?.message} hint={hint} label={label} span={span}>
-      <select aria-invalid={Boolean(error)} className={inputBaseClasses(Boolean(error))} {...register(name)}>
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </FieldShell>
-  );
-}
-
 function SectionCard({
   children,
   subtitle,
@@ -879,7 +842,55 @@ function FormGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-5 md:grid-cols-2">{children}</div>;
 }
 
-function Sidebar({
+function ChevronDownIcon({ rotated = false }: { rotated?: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`h-3 w-3 shrink-0 transition-transform duration-200 ${rotated ? '' : '-rotate-90'}`}
+      fill="none"
+      viewBox="0 0 12 12"
+    >
+      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function YesNoToggle({ name }: { name: FieldPath<WorkspaceFormValues> }) {
+  const { control, setValue } = useFormContext<WorkspaceFormValues>();
+  const rawValue = useWatch({ control, name });
+  const value = typeof rawValue === 'string' ? rawValue : '';
+
+  return (
+    <div className="flex gap-1.5">
+      <button
+        className={[
+          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
+          value === 'yes'
+            ? 'border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] text-white'
+            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
+        ].join(' ')}
+        type="button"
+        onClick={() => setValue(name, value === 'yes' ? '' : 'yes', { shouldDirty: true })}
+      >
+        YES
+      </button>
+      <button
+        className={[
+          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
+          value === 'no'
+            ? 'border-transparent bg-[rgba(170,0,15,0.85)] text-white'
+            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
+        ].join(' ')}
+        type="button"
+        onClick={() => setValue(name, value === 'no' ? '' : 'no', { shouldDirty: true })}
+      >
+        NO
+      </button>
+    </div>
+  );
+}
+
+function WorkspaceSidebar({
   completed,
   current,
   onSelect,
@@ -890,55 +901,104 @@ function Sidebar({
   onSelect: (page: PageKey) => void;
   pageErrors: Partial<Record<PageKey, boolean>>;
 }) {
+  const [expanded, setExpanded] = useState<Record<NavGroup['key'], boolean>>(() => ({
+    COST_BREAKDOWN: true,
+    MOLD: true,
+  }));
+
   return (
-    <aside className="border-b border-[rgba(217,222,229,0.86)] bg-white lg:w-[228px] lg:border-b-0 lg:border-r">
-      <div className="px-4 py-4 lg:px-0">
-        <div className="mb-3 hidden px-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--bocar-blue-50)] lg:block">
-          Mold
-        </div>
-        <div className="overflow-x-auto lg:overflow-visible">
-          <div className="flex gap-2 lg:block lg:space-y-1">
-            <div className="inline-flex min-w-max items-center rounded-full border border-[rgba(217,222,229,0.86)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--bocar-blue-50)] lg:hidden">
-              Mold
+    <aside className="hidden lg:flex lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[#d9dee5] lg:bg-white">
+      <nav className="flex-1 overflow-y-auto border-t border-[#d9dee5] px-2 pb-8 pt-2">
+        {NAV_GROUPS.map((group) => {
+          const isGroupOpen = expanded[group.key];
+
+          return (
+            <div key={group.key} className="mb-2">
+              <button
+                aria-expanded={isGroupOpen}
+                className="flex w-full items-center justify-between px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.02em] text-[var(--bocar-text)] transition hover:text-[var(--bocar-blue-100)]"
+                type="button"
+                onClick={() => setExpanded((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+              >
+                <span>{group.label}</span>
+                <ChevronDownIcon rotated={isGroupOpen} />
+              </button>
+
+              {isGroupOpen ? (
+                <div className="flex flex-col">
+                  {group.items.map((item) => {
+                    const isActive = current === item.key;
+                    const hasError = Boolean(pageErrors[item.key]);
+                    const isDone = Boolean(completed[item.key]);
+
+                    return (
+                      <button
+                        key={item.key}
+                        className={[
+                          'flex items-center justify-between px-6 py-2 text-left text-[12px] font-medium tracking-[0.04em] transition',
+                          isActive
+                            ? 'bg-[rgba(0,46,93,0.08)] text-[var(--bocar-blue-100)]'
+                            : 'text-[var(--bocar-blue-50)] hover:bg-[rgba(0,46,93,0.04)] hover:text-[var(--bocar-blue-100)]',
+                        ].join(' ')}
+                        type="button"
+                        onClick={() => onSelect(item.key)}
+                      >
+                        <span>{item.label}</span>
+                        {hasError ? (
+                          <span className="h-2 w-2 rounded-full bg-[var(--bocar-error)]" />
+                        ) : isDone ? (
+                          <span className="text-[12px] font-semibold text-[var(--bocar-done)]">●</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
-
-            {SIDEBAR_NAV.filter((item) => !item.isStatic).map((item) => {
-              const page = item.key as PageKey;
-              const isActive = item.costGroup ? isCostPage(current) : current === page;
-              const hasError = item.costGroup
-                ? COST_PAGES.some((costPage) => pageErrors[costPage])
-                : Boolean(pageErrors[page]);
-              const isDone = item.costGroup
-                ? COST_PAGES.every((costPage) => completed[costPage])
-                : Boolean(completed[page]);
-
-              return (
-                <button
-                  key={page}
-                  className={[
-                    'inline-flex min-w-[168px] items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3 text-left text-[12px] font-medium tracking-[0.04em] transition lg:flex lg:w-full lg:rounded-none lg:border-x-0 lg:border-y-0 lg:border-l-[3px] lg:px-5',
-                    isActive
-                      ? 'border-[rgba(0,46,93,0.14)] bg-[rgba(0,46,93,0.06)] text-[var(--bocar-blue-100)] lg:border-l-[var(--bocar-blue-100)]'
-                      : 'border-[rgba(217,222,229,0.86)] bg-white text-[var(--bocar-blue-70)] lg:border-l-transparent',
-                  ].join(' ')}
-                  type="button"
-                  onClick={() => onSelect(page)}
-                >
-                  <span>{item.label}</span>
-                  {hasError ? (
-                    <span className="h-2.5 w-2.5 rounded-full bg-[var(--bocar-error)]" />
-                  ) : isDone ? (
-                    <span className="text-[13px] font-semibold text-[var(--bocar-done)]">●</span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+          );
+        })}
+      </nav>
     </aside>
   );
 }
+
+function WorkspaceSidebarMobile({
+  current,
+  onSelect,
+}: {
+  current: PageKey;
+  onSelect: (page: PageKey) => void;
+}) {
+  const allItems = NAV_GROUPS.flatMap((group) => group.items);
+
+  return (
+    <div className="border-b border-[#d9dee5] bg-white px-4 py-3 lg:hidden">
+      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bocar-blue-50)]">
+        Sección
+      </label>
+      <select
+        className="w-full rounded-[10px] border border-[#d9dee5] bg-white px-3 py-2 text-[13px] font-medium text-[var(--bocar-text)] outline-none focus:border-[var(--bocar-blue-70)]"
+        value={current}
+        onChange={(event) => onSelect(event.target.value as PageKey)}
+      >
+        {NAV_GROUPS.map((group) => (
+          <optgroup key={group.key} label={group.label}>
+            {group.items.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+        {!allItems.some((item) => item.key === current) ? (
+          <option value={current}>{PAGE_META[current]?.navLabel ?? current}</option>
+        ) : null}
+      </select>
+    </div>
+  );
+}
+
+// ─── Section 1: RFQ ───────────────────────────────────────────────────────────
 
 function BasicPage() {
   return (
@@ -959,28 +1019,26 @@ function BasicPage() {
   );
 }
 
+// ─── Section 2: Tool Engineering ──────────────────────────────────────────────
+
 function ToolEngineeringPage() {
   return (
     <SectionCard subtitle={PAGE_META.tool_eng.subtitle} title={PAGE_META.tool_eng.title}>
       <FormGrid>
-        <TextField label="Buhler Machine (Ton)" name="buhler" type="number" />
-        <TextField label="Numero de cavidades / sets" name="num_cav" type="number" />
-        <SelectField label="Three plate mold" name="three_plate" options={['Si', 'No']} placeholder="Selecciona una opcion" />
-        <SelectField label="Tool Type" name="tool_type" options={TOOL_TYPES} />
-        <TextField label="Gates por parte" name="gates" type="number" />
-        <TextField label="Slides mecanicos" name="mech_slides" type="number" />
-        <TextField label="Slides hidraulicos" name="hydr_slides" type="number" />
-        <TextField label="Partes por tiro" name="parts_stroke" type="number" />
-        <TextField label="Numero de herramentales" name="num_tools" type="number" />
+        <TextField label="PNUM" name="pnum" />
+        <TextField label="DTQ" name="dtq" placeholder="WEEK" />
+        <TextField label="PRLF" name="prlf" placeholder="X Years" />
+        <TextField label="ELAB" name="elab" placeholder="NAME" />
+        <TextField label="TT" name="tt" placeholder="PRODUCTION" />
       </FormGrid>
     </SectionCard>
   );
 }
 
+// ─── Section 3: DCM (DESC + SPECS) ────────────────────────────────────────────
+
 function ConsiderationPage({ group }: { group: ConsiderationGroup }) {
-  const {
-    register,
-  } = useFormContext<WorkspaceFormValues>();
+  const { register } = useFormContext<WorkspaceFormValues>();
 
   return (
     <SectionCard subtitle={group.subtitle} title={group.title}>
@@ -1009,93 +1067,118 @@ function ConsiderationPage({ group }: { group: ConsiderationGroup }) {
   );
 }
 
-function AdditionalInfoPage() {
+// ─── Sections 4 / 5 / 6: DESC + YES/NO + NOTES ───────────────────────────────
+
+function ConsiderationTogglePage({ group }: { group: ConsiderationGroup }) {
+  const { register } = useFormContext<WorkspaceFormValues>();
+
   return (
-    <SectionCard subtitle={PAGE_META.ot_inf.subtitle} title={PAGE_META.ot_inf.title}>
+    <SectionCard subtitle={group.subtitle} title={group.title}>
+      <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+          Entregable / requisito
+        </div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+          Aplica
+        </div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+          Especificaciones
+        </div>
+      </div>
+
+      <div className="divide-y divide-[rgba(236,240,245,0.9)]">
+        {group.items.map((item) => (
+          <div
+            key={item.id}
+            className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5"
+          >
+            <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{item.label}</div>
+            <YesNoToggle name={fieldPath(`considerations.${item.id}.checked`)} />
+            <input
+              className={inputBaseClasses(false)}
+              placeholder={item.noteExample ?? 'Especificaciones / notas'}
+              {...register(fieldPath(`considerations.${item.id}.notes`))}
+            />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── Section 7: SK PART ───────────────────────────────────────────────────────
+
+function SparePartsPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
       <TextAreaField
-        label="Informacion adicional de la OT"
-        name="ot_inf"
-        placeholder="Notas, referencias, folio de OT, validaciones o cualquier dato complementario."
+        label="Descripcion"
+        name="sk_part"
+        placeholder="Ingresa una descripcion adicional"
+        rows={8}
+        span={2}
       />
     </SectionCard>
   );
 }
 
-function SparePartsPage() {
-  const {
-    control,
-    register,
-  } = useFormContext<WorkspaceFormValues>();
-  const { append, fields, remove } = useFieldArray({
-    control,
-    name: 'spareparts',
-  });
+// ─── Section 8: Part Geometry (single column) ─────────────────────────────────
 
+function GeometryPage() {
   return (
-    <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
-      <div className="overflow-x-auto rounded-[14px] border border-[rgba(217,222,229,0.92)]">
-        <table className="min-w-[760px] w-full border-collapse">
-          <thead>
-            <tr className="bg-[rgba(0,46,93,0.05)] text-left">
-              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Concepto</th>
-              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Cantidad</th>
-              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Precio/Unidad</th>
-              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Semanas</th>
-              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Notas</th>
-              <th className="w-[56px] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]"> </th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-center text-[13px] text-[var(--bocar-blue-50)]" colSpan={6}>
-                  Aun no agregas refacciones criticas.
-                </td>
-              </tr>
-            ) : (
-              fields.map((field, index) => (
-                <tr key={field.id} className="border-t border-[rgba(236,240,245,0.95)]">
-                  <td className="p-3">
-                    <input className={inputBaseClasses(false)} {...register(fieldPath(`spareparts.${index}.name`))} />
-                  </td>
-                  <td className="p-3">
-                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.qty`))} />
-                  </td>
-                  <td className="p-3">
-                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.price`))} />
-                  </td>
-                  <td className="p-3">
-                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.weeks`))} />
-                  </td>
-                  <td className="p-3">
-                    <input className={inputBaseClasses(false)} {...register(fieldPath(`spareparts.${index}.notes`))} />
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(217,222,229,0.92)] bg-white text-[18px] text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]"
-                      type="button"
-                      onClick={() => remove(index)}
-                    >
-                      ×
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+    <SectionCard subtitle={PAGE_META.geometry.subtitle} title={PAGE_META.geometry.title}>
+      <div className="grid gap-5">
+        <TextField label="Part Name" name="part_name" placeholder="Product / E-PCP Folio" required />
+        <TextField label="Alloy" name="alloy" />
+        <TextField label="Part Number" name="part_number" required />
+        <TextField label="Part dimension in mm" name="part_dim" placeholder="L x W x H" />
+        <TextField label="Min. wall thickness in mm" name="wall_min" type="number" />
+        <TextField label="Max. wall thickness in mm" name="wall_max" type="number" />
+        <TextField label="Projected area in cm2" name="projected" type="number" />
+        <TextField label="Surface in cm2" name="surface" type="number" />
+        <TextField label="Volume in cm3" name="volume" type="number" />
+        <TextField label="Gross weight in g" name="weight" type="number" />
       </div>
-
-      <button
-        className="mt-4 inline-flex rounded-[10px] border border-dashed border-[var(--bocar-blue-100)] px-4 py-2.5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:bg-[rgba(0,46,93,0.05)]"
-        type="button"
-        onClick={() => append({ name: '', notes: '', price: '', qty: '', weeks: '' })}
-      >
-        + Agregar fila
-      </button>
     </SectionCard>
   );
 }
+
+// ─── Section 9: Tool Specification (single column) ────────────────────────────
+
+function ToolSpecificationPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
+      <div className="grid gap-5">
+        <TextField label="Bühler Machine Ton" name="buhler" type="number" />
+        <TextField label="Number of cavities / sets" name="num_cav" type="number" />
+        <TextField label="Three plate mold" name="three_plate" type="number" />
+        <TextField label="Number of gates per part" name="gates" type="number" />
+        <TextField label="Number of mech. slides" name="mech_slides" type="number" />
+        <TextField label="Number of hydr. slides" name="hydr_slides" type="number" />
+        <TextField label="Number of parts per stroke" name="parts_stroke" type="number" />
+        <TextField label="Number of tools" name="num_tools" type="number" />
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── Section 10: Comments ─────────────────────────────────────────────────────
+
+function CommentsPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
+      <TextAreaField
+        label="Comentarios adicionales"
+        name="comments"
+        placeholder="Ingresa un comentario adicional"
+        rows={8}
+        span={2}
+      />
+    </SectionCard>
+  );
+}
+
+// ─── Cost breakdown pages ─────────────────────────────────────────────────────
 
 function CostTable({
   rows,
@@ -1201,89 +1284,35 @@ function CostPage({ section }: { section: CostSection }) {
   );
 }
 
-function GeometryPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.geometry.subtitle} title={PAGE_META.geometry.title}>
-      <FormGrid>
-        <TextField label="Part Name" name="part_name" required />
-        <TextField label="Part Number" name="part_number" required />
-        <TextField label="Dimension de la parte (mm)" name="part_dim" placeholder="L x W x H" />
-        <TextField label="Peso bruto (g)" name="weight" type="number" />
-        <TextField label="Espesor minimo (mm)" name="wall_min" type="number" />
-        <TextField label="Espesor maximo (mm)" name="wall_max" type="number" />
-        <TextField label="Area proyectada (cm2)" name="projected" type="number" />
-        <TextField label="Superficie (cm2)" name="surface" type="number" />
-        <TextField label="Volumen (cm3)" name="volume" type="number" />
-      </FormGrid>
-    </SectionCard>
-  );
-}
-
-function ToolSpecificationPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
-      <FormGrid>
-        <TextField label="Dim. lado fijo (mm)" name="tdim_fixed" />
-        <TextField label="Dim. lado eyector (mm)" name="tdim_ej" />
-        <TextField label="Peso lado fijo (kg)" name="tw_fixed" type="number" />
-        <TextField label="Peso lado eyector (kg)" name="tw_ej" type="number" />
-      </FormGrid>
-    </SectionCard>
-  );
-}
-
-function CommentsPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
-      <div className="grid gap-5">
-        <TextAreaField label="Descripcion" name="description" placeholder="Contexto tecnico, materiales, alcance y comentarios de liberacion." span={2} />
-        <TextAreaField label="Comentarios adicionales" name="comments" placeholder="Consideraciones de empaque, requerimientos especiales, fechas clave, etc." span={2} />
-      </div>
-    </SectionCard>
-  );
-}
+// ─── Page router ──────────────────────────────────────────────────────────────
 
 function renderPage(page: PageKey) {
-  if (page === 'basic') {
-    return <BasicPage />;
-  }
+  if (page === 'basic') return <BasicPage />;
+  if (page === 'tool_eng') return <ToolEngineeringPage />;
+  if (page === 'spareparts') return <SparePartsPage />;
+  if (page === 'geometry') return <GeometryPage />;
+  if (page === 'tool_spec') return <ToolSpecificationPage />;
+  if (page === 'comments') return <CommentsPage />;
 
-  if (page === 'tool_eng') {
-    return <ToolEngineeringPage />;
-  }
-
-  if (page === 'ot_inf') {
-    return <AdditionalInfoPage />;
-  }
-
-  if (page === 'spareparts') {
-    return <SparePartsPage />;
-  }
-
-  if (page === 'geometry') {
-    return <GeometryPage />;
-  }
-
-  if (page === 'tool_spec') {
-    return <ToolSpecificationPage />;
-  }
-
-  if (page === 'comments') {
-    return <CommentsPage />;
-  }
-
-  if (page === 'dcm' || page === 'diritpotd' || page === 'other_cons') {
-    const group = CONSIDERATION_GROUPS.find((currentGroup) => currentGroup.page === page);
+  if (page === 'dcm') {
+    const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
     return group ? <ConsiderationPage group={group} /> : null;
   }
 
+  if (page === 'diritpotd' || page === 'other_cons' || page === 'ot_inf') {
+    const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
+    return group ? <ConsiderationTogglePage group={group} /> : null;
+  }
+
   if (isCostPage(page)) {
-    const section = COST_SECTIONS.find((currentSection) => currentSection.key === page);
+    const section = COST_SECTIONS.find((s) => s.key === page);
     return section ? <CostPage section={section} /> : null;
   }
 
   return null;
 }
+
+// ─── Root component ───────────────────────────────────────────────────────────
 
 export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   const storageBaseKey = getStorageBaseKey(mode, rfqId);
@@ -1412,121 +1441,133 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
     }
   };
 
+  const progressPercent = ((currentIndex + 1) / PAGES.length) * 100;
+  const showFeedback = feedback.tone !== 'neutral' || attemptedSubmit;
+
   return (
     <FormProvider {...form}>
-      <div className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-6 sm:px-6 lg:px-10 xl:px-12">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--bocar-blue-50)]">
-              Workspace RFQ
-            </p>
-            <h1 className="mt-2 mb-0 text-[28px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)] sm:text-[34px]">
-              {headerTitle}
-            </h1>
-            <p className="mt-2 mb-0 text-[14px] leading-[1.6] text-[var(--bocar-blue-70)]">
-              Integracion del nuevo diseño multipantalla para captura y costeo de RFQs.
-            </p>
+      <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
+        <header className="flex h-[72px] items-center justify-between border-b border-[#d9dee5] bg-white px-6 lg:px-10">
+          <div className="flex items-center gap-4 lg:gap-5">
+            <img alt="Bocar" className="h-9 w-auto lg:h-10" src={logoBocar} />
+            <span aria-hidden="true" className="hidden h-8 w-px bg-[#d9dee5] lg:block" />
+            <span className="text-[15px] font-medium text-[var(--bocar-text)]">Industrializacion</span>
           </div>
 
-          <button
-            className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)]"
-            type="button"
-            onClick={onBack}
-          >
-            <BackArrowIcon />
-            Regresar
-          </button>
-        </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bocar-blue-100)] text-[14px] font-semibold text-white">
+              {dashboardUser.initials}
+            </div>
+            <div className="hidden min-w-0 sm:block">
+              <p className="m-0 truncate text-[14px] font-semibold text-[var(--bocar-text)]">{dashboardUser.name}</p>
+              <p className="mt-0.5 truncate text-[12px] text-[var(--bocar-blue-70)]">{dashboardUser.department}</p>
+            </div>
+          </div>
+        </header>
 
-        <div className="mt-6 overflow-hidden rounded-[22px] border border-[rgba(217,222,229,0.96)] bg-white shadow-[0_22px_48px_rgba(0,46,93,0.08)]">
-          <div className="flex flex-col lg:flex-row">
-            <Sidebar completed={completed} current={currentPage} onSelect={setCurrentPage} pageErrors={attemptedSubmit ? pageErrors : {}} />
+        <div className="flex min-h-0 flex-1">
+          <WorkspaceSidebar
+            completed={completed}
+            current={currentPage}
+            onSelect={setCurrentPage}
+            pageErrors={attemptedSubmit ? pageErrors : {}}
+          />
 
-            <div className="min-w-0 flex-1">
-              <div className="border-b border-[rgba(217,222,229,0.86)] px-5 py-5 sm:px-7">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <WorkspaceSidebarMobile current={currentPage} onSelect={setCurrentPage} />
+
+            <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-12 lg:py-10">
+              <div className="mx-auto w-full max-w-[960px]">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--bocar-blue-50)]">
-                      {meta.navLabel}
-                    </p>
-                    <h2 className="mt-2 mb-0 text-[24px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)]">
-                      {meta.title}
-                    </h2>
-                    <p className="mt-2 mb-0 max-w-[760px] text-[14px] leading-[1.6] text-[var(--bocar-blue-70)]">
-                      {meta.subtitle}
+                    <h1 className="m-0 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[30px]">
+                      {headerTitle}
+                    </h1>
+                    <p className="mt-2 mb-0 text-[13px] font-medium text-[var(--bocar-blue-50)]">
+                      Página {currentIndex + 1} de {PAGES.length} . {meta.navLabel}
                     </p>
                   </div>
 
-                  <div className="rounded-[14px] border border-[rgba(217,222,229,0.86)] bg-[rgba(245,247,250,0.75)] px-4 py-3 text-left lg:min-w-[240px] lg:text-right">
-                    <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
-                      {mode === 'edit' ? `Borrador ${(rfqId ?? 'RFQ-021').toUpperCase()}` : 'Nueva RFQ'}
-                    </p>
-                    <p className="mt-1 mb-0 text-[12px] text-[var(--bocar-blue-70)]">Responsable: {dashboardUser.name}</p>
-                    <p className="mt-1 mb-0 text-[12px] text-[var(--bocar-blue-50)]">
-                      Pagina {currentIndex + 1} de {PAGES.length}
-                    </p>
-                  </div>
+                  <button
+                    className="inline-flex shrink-0 items-center gap-2 py-2 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)]"
+                    type="button"
+                    onClick={onBack}
+                  >
+                    <BackArrowIcon />
+                    Regresar
+                  </button>
                 </div>
 
-                <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[rgba(217,222,229,0.86)]">
+                <div className="mt-4 h-1 overflow-hidden rounded-full bg-[#e5e9ef]">
                   <div
                     className="h-full rounded-full bg-[var(--bocar-blue-100)] transition-[width] duration-300"
-                    style={{ width: `${((currentIndex + 1) / PAGES.length) * 100}%` }}
+                    style={{ width: `${progressPercent}%` }}
                   />
                 </div>
 
-                <div className={`mt-5 rounded-[14px] border px-4 py-3 text-[13px] leading-[1.55] ${getFeedbackClasses(feedback.tone)}`} role={feedback.tone === 'error' ? 'alert' : 'status'}>
-                  {feedback.text}
-                </div>
-              </div>
-
-              <form className="px-5 py-5 sm:px-7 sm:py-6" noValidate onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
-                {renderPage(currentPage)}
-
-                <div className="mt-6 flex flex-col gap-4 border-t border-[rgba(217,222,229,0.86)] pt-5 sm:flex-row sm:items-center sm:justify-between">
-                  {currentIndex === 0 ? <div className="hidden sm:block" /> : (
-                    <button
-                      className="inline-flex items-center justify-center rounded-[10px] border border-[rgba(217,222,229,0.92)] bg-white px-4 py-2.5 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]"
-                      type="button"
-                      onClick={goPrevious}
-                    >
-                      ← Anterior
-                    </button>
-                  )}
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <button
-                      className="inline-flex h-11 min-w-[188px] items-center justify-center rounded-[10px] border border-[rgba(217,222,229,0.92)] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] hover:text-[var(--bocar-blue-100)] disabled:cursor-not-allowed disabled:opacity-70"
-                      disabled={isSubmitting}
-                      type="button"
-                      onClick={handleSaveDraft}
-                    >
-                      Guardar borrador
-                    </button>
-
-                    {currentIndex === PAGES.length - 1 ? (
-                      <Button
-                        className="h-11 min-w-[188px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white shadow-[0_14px_28px_rgba(0,46,93,0.16)] hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
-                        disabled={isSubmitting}
-                        type="submit"
-                      >
-                        {isSubmitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar RFQ' : 'Enviar RFQ'}
-                      </Button>
-                    ) : (
-                      <Button
-                        className="h-11 min-w-[188px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white shadow-[0_14px_28px_rgba(0,46,93,0.16)] hover:bg-[#0b3b6b]"
-                        type="button"
-                        onClick={() => {
-                          void goNext();
-                        }}
-                      >
-                        Siguiente →
-                      </Button>
-                    )}
+                {showFeedback ? (
+                  <div
+                    className={`mt-5 rounded-[12px] border px-4 py-3 text-[13px] leading-[1.55] ${getFeedbackClasses(feedback.tone)}`}
+                    role={feedback.tone === 'error' ? 'alert' : 'status'}
+                  >
+                    {feedback.text}
                   </div>
-                </div>
-              </form>
-            </div>
+                ) : null}
+
+                <form
+                  className="mt-8"
+                  noValidate
+                  onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+                >
+                  {renderPage(currentPage)}
+
+                  <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    {currentIndex === 0 ? (
+                      <div className="hidden sm:block" />
+                    ) : (
+                      <button
+                        className="inline-flex items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-4 py-2.5 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]"
+                        type="button"
+                        onClick={goPrevious}
+                      >
+                        ← Anterior
+                      </button>
+                    )}
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                      <button
+                        className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={isSubmitting}
+                        type="button"
+                        onClick={handleSaveDraft}
+                      >
+                        Guardar Borrador
+                      </button>
+
+                      {currentIndex === PAGES.length - 1 ? (
+                        <Button
+                          className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
+                          disabled={isSubmitting}
+                          type="submit"
+                        >
+                          {isSubmitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar RFQ' : 'Enviar RFQ'}
+                        </Button>
+                      ) : (
+                        <Button
+                          className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b]"
+                          type="button"
+                          onClick={() => {
+                            void goNext();
+                          }}
+                        >
+                          Siguiente →
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </main>
           </div>
         </div>
       </div>
