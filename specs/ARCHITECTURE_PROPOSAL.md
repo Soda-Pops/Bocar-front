@@ -55,9 +55,12 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
 │ • Ver KPIs de proveedores (RF-21)                                           │
 │ • Exportar benchmark a Excel (RF-19)                                        │
 │                                                                              │
-│ Admin (adicional):                                                           │
-│ • Cancelar RFQs (RF-24)                                                      │
-│ • Gestionar solicitudes de cambio técnico                                   │
+│ Admin / Super Usuario (adicional):                                           │
+│ • ÚNICA acción exclusiva: Cancelar RFQs en CUALQUIER estado (RF-24)          │
+│ • Ve exactamente lo mismo que el Usuario Base, sin bandeja de aprobaciones   │
+│ • NO aprueba, NO rechaza, NO edita-y-aprueba                                 │
+│ • Cancelación tardía (post-QUOTING) requiere notificar a proveedores y      │
+│   generar una nueva RFQ de reemplazo                                         │
 │ • Panel de métricas departamentales                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 
@@ -66,15 +69,19 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ Operativo:                                                                   │
 │ • Seleccionar proveedores para RFQ (RF-07)                                  │
-│ • Ver sugerencias de proveedores IA (RF-08)                                 │
-│ • Revisar cotizaciones recibidas                                             │
+│ • Ver sugerencias de proveedores Benchmark (RF-08)                          │
+│ • Revisar cotizaciones recibidas                                            │
 │ • Ver/Exportar benchmark (RF-18, RF-19)                                     │
 │ • Dashboard de KPIs y tendencias (RF-20, RF-21)                             │
 │ • Solicitar desbloqueo de cotización (RF-15)                                │
 │                                                                              │
-│ Admin (adicional):                                                           │
-│ • Cancelar RFQs (RF-24)                                                      │
-│ • Aprobar/Rechazar desbloqueos de cotización                                │
+│ Admin / Super Usuario (adicional):                                           │
+│ • ÚNICA acción exclusiva: Cancelar RFQs en CUALQUIER estado (RF-24)          │
+│ • Ve exactamente lo mismo que el Usuario Base, sin bandeja de aprobaciones   │
+│ • NO aprueba, NO rechaza, NO edita-y-aprueba asignaciones                    │
+│ • Cancelación tardía (post-QUOTING) requiere notificar a proveedores y      │
+│   generar una nueva RFQ de reemplazo                                         │
+│ • Aprobar/Rechazar desbloqueos de cotización por parte de proveedores                            │
 │ • Gestionar catálogo de proveedores                                          │
 │ • Configurar alertas y notificaciones                                        │
 │ • Panel de métricas departamentales y globales                              │
@@ -108,6 +115,14 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
 
 ### 3.1 Diagrama de Estados de RFQ
 
+> **Cambio importante (vigente):** se eliminaron los estados intermedios
+> `PENDING_INTERNAL_APPROVAL` y `PENDING_PURCHASING_APPROVAL`. Los Super Usuarios
+> de Industrialización y de Compras **ya no aprueban ni rechazan** solicitudes;
+> su única acción exclusiva es **cancelar** una RFQ en cualquier estado del ciclo.
+> Como contraparte, la cancelación deja de tener "punto de no retorno": ahora se
+> permite incluso después de notificar a proveedores, con consecuencias adicionales
+> (ver sección 3.4 y 3.5).
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                              CICLO DE VIDA COMPLETO DE UNA RFQ                           │
@@ -125,100 +140,45 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
                     │  • Editable SOLO por el creador              │
                     │    (sin importar tipo de usuario)            │
                     │  • No visible para Compras ni Proveedores    │
-                    │  • Eliminar: Solo el creador o su Admin      │
+                    │  • Eliminar: Solo el creador                 │
+                    │  • Cancelar: Solo Super Usuario              │
                     └──────────────────────┬───────────────────────┘
                                            │
-                    ┌──────────────────────┴───────────────────────┐
-                    │                                              │
-         [Usuario envía RFQ]                            [Usuario envía RFQ]
-                    │                                              │
-    ┌───────────────┴───────────────┐          ┌───────────────────┴───────────────────┐
-    │  OPCIÓN A: Super Usuario      │          │  OPCIÓN B: Usuario Base               │
-    │  de Industrialización         │          │  de Industrialización                 │
-    │  ─────────────────────────    │          │  ─────────────────────────────────    │
-    │  • Envía directamente         │          │  • Envía para aprobación interna      │
-    │  • NO necesita aprobación     │          │  • Va a estado intermedio             │
-    │  • Pasa directo a PENDING     │          │                                       │
-    └───────────────┬───────────────┘          └───────────────────┬───────────────────┘
-                    │                                              │
-                    │                                              ▼
-                    │              ┌──────────────────────────────────────────────┐
-                    │              │   PENDIENTE APROBACIÓN INTERNA               │
-                    │              │      (PENDING_INTERNAL_APPROVAL)             │
-                    │              │  ─────────────────────────────────────────── │
-                    │              │  • RFQ enviada por Usuario Base              │
-                    │              │  • Esperando revisión de Super Usuario       │
-                    │              │    de Industrialización                      │
-                    │              │  • 📧 Email a Super Usuario Industrialización │
-                    │              │  • Super Usuario puede:                      │
-                    │              │    ✅ Aprobar → PENDING                      │
-                    │              │    ↩️ Rechazar → DRAFT (con motivo)          │
-                    │              │    ✏️ Editar+Aprobar (con auditoría)         │
-                    │              │    🗑️ Cancelar (soft delete)                 │
-                    │              └────────────────────┬──────────────────────────┘
-                    │                                   │
-                    └───────────────────────────────────┤
-                                                        │
-                                                        ▼
+                              [Usuario envía RFQ]
+                                           │
+                                           ▼
                     ┌──────────────────────────────────────────────┐
                     │        PENDIENTE ASIGNACIÓN (PENDING)        │
                     │  ─────────────────────────────────────────── │
-                    │  • RFQ aprobada por Industrialización        │
+                    │  • RFQ enviada directamente sin aprobación   │
+                    │    intermedia (cualquier rol Indust.)        │
                     │  • Esperando que Compras asigne proveedores  │
                     │  • 📧 Notificación enviada a Compras         │
                     │  • Visible para Industrialización + Compras  │
-                    │  • Cancelable por Admins (con razón)         │
+                    │  • Cancelable por Super Usuarios (con razón) │
+                    │  • ✏️ Creador puede solicitar edición        │
+                    │    → requiere aprobación de Compras          │
+                    │    → ver estado PENDING_EDIT_REQUEST         │
                     └──────────────────────┬───────────────────────┘
                                            │
-                    ┌──────────────────────┴───────────────────────┐
-                    │                                              │
-         [Compras asigna]                               [Compras asigna]
-                    │                                              │
-    ┌───────────────┴───────────────┐          ┌───────────────────┴───────────────────┐
-    │  OPCIÓN A: Super Usuario      │          │  OPCIÓN B: Usuario Base               │
-    │  de Compras                   │          │  de Compras                           │
-    │  ─────────────────────────    │          │  ─────────────────────────────────    │
-    │  • Asigna proveedores         │          │  • Asigna proveedores                 │
-    │  • NO necesita aprobación     │          │  • Va a estado de aprobación          │
-    │  • Pasa directo a QUOTING     │          │                                       │
-    └───────────────┬───────────────┘          └───────────────────┬───────────────────┘
-                    │                                              │
-                    │                                              ▼
-                    │              ┌──────────────────────────────────────────────┐
-                    │              │   PENDIENTE APROBACIÓN COMPRAS               │
-                    │              │      (PENDING_PURCHASING_APPROVAL)           │
-                    │              │  ─────────────────────────────────────────── │
-                    │              │  • Proveedores propuestos por Usuario Base   │
-                    │              │  • Esperando revisión de Super Usuario       │
-                    │              │    de Compras                                │
-                    │              │  • 📧 Email a Super Usuario Compras          │
-                    │              │  • Super Usuario puede:                      │
-                    │              │    ✅ Aprobar → QUOTING                      │
-                    │              │    ↩️ Rechazar → PENDING (reasignar)         │
-                    │              │    ✏️ Editar proveedores + Aprobar           │
-                    │              │    🗑️ Cancelar (con auditoría)               │
-                    │              └────────────────────┬──────────────────────────┘
-                    │                                   │
-                    └───────────────────────────────────┤
-                                                        │
-    ════════════════════════════════════════════════════▼════════════════════════════════════
-                           🔒 PUNTO DE NO RETORNO: PROVEEDORES NOTIFICADOS 🔒
-    ═════════════════════════════════════════════════════════════════════════════════════════
-                                                        │
-                                                        ▼
+                              [Compras asigna proveedores]
+                                           │
+                                           ▼
                     ┌──────────────────────────────────────────────┐
                     │          EN COTIZACIÓN (QUOTING)             │
                     │  ─────────────────────────────────────────── │
+                    │  • Asignación directa, sin aprobación        │
+                    │    intermedia (cualquier rol Compras)        │
                     │  • Proveedores notificados por email         │
                     │  • Plazo: 10 días hábiles para cotizar       │
                     │  • Timer activo                              │
                     │  • Proveedores pueden ver/descargar docs     │
                     │                                              │
-                    │  ⚠️ REGLAS ESTRICTAS:                        │
-                    │  • ❌ NO se puede cancelar                   │
-                    │  • Solo sale de este estado cuando:          │
-                    │    1. Al menos 1 proveedor responde, o       │
-                    │    2. Se cumplió la fecha límite (10 días)   │
+                    │  ⚠️ Cancelación en este estado y posteriores │
+                    │     SOLO la pueden ejecutar Super Usuarios y │
+                    │     dispara protocolo especial: notifica a   │
+                    │     proveedores y posteriormente generar una RFQ nueva       │
+                    │     (ver sección 3.5).                       │
                     └─────────────┬────────────────┬───────────────┘
                                   │                │
                     ┌─────────────┘                └─────────────┐
@@ -230,10 +190,12 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
     │  ─────────────────────────── │          │  ─────────────────────────── │
     │  • Al menos 1 cotización     │          │  • Ningún proveedor cotizó    │
     │  • Algunos proveedores       │          │  • Todos los plazos vencidos  │
-    │    aún tienen tiempo         │          │  • Admin puede:               │
+    │    aún tienen tiempo         │          │  • Super Usuario puede:       │
     │                               │          │    → Cerrar RFQ               │
-    │  ⚠️ NO se puede cancelar      │          │    → Extender plazo (nuevo    │
-    │     (proveedores trabajando)  │          │      ciclo de cotización)     │
+    │  ⚠️ Cancelable solo por      │          │    → Extender plazo (nuevo    │
+    │     Super Usuarios con       │          │      ciclo de cotización)     │
+    │     notificación a proveedor │          │    → Cancelar con protocolo   │
+    │     y nueva RFQ              │          │      especial                 │
     └───────────────┬───────────────┘          └───────────────┬───────────────┘
                     │                                          │
         [4+ cotizaciones recibidas]                            │
@@ -246,13 +208,13 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
     │  • Comparativo automático generado                           │
     │  • Exportable a Excel                                        │
     │  • Compras e Industrialización pueden analizar               │
-    │  • Admin puede:                                              │
+    │  • Super Usuario puede:                                      │
     │    → Cerrar RFQ (finalizar proceso)                          │
     │    → Reenviar a otros proveedores (nuevo ciclo)              │
-    │      Requiere aprobación de Super Usuario Compras            │
+    │    → Cancelar con protocolo especial                         │
     └───────────────────────────────┬───────────────────────────────┘
                                     │
-                    [Admin cierra RFQ]
+                    [Super Usuario cierra RFQ]
                                     │
                                     ▼
                     ┌───────────────────────────────────────┐
@@ -268,22 +230,54 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
                            ESTADOS ESPECIALES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ┌───────────────────────────────────────┐
-    │          CANCELADA (CANCELLED)        │
-    │  ─────────────────────────────────── │
-    │  • Solo puede ocurrir desde:         │
-    │    - DRAFT                           │
-    │    - PENDING_INTERNAL_APPROVAL       │
-    │    - PENDING                         │
-    │    - PENDING_PURCHASING_APPROVAL     │
-    │  • ❌ NUNCA desde: QUOTING,          │
-    │    PARTIALLY_QUOTED, BENCHMARK_READY │
-    │    EXPIRED, CLOSED                   │
-    │  • Solo Admin puede cancelar         │
-    │  • Requiere motivo de cancelación    │
-    │  • Soft delete (datos preservados)   │
-    │  • Notifica a todos los involucrados │
-    └───────────────────────────────────────┘
+    ┌─────────────────────────────────────────────┐
+    │          CANCELADA (CANCELLED)              │
+    │  ─────────────────────────────────────────  │
+    │  • Puede ocurrir desde CUALQUIER estado     │
+    │    no terminal: DRAFT, PENDING, QUOTING,    │
+    │    PARTIALLY_QUOTED, BENCHMARK_READY,       │
+    │    EXPIRED.                                 │
+    │  • ❌ NUNCA desde CLOSED.                   │
+    │  • Solo Super Usuarios (Indust. o Compras)  │
+    │  • Requiere motivo de cancelación           │
+    │  • Soft delete (datos preservados)          │
+    │  • Notifica a todos los involucrados        │
+    │                                             │
+    │  Cancelación temprana (antes de QUOTING):   │
+    │  • No hay proveedores notificados aún       │
+    │  • Solo se notifica al equipo interno       │
+    │                                             │
+    │  Cancelación tardía (QUOTING en adelante):  │
+    │  • 📧 Notifica a TODOS los proveedores      │
+    │    asignados explicando el cierre del ciclo │
+    │  • Las cotizaciones ya enviadas se          │
+    │    archivan junto con el motivo             │
+    │  • 🆕 El sistema crea automáticamente una   │
+    │    RFQ NUEVA (de reemplazo) que hereda los  │
+    │    datos técnicos y queda en DRAFT, lista   │
+    │    para que el equipo interno ajuste y      │
+    │    reenvíe a proveedores                    │
+    └─────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────┐
+    │  SOLICITANDO EDICIÓN (PENDING_EDIT_REQUEST) │
+    │  ─────────────────────────────────────────  │
+    │  • Substate transitorio de PENDING           │
+    │  • Solo el CREADOR original puede iniciarlo  │
+    │  • Una sola solicitud activa por RFQ a vez   │
+    │  • 📧 Notificación automática a Compras      │
+    │  • Asignación de proveedores BLOQUEADA       │
+    │    mientras la solicitud esté pendiente      │
+    │                                              │
+    │  Compras APRUEBA → RFQ regresa a DRAFT:      │
+    │  • Solo el creador puede verla/editarla      │
+    │  • Debe volver a enviarla cuando termine     │
+    │                                              │
+    │  Compras RECHAZA → RFQ permanece en PENDING: │
+    │  • Requiere motivo del rechazo               │
+    │  • 📧 Notifica al creador con el motivo      │
+    │  • Compras puede retomar la asignación       │
+    └─────────────────────────────────────────────┘
 
 ```
 
@@ -291,76 +285,69 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
 
 | Estado | Código | Descripción | Quién Actúa | Siguiente Estado |
 |--------|--------|-------------|-------------|------------------|
-| **Borrador** | `DRAFT` | RFQ creada, editable SOLO por el creador | Creador (cualquier tipo) | `PENDING_INTERNAL_APPROVAL`, `PENDING`, `CANCELLED` |
-| **Pend. Aprob. Interna** | `PENDING_INTERNAL_APPROVAL` | Usuario Base envió, esperando Super Usuario Industrialización | Super Usuario Indust. | `PENDING`, `DRAFT`, `CANCELLED` |
-| **Pendiente Asignación** | `PENDING` | Aprobada, esperando asignación de proveedores | Compras (Base o Admin) | `PENDING_PURCHASING_APPROVAL`, `QUOTING`, `CANCELLED` |
-| **Pend. Aprob. Compras** | `PENDING_PURCHASING_APPROVAL` | Usuario Base asignó, esperando Super Usuario Compras | Super Usuario Compras | `QUOTING`, `PENDING`, `CANCELLED` |
-| **En Cotización** | `QUOTING` | ⚠️ **PUNTO DE NO RETORNO**: Proveedores trabajando. NO cancelable. | Sistema + Proveedores | `PARTIALLY_QUOTED`, `EXPIRED` |
-| **Cotizada Parcialmente** | `PARTIALLY_QUOTED` | 1+ cotizaciones, proveedores aún trabajando. NO cancelable. | Sistema + Proveedores | `BENCHMARK_READY`, `EXPIRED` |
-| **Benchmark Disponible** | `BENCHMARK_READY` | 4+ cotizaciones, comparativo listo. Puede reenviar. | Admins | `CLOSED`, `QUOTING` (reenvío) |
-| **Vencida** | `EXPIRED` | Plazo vencido. Puede extender o cerrar. | Admins | `CLOSED`, `QUOTING` (extensión) |
+| **Borrador** | `DRAFT` | RFQ creada, editable SOLO por el creador | Creador (cualquier tipo) | `PENDING`, `CANCELLED` |
+| **Pendiente Asignación** | `PENDING` | RFQ enviada, esperando asignación de proveedores | Compras (Base o Admin) | `QUOTING`, `CANCELLED`, `PENDING_EDIT_REQUEST` |
+| **Solicitando Edición** | `PENDING_EDIT_REQUEST` | Creador solicitó editar la RFQ; Compras debe aprobar o rechazar. Asignación bloqueada. | Compras (Base o Admin) | `DRAFT` (aprobado), `PENDING` (rechazado) |
+| **En Cotización** | `QUOTING` | Proveedores trabajando. Cancelable solo por Super Usuario con protocolo especial. | Sistema + Proveedores | `PARTIALLY_QUOTED`, `EXPIRED`, `CANCELLED` |
+| **Cotizada Parcialmente** | `PARTIALLY_QUOTED` | 1+ cotizaciones, proveedores aún trabajando. Cancelable solo por Super Usuario con protocolo especial. | Sistema + Proveedores | `BENCHMARK_READY`, `EXPIRED`, `CANCELLED` |
+| **Benchmark Disponible** | `BENCHMARK_READY` | 4+ cotizaciones, comparativo listo. Puede reenviar o cancelarse con protocolo especial. | Super Usuarios | `CLOSED`, `QUOTING` (reenvío), `CANCELLED` |
+| **Vencida** | `EXPIRED` | Plazo vencido. Puede extender, cerrar o cancelarse. | Super Usuarios | `CLOSED`, `QUOTING` (extensión), `CANCELLED` |
 | **Cerrada** | `CLOSED` | Proceso finalizado, solo lectura | Nadie | - (estado final) |
-| **Cancelada** | `CANCELLED` | Cancelada por Admin (solo antes de QUOTING) | Nadie | - (estado final) |
+| **Cancelada** | `CANCELLED` | Cancelada por Super Usuario en cualquier estado no terminal. Cancelaciones tardías generan una RFQ nueva. | Nadie | - (estado final) |
 
-### 3.3 Flujo de Aprobaciones Detallado
+> Nota: los estados `PENDING_INTERNAL_APPROVAL` y `PENDING_PURCHASING_APPROVAL`
+> fueron eliminados. Cualquier referencia residual en código existente debe
+> migrarse al flujo directo descrito arriba.
+
+### 3.3 Flujo de Cancelación por Super Usuario
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│         ACCIONES DEL SUPER USUARIO EN ESTADOS DE APROBACIÓN                  │
+│   ÚNICA ACCIÓN EXCLUSIVA DEL SUPER USUARIO: CANCELAR LA RFQ                  │
+│   (No aprueba ni rechaza ni edita-y-aprueba: el flujo no tiene aprobación)   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Estado: PENDING_INTERNAL_APPROVAL
-(Super Usuario Industrialización revisando RFQ de Usuario Base)
+Modalidad A — Cancelación TEMPRANA (DRAFT, PENDING)
 ─────────────────────────────────────────────────────────────────────────────
-
-  ✅ APROBAR
-     • RFQ pasa a PENDING
-     • Se notifica al creador original
-     • Se notifica a Compras para asignar proveedores
-
-  ↩️ RECHAZAR (con motivo obligatorio)
-     • RFQ regresa a DRAFT
-     • Se notifica al creador con el motivo
-     • Creador puede corregir y reenviar
-
-  ✏️ EDITAR + APROBAR (con auditoría)
-     • Super Usuario modifica campos de la RFQ
-     • Se registra qué campos se modificaron
-     • REQUIERE: Razón de cada cambio
-     • RFQ pasa a PENDING con cambios aplicados
 
   🗑️ CANCELAR (soft delete)
-     • Solo si RFQ es inválida/duplicada/errónea
-     • REQUIERE: Motivo de cancelación
+     • RFQ inválida, duplicada o errónea, sin proveedores notificados
+     • REQUIERE: Motivo de cancelación (>= 10 caracteres)
      • RFQ pasa a CANCELLED
-     • Se notifica al creador
+     • Se notifica al creador y, si aplica, al equipo de Compras
+     • NO se genera RFQ de reemplazo
 
 
-Estado: PENDING_PURCHASING_APPROVAL
-(Super Usuario Compras revisando asignación de Usuario Base)
+Modalidad B — Cancelación TARDÍA (QUOTING, PARTIALLY_QUOTED, BENCHMARK_READY,
+                                  EXPIRED)
 ─────────────────────────────────────────────────────────────────────────────
 
-  ✅ APROBAR
-     • 🔒 RFQ pasa a QUOTING (PUNTO DE NO RETORNO)
-     • Se envían emails a TODOS los proveedores asignados
-     • Inicia contador de 10 días hábiles
-     • Se notifica a Industrialización
+  🗑️ CANCELAR CON PROTOCOLO ESPECIAL
+     • Permitida porque puede haber cambios técnicos, errores graves o
+       dependencias externas que obliguen a reemplazar la RFQ entera
+     • REQUIERE: Motivo de cancelación (>= 10 caracteres)
+     • La UI debe presentar una confirmación reforzada que comunique el
+       impacto antes de ejecutar la acción
+     • Al confirmar el sistema ejecuta, en orden:
+       1. Marca la RFQ original como CANCELLED y archiva sus cotizaciones,
+          benchmark y eventos de timeline
+       2. 📧 Envía notificación a TODOS los proveedores asignados explicando
+          el cierre del ciclo y citando el motivo
+       3. 🆕 Crea automáticamente una RFQ de reemplazo en estado DRAFT que
+          hereda los datos técnicos, archivos PPT/STP y referencia a la
+          RFQ original (campo `replacedRfqId`)
+       4. Notifica al creador interno y al equipo de Compras de que la nueva
+          RFQ está disponible para revisión y reenvío
 
-  ↩️ RECHAZAR (con motivo obligatorio)
-     • RFQ regresa a PENDING
-     • Se notifica al asignador original
-     • Asignador puede reasignar proveedores
 
-  ✏️ EDITAR PROVEEDORES + APROBAR
-     • Super Usuario modifica lista de proveedores
-     • PUEDE: Agregar, quitar o reemplazar proveedores
-     • REQUIERE: Razón del cambio en asignación
-     • 🔒 RFQ pasa a QUOTING con proveedores modificados
+Reglas comunes a ambas modalidades
+─────────────────────────────────────────────────────────────────────────────
 
-  🗑️ CANCELAR (con auditoría)
-     • REQUIERE: Motivo de cancelación
-     • RFQ pasa a CANCELLED
-     • Se notifica a todos los involucrados
+  • Solo `industrializacion_admin` o `compras_admin` pueden ejecutarla.
+  • Toda cancelación deja audit trail con autor, timestamp, motivo y, si
+    aplica, identificador de la RFQ de reemplazo.
+  • La UI debe diferenciar visualmente las dos modalidades para evitar
+    cancelaciones tardías accidentales.
 ```
 
 ### 3.4 Matriz de Acciones por Estado y Rol
@@ -390,21 +377,6 @@ Estado: PENDING_PURCHASING_APPROVAL
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                      ACCIONES EN ESTADO: PEND. APROBACIÓN INTERNA (PENDING_INTERNAL_APPROVAL)            │
-├─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ Acción                          │ Indust. │ Indust. Admin │ Compras │ Compras Admin │ Proveedor │       │
-├─────────────────────────────────┼─────────┼───────────────┼─────────┼───────────────┼───────────┤       │
-│ Ver RFQ                         │  👤 👁️   │      ✅       │   ❌    │      ❌       │    ❌     │       │
-│ Aprobar RFQ                     │   ❌    │      ✅       │   ❌    │      ❌       │    ❌     │       │
-│ Rechazar RFQ (con motivo)       │   ❌    │      ✅       │   ❌    │      ❌       │    ❌     │       │
-│ Editar + Aprobar (auditoría)    │   ❌    │      ✅       │   ❌    │      ❌       │    ❌     │       │
-│ Cancelar (soft delete)          │   ❌    │      ✅       │   ❌    │      ❌       │    ❌     │       │
-│                                 │         │               │         │               │           │       │
-│ 👤 👁️ = Creador solo puede ver, esperando revisión de Super Usuario  
-LOs 2 super usuarios lo unico que hacen son poder cancelar RFqs solo cancelan y ya    #Cambio                        │       │
-└─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                              ACCIONES EN ESTADO: PENDIENTE ASIGNACIÓN (PENDING)                          │
 ├─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Acción                          │ Indust. │ Indust. Admin │ Compras │ Compras Admin │ Proveedor │       │
@@ -413,25 +385,30 @@ LOs 2 super usuarios lo unico que hacen son poder cancelar RFqs solo cancelan y 
 │ Descargar documentos            │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
 │ Asignar proveedores             │   ❌    │      ❌       │   ✅    │      ✅       │    ❌     │       │
 │ Ver sugerencias IA              │   ❌    │      ❌       │   ✅    │      ✅       │    ❌     │       │
-│ Cancelar                        │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
+│ Solicitar edición de RFQ        │  👤 ✅  │    👤 ✅      │   ❌    │      ❌       │    ❌     │       │
+│ Cancelar (cancelación TEMPRANA) │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │                                 │         │               │         │               │           │       │
-│ ⚠️ Si Usuario Base Compras asigna → pasa a PENDING_PURCHASING_APPROVAL                           │       │
-│ ⚠️ Si Admin Compras asigna → pasa directo a QUOTING                                              │       │
+│ 👤 = Solo el creador original puede solicitar edición                                           │       │
+│ ⚠️ Cualquier rol de Compras (base o admin) que asigne → pasa directo a QUOTING                  │       │
+│ ⚠️ La cancelación es la ÚNICA acción exclusiva de los Super Usuarios en este estado             │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                      ACCIONES EN ESTADO: PEND. APROBACIÓN COMPRAS (PENDING_PURCHASING_APPROVAL)          │
+│                        ACCIONES EN ESTADO: SOLICITANDO EDICIÓN (PENDING_EDIT_REQUEST)                    │
 ├─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Acción                          │ Indust. │ Indust. Admin │ Compras │ Compras Admin │ Proveedor │       │
 ├─────────────────────────────────┼─────────┼───────────────┼─────────┼───────────────┼───────────┤       │
-│ Ver RFQ                         │   ✅    │      ✅       │  👤 👁️   │      ✅       │    ❌     │       │
-│ Ver proveedores propuestos      │   ✅    │      ✅       │  👤 👁️   │      ✅       │    ❌     │       │
-│ Aprobar asignación              │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Rechazar asignación (motivo)    │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Editar proveedores + Aprobar    │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Cancelar                        │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
+│ Ver RFQ                         │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
+│ Descargar documentos            │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
+│ Aprobar solicitud de edición    │   ❌    │      ❌       │   ✅    │      ✅       │    ❌     │       │
+│ Rechazar solicitud de edición   │   ❌    │      ❌       │   ✅    │      ✅       │    ❌     │       │
+│ Asignar proveedores             │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │       │
+│ Cancelar (cancelación TEMPRANA) │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
+│ Editar campos de la RFQ         │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │       │
 │                                 │         │               │         │               │           │       │
-│ 👤 👁️ = Usuario Base que asignó solo puede ver, esperando aprobación                             │       │
+│ ⚠️ Asignación de proveedores BLOQUEADA hasta que Compras resuelva la solicitud                  │       │
+│ ⚠️ Aprobación → RFQ pasa a DRAFT (solo creador puede ver/editar)                               │       │
+│ ⚠️ Rechazo → RFQ regresa a PENDING (requiere motivo; Compras retoma asignación)                │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -445,11 +422,11 @@ LOs 2 super usuarios lo unico que hacen son poder cancelar RFqs solo cancelan y 
 │ Ver estado cotizaciones         │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
 │ Crear cotización                │   ❌    │      ❌       │   ❌    │      ❌       │    ✅     │       │
 │ Ver días restantes              │   ✅    │      ✅       │   ✅    │      ✅       │    ✅     │       │
-│ Cancelar                        │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │ 🔒    │
+│ Cancelar (cancelación TARDÍA)   │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │ Excluir proveedor (vencimiento) │   ⚡    │      ⚡       │   ⚡    │      ⚡       │    ⚡     │ Auto  │
 │                                 │         │               │         │               │           │       │
-│ ⚠️ PUNTO DE NO RETORNO: NO se puede cancelar. Solo sale cuando todos responden o vence plazo 
-Aqui para cancelar la Rfq se tiene que notificar al proveedor y mandar una nueva   #Cambio       │
+│ ⚠️ Cancelación TARDÍA: Solo Super Usuarios. Notifica a TODOS los proveedores asignados y       │       │
+│    genera automáticamente una RFQ de reemplazo en DRAFT (ver sección 3.3 / 3.5).               │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -462,9 +439,9 @@ Aqui para cancelar la Rfq se tiene que notificar al proveedor y mandar una nueva
 │ Ver comparativo parcial         │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
 │ Crear cotización (si tiene plazo)│   ❌    │      ❌       │   ❌    │      ❌       │    ✅     │       │
 │ Aprobar desbloqueo cotización   │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Cancelar                        │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │ 🔒    │
+│ Cancelar (cancelación TARDÍA)   │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │                                 │         │               │         │               │           │       │
-│ ⚠️ NO SE PUEDE CANCELAR: Proveedores trabajando, proceso debe concluir naturalmente               │       │
+│ ⚠️ Cancelación TARDÍA: Solo Super Usuarios. Notifica a proveedores y genera RFQ de reemplazo.   │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -479,9 +456,9 @@ Aqui para cancelar la Rfq se tiene que notificar al proveedor y mandar una nueva
 │ Ver KPIs de proveedores         │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
 │ Cerrar RFQ                      │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │ Reenviar a otros proveedores    │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Cancelar                        │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │ 🔒    │
+│ Cancelar (cancelación TARDÍA)   │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │                                 │         │               │         │               │           │       │
-│ ⚠️ NO SE PUEDE CANCELAR: Proceso completado. Puede reenviar a otros proveedores si necesario     │       │
+│ ⚠️ Cancelación TARDÍA: Solo Super Usuarios. Notifica a proveedores y genera RFQ de reemplazo.   │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -493,9 +470,9 @@ Aqui para cancelar la Rfq se tiene que notificar al proveedor y mandar una nueva
 │ Ver cotizaciones recibidas      │   ✅    │      ✅       │   ✅    │      ✅       │    ❌     │       │
 │ Cerrar RFQ                      │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │ Extender plazo (nuevo ciclo)    │   ❌    │      ❌       │   ❌    │      ✅       │    ❌     │       │
-│ Cancelar                        │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │ 🔒    │
+│ Cancelar (cancelación TARDÍA)   │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │                                 │         │               │         │               │           │       │
-│ ⚠️ NO SE PUEDE CANCELAR: Proceso vencido. Puede extender plazo o cerrar.                         │       │
+│ ⚠️ Cancelación TARDÍA: Solo Super Usuarios. Notifica a proveedores y genera RFQ de reemplazo.   │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -523,14 +500,15 @@ Aqui para cancelar la Rfq se tiene que notificar al proveedor y mandar una nueva
 ### 3.5 Transiciones de Estado (TypeScript State Machine)
 
 ```typescript
-// Configuración de transiciones válidas con flujo de aprobación
+// Configuración de transiciones válidas
 // Ubicación: features/rfq/constants/rfqStateMachine.ts
+// Nota: el flujo NO tiene aprobaciones intermedias. Los Super Usuarios solo
+// cancelan; cualquier otra transición la dispara el creador, Compras o el sistema.
 
 export const RFQStatus = {
   DRAFT: 'DRAFT',
-  PENDING_INTERNAL_APPROVAL: 'PENDING_INTERNAL_APPROVAL',
   PENDING: 'PENDING',
-  PENDING_PURCHASING_APPROVAL: 'PENDING_PURCHASING_APPROVAL',
+  PENDING_EDIT_REQUEST: 'PENDING_EDIT_REQUEST',
   QUOTING: 'QUOTING',
   PARTIALLY_QUOTED: 'PARTIALLY_QUOTED',
   BENCHMARK_READY: 'BENCHMARK_READY',
@@ -545,260 +523,225 @@ export const RFQ_STATE_TRANSITIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
   DRAFT: {
     description: 'RFQ en borrador, solo visible y editable por el creador',
-    allowedTransitions: ['PENDING_INTERNAL_APPROVAL', 'PENDING', 'CANCELLED'],
+    allowedTransitions: ['PENDING', 'CANCELLED'],
     triggers: {
-      // Usuario Base Industrialización envía → necesita aprobación
-      PENDING_INTERNAL_APPROVAL: { 
-        action: 'SUBMIT_FOR_INTERNAL_APPROVAL', 
-        requiredRole: ['industrializacion'],
-        description: 'Usuario Base envía para aprobación de Super Usuario'
+      // Cualquier usuario de Industrialización envía directo (sin aprobación)
+      PENDING: {
+        action: 'SUBMIT_DIRECT',
+        requiredRole: ['industrializacion', 'industrializacion_admin'],
+        description: 'El creador envía la RFQ directamente a Compras'
       },
-      // Super Usuario Industrialización envía → va directo a Compras
-      PENDING: { 
-        action: 'SUBMIT_DIRECT', 
-        requiredRole: ['industrializacion_admin'],
-        description: 'Super Usuario envía directo sin necesitar aprobación'
-      },
-      // Solo el creador puede eliminar su propio borrador
-      CANCELLED: { 
-        action: 'DELETE_DRAFT', 
-        requiredRole: ['creator_only'],
-        description: 'Solo el creador puede eliminar su borrador'
+      // Cancelación: borrar borrador propio o cancelación temprana por Super Usuario
+      CANCELLED: {
+        action: 'CANCEL_EARLY',
+        requiredRole: ['creator_only', 'industrializacion_admin', 'compras_admin'],
+        requiresComment: true,
+        description: 'El creador elimina su borrador o un Super Usuario lo cancela'
       },
     },
     ownershipRule: 'CREATOR_ONLY', // Solo el creador puede ver/editar
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 2A: APROBACIÓN INTERNA (Super Usuario Industrialización decide)
-  // ═══════════════════════════════════════════════════════════════════════════
-  PENDING_INTERNAL_APPROVAL: {
-    description: 'Esperando aprobación del Super Usuario de Industrialización',
-    allowedTransitions: ['PENDING', 'DRAFT', 'CANCELLED'],
-    triggers: {
-      // Aprobar → envía a Compras
-      PENDING: { 
-        action: 'APPROVE_INTERNAL', 
-        requiredRole: ['industrializacion_admin'],
-        requiresComment: false,
-        description: 'Super Usuario aprueba y envía a Compras'
-      },
-      // Rechazar → regresa a borrador del creador
-      DRAFT: { 
-        action: 'REJECT_INTERNAL', 
-        requiredRole: ['industrializacion_admin'],
-        requiresComment: true, // Obligatorio explicar por qué
-        description: 'Super Usuario rechaza con comentarios para corrección'
-      },
-      // Cancelar → elimina la RFQ
-      CANCELLED: { 
-        action: 'CANCEL', 
-        requiredRole: ['industrializacion_admin'],
-        requiresComment: true,
-        description: 'Super Usuario cancela definitivamente la RFQ'
-      },
-    },
-    // Super Usuario también puede editar y luego aprobar
-    specialActions: {
-      EDIT_AND_APPROVE: {
-        action: 'EDIT_AND_APPROVE',
-        requiredRole: ['industrializacion_admin'],
-        targetState: 'PENDING',
-        description: 'Super Usuario edita campos y aprueba con los cambios',
-        requiresAuditLog: true, // Registrar qué cambios hizo
-      },
-    },
-    notifyOnEntry: ['industrializacion_admin'], // Notificar a Super Usuarios
-    visibleTo: ['creator', 'industrializacion_admin'], // Creador solo ve, Admin actúa
-  },
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 3: ASIGNACIÓN DE PROVEEDORES (Departamento de Compras)
+  // FASE 2: ASIGNACIÓN DE PROVEEDORES (Departamento de Compras)
   // ═══════════════════════════════════════════════════════════════════════════
   PENDING: {
-    description: 'RFQ aprobada, esperando asignación de proveedores por Compras',
-    allowedTransitions: ['PENDING_PURCHASING_APPROVAL', 'QUOTING', 'CANCELLED'],
+    description: 'RFQ enviada, esperando asignación de proveedores por Compras',
+    allowedTransitions: ['QUOTING', 'CANCELLED', 'PENDING_EDIT_REQUEST'],
     triggers: {
-      // Usuario Base Compras asigna → necesita aprobación de su Super Usuario
-      PENDING_PURCHASING_APPROVAL: { 
-        action: 'ASSIGN_SUPPLIERS_FOR_APPROVAL', 
-        requiredRole: ['compras'],
-        description: 'Usuario Base asigna proveedores, necesita aprobación'
+      // Cualquier usuario de Compras asigna y notifica directamente
+      QUOTING: {
+        action: 'ASSIGN_SUPPLIERS_DIRECT',
+        requiredRole: ['compras', 'compras_admin'],
+        description: 'Compras asigna proveedores y notifica directamente'
       },
-      // Super Usuario Compras asigna → notifica proveedores directamente
-      QUOTING: { 
-        action: 'ASSIGN_SUPPLIERS_DIRECT', 
-        requiredRole: ['compras_admin'],
-        description: 'Super Usuario asigna y notifica proveedores directamente'
-      },
-      // Cancelación aún permitida (no hay proveedores notificados)
-      CANCELLED: { 
-        action: 'CANCEL', 
+      // Cancelación temprana (todavía no hay proveedores notificados)
+      CANCELLED: {
+        action: 'CANCEL_EARLY',
         requiredRole: ['industrializacion_admin', 'compras_admin'],
         requiresComment: true,
-        description: 'Super Usuario puede cancelar antes de notificar proveedores'
+        description: 'Super Usuario cancela antes de notificar proveedores'
+      },
+      // El creador solicita retirar la RFQ para corregir datos
+      PENDING_EDIT_REQUEST: {
+        action: 'REQUEST_EDIT',
+        requiredRole: ['creator_only'],
+        requiresComment: true,
+        description: 'El creador solicita editar la RFQ; Compras debe aprobar o rechazar'
       },
     },
     notifyOnEntry: ['compras', 'compras_admin'],
     visibleTo: ['industrializacion', 'industrializacion_admin', 'compras', 'compras_admin'],
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 3A: APROBACIÓN DE COMPRAS (Super Usuario Compras decide)
+  // FASE 2-ALT: SOLICITUD DE EDICIÓN (substate transitorio de PENDING)
   // ═══════════════════════════════════════════════════════════════════════════
-  PENDING_PURCHASING_APPROVAL: {
-    description: 'Usuario Base de Compras asignó proveedores, esperando aprobación',
-    allowedTransitions: ['QUOTING', 'PENDING', 'CANCELLED'],
+  PENDING_EDIT_REQUEST: {
+    description: 'Creador solicitó editar la RFQ; Compras debe aprobar o rechazar. Asignación bloqueada.',
+    allowedTransitions: ['DRAFT', 'PENDING', 'CANCELLED'],
     triggers: {
-      // Aprobar → notifica proveedores e inicia plazo
-      QUOTING: { 
-        action: 'APPROVE_PURCHASING', 
-        requiredRole: ['compras_admin'],
-        requiresComment: false,
-        description: 'Super Usuario aprueba y notifica a proveedores'
+      // Compras aprueba: la RFQ regresa a borrador para que el creador la edite
+      DRAFT: {
+        action: 'APPROVE_EDIT_REQUEST',
+        requiredRole: ['compras', 'compras_admin'],
+        description: 'Compras aprueba la solicitud; RFQ regresa a DRAFT (solo creador puede ver/editar)'
       },
-      // Rechazar → regresa a PENDING para reasignación
-      PENDING: { 
-        action: 'REJECT_PURCHASING', 
-        requiredRole: ['compras_admin'],
+      // Compras rechaza: la RFQ permanece en PENDING y Compras retoma la asignación
+      PENDING: {
+        action: 'REJECT_EDIT_REQUEST',
+        requiredRole: ['compras', 'compras_admin'],
         requiresComment: true,
-        description: 'Super Usuario rechaza la selección de proveedores'
+        description: 'Compras rechaza la solicitud con motivo; RFQ permanece en PENDING'
       },
-      // Cancelar → elimina la RFQ
-      CANCELLED: { 
-        action: 'CANCEL', 
-        requiredRole: ['compras_admin'],
+      // Cancelación temprana aún es posible durante este substate
+      CANCELLED: {
+        action: 'CANCEL_EARLY',
+        requiredRole: ['industrializacion_admin', 'compras_admin'],
         requiresComment: true,
-        description: 'Super Usuario cancela definitivamente la RFQ'
+        description: 'Super Usuario cancela la RFQ mientras la solicitud de edición está pendiente'
       },
     },
-    specialActions: {
-      EDIT_SUPPLIERS_AND_APPROVE: {
-        action: 'EDIT_AND_APPROVE',
-        requiredRole: ['compras_admin'],
-        targetState: 'QUOTING',
-        description: 'Super Usuario modifica proveedores y aprueba',
-        requiresAuditLog: true,
-      },
-    },
-    notifyOnEntry: ['compras_admin'],
-    visibleTo: ['industrializacion_admin', 'compras', 'compras_admin'],
+    notifyOnEntry: ['compras', 'compras_admin'],
+    visibleTo: ['industrializacion', 'industrializacion_admin', 'compras', 'compras_admin'],
+    ownershipRule: 'CREATOR_ONLY_ON_APPROVAL', // Al aprobarse, vuelve a ser solo visible por el creador
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 4: EN COTIZACIÓN - 🔒 PUNTO DE NO RETORNO
+  // FASE 3: EN COTIZACIÓN
   // ═══════════════════════════════════════════════════════════════════════════
   QUOTING: {
-    description: '🔒 PUNTO DE NO RETORNO - Proveedores notificados, plazo corriendo',
-    allowedTransitions: ['PARTIALLY_QUOTED', 'EXPIRED'], // 🚫 SIN CANCELLED
+    description: 'Proveedores notificados, plazo corriendo. Cancelable solo por Super Usuario con protocolo especial.',
+    allowedTransitions: ['PARTIALLY_QUOTED', 'EXPIRED', 'CANCELLED'],
     triggers: {
-      // Transición automática cuando llega primera cotización
-      PARTIALLY_QUOTED: { 
-        action: 'QUOTATION_RECEIVED', 
+      PARTIALLY_QUOTED: {
+        action: 'QUOTATION_RECEIVED',
         requiredRole: ['system'],
         description: 'Sistema detecta primera cotización recibida'
       },
-      // Transición automática cuando vence el plazo sin 4 cotizaciones
-      EXPIRED: { 
-        action: 'DEADLINE_PASSED', 
+      EXPIRED: {
+        action: 'DEADLINE_PASSED',
         requiredRole: ['system'],
         description: 'Sistema detecta que venció el plazo de 10 días'
       },
+      CANCELLED: {
+        action: 'CANCEL_LATE',
+        requiredRole: ['industrializacion_admin', 'compras_admin'],
+        requiresComment: true,
+        sideEffects: ['NOTIFY_ALL_SUPPLIERS', 'CREATE_REPLACEMENT_RFQ'],
+        description: 'Super Usuario cancela post-notificación: notifica proveedores y genera RFQ nueva'
+      },
     },
-    // ⚠️ NO HAY ACCIÓN DE CANCELAR - Es el punto de no retorno
     cancellationPolicy: {
-      allowed: false,
-      reason: 'Proveedores ya fueron notificados y están trabajando en cotizaciones',
-      exitConditions: [
-        'Todos los proveedores responden (o vence su plazo individual)',
-        'Vence el plazo general de la RFQ (10 días)',
-      ],
+      allowed: true,
+      requiredRole: ['industrializacion_admin', 'compras_admin'],
+      protocol: 'LATE_CANCELLATION',
     },
-    notifyOnEntry: ['proveedor_assigned'], // Notifica a proveedores asignados
-    visibleTo: ['all'], // Todos pueden ver, proveedores solo su parte
+    notifyOnEntry: ['proveedor_assigned'],
+    visibleTo: ['all'],
     deadlineConfig: {
-      duration: 10, // días
+      duration: 10,
       unit: 'days',
       autoTransitionOnExpiry: 'EXPIRED',
     },
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 5: COTIZACIÓN PARCIAL - 🔒 AÚN EN PUNTO DE NO RETORNO
+  // FASE 4: COTIZACIÓN PARCIAL
   // ═══════════════════════════════════════════════════════════════════════════
   PARTIALLY_QUOTED: {
-    description: '🔒 Al menos 1 cotización recibida, esperando más o vencimiento',
-    allowedTransitions: ['BENCHMARK_READY', 'EXPIRED'], // 🚫 SIN CANCELLED
+    description: 'Al menos 1 cotización recibida, esperando más o vencimiento. Cancelable solo por Super Usuario con protocolo especial.',
+    allowedTransitions: ['BENCHMARK_READY', 'EXPIRED', 'CANCELLED'],
     triggers: {
-      // Transición automática cuando llegan 4 cotizaciones
-      BENCHMARK_READY: { 
-        action: 'MIN_QUOTATIONS_REACHED', 
-        requiredRole: ['system'], 
+      BENCHMARK_READY: {
+        action: 'MIN_QUOTATIONS_REACHED',
+        requiredRole: ['system'],
         minQuotations: 4,
         description: 'Sistema detecta que se alcanzaron 4 cotizaciones válidas'
       },
-      // Transición automática cuando vence el plazo
-      EXPIRED: { 
-        action: 'DEADLINE_PASSED', 
+      EXPIRED: {
+        action: 'DEADLINE_PASSED',
         requiredRole: ['system'],
         description: 'Sistema detecta que venció el plazo general'
       },
+      CANCELLED: {
+        action: 'CANCEL_LATE',
+        requiredRole: ['industrializacion_admin', 'compras_admin'],
+        requiresComment: true,
+        sideEffects: ['NOTIFY_ALL_SUPPLIERS', 'CREATE_REPLACEMENT_RFQ'],
+        description: 'Super Usuario cancela: notifica proveedores y genera RFQ nueva'
+      },
     },
     cancellationPolicy: {
-      allowed: false,
-      reason: 'Proveedores ya enviaron cotizaciones, proceso debe concluir',
+      allowed: true,
+      requiredRole: ['industrializacion_admin', 'compras_admin'],
+      protocol: 'LATE_CANCELLATION',
     },
     visibleTo: ['industrializacion', 'industrializacion_admin', 'compras', 'compras_admin', 'proveedor_assigned'],
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 6: BENCHMARK LISTO - Proceso completado exitosamente
+  // FASE 5: BENCHMARK LISTO
   // ═══════════════════════════════════════════════════════════════════════════
   BENCHMARK_READY: {
     description: 'Benchmark generado con 4+ cotizaciones, listo para análisis',
-    allowedTransitions: ['CLOSED', 'QUOTING'], // Puede reenviar o cerrar
+    allowedTransitions: ['CLOSED', 'QUOTING', 'CANCELLED'],
     triggers: {
-      CLOSED: { 
-        action: 'CLOSE_RFQ', 
+      CLOSED: {
+        action: 'CLOSE_RFQ',
         requiredRole: ['industrializacion_admin', 'compras_admin'],
         description: 'Super Usuario cierra la RFQ definitivamente'
       },
-      // Opción de reenviar a otros proveedores si se necesitan más cotizaciones
       QUOTING: {
         action: 'RESEND_TO_MORE_SUPPLIERS',
         requiredRole: ['compras_admin'],
         description: 'Super Usuario Compras envía a proveedores adicionales',
       },
+      CANCELLED: {
+        action: 'CANCEL_LATE',
+        requiredRole: ['industrializacion_admin', 'compras_admin'],
+        requiresComment: true,
+        sideEffects: ['NOTIFY_ALL_SUPPLIERS', 'CREATE_REPLACEMENT_RFQ'],
+        description: 'Super Usuario cancela: notifica proveedores y genera RFQ nueva'
+      },
     },
     cancellationPolicy: {
-      allowed: false,
-      reason: 'Proceso completado con cotizaciones válidas',
+      allowed: true,
+      requiredRole: ['industrializacion_admin', 'compras_admin'],
+      protocol: 'LATE_CANCELLATION',
     },
     visibleTo: ['industrializacion', 'industrializacion_admin', 'compras', 'compras_admin'],
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // FASE 6-ALT: VENCIDA - Plazo expiró sin suficientes cotizaciones
+  // FASE 5-ALT: VENCIDA
   // ═══════════════════════════════════════════════════════════════════════════
   EXPIRED: {
-    description: 'Plazo vencido, se puede extender o cerrar',
-    allowedTransitions: ['CLOSED', 'QUOTING'],
+    description: 'Plazo vencido, se puede extender, cerrar o cancelar con protocolo especial',
+    allowedTransitions: ['CLOSED', 'QUOTING', 'CANCELLED'],
     triggers: {
-      CLOSED: { 
-        action: 'CLOSE_RFQ', 
+      CLOSED: {
+        action: 'CLOSE_RFQ',
         requiredRole: ['industrializacion_admin', 'compras_admin'],
         description: 'Super Usuario cierra la RFQ vencida'
       },
-      // Extender plazo enviando a nuevos proveedores
       QUOTING: {
         action: 'EXTEND_WITH_NEW_SUPPLIERS',
         requiredRole: ['compras_admin'],
         description: 'Super Usuario Compras extiende enviando a más proveedores',
       },
+      CANCELLED: {
+        action: 'CANCEL_LATE',
+        requiredRole: ['industrializacion_admin', 'compras_admin'],
+        requiresComment: true,
+        sideEffects: ['NOTIFY_ALL_SUPPLIERS', 'CREATE_REPLACEMENT_RFQ'],
+        description: 'Super Usuario cancela: notifica proveedores y genera RFQ nueva'
+      },
     },
     cancellationPolicy: {
-      allowed: false,
-      reason: 'Proceso ya vencido, solo puede cerrar o extender',
+      allowed: true,
+      requiredRole: ['industrializacion_admin', 'compras_admin'],
+      protocol: 'LATE_CANCELLATION',
     },
     visibleTo: ['industrializacion', 'industrializacion_admin', 'compras', 'compras_admin'],
   },
@@ -827,106 +770,70 @@ export const RFQ_STATE_TRANSITIONS = {
 
 ### 3.6 Flujo Secuencial Completo
 
-#### 3.5.1 Camino A: Usuario Base (Requiere aprobaciones)
+> Existe un único camino feliz; los Super Usuarios ya no aprueban ni rechazan.
+> Su intervención es excepcional y siempre toma forma de cancelación, ya sea
+> temprana o tardía con protocolo especial.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                 FLUJO COMPLETO - USUARIO BASE (Con aprobaciones)                         │
+│                              FLUJO DIRECTO ÚNICO                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 
-Día 0                                           
-  │                                              
-  │  ┌─────────────────────────────────────┐    
-  │  │ 1. Usuario Base Indust. crea RFQ    │    
-  │  │    - Llena campos técnicos          │    
-  │  │    - Sube PPT y STP                 │    
-  │  │    - Guarda como BORRADOR           │    
-  │  │    → Estado: DRAFT                  │    
-  │  │    → 👤 Solo él puede ver/editar    │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ▼                                              
-Día 1                                           
-  │  ┌─────────────────────────────────────┐    
-  │  │ 2. Usuario Base envía para aprobar  │    
-  │  │    → Estado: PENDING_INTERNAL_APPR. │    
-  │  │    → 📧 Email a Super Usuario Ind.  │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ├───────────────── ¿Aprobado? ─────────────────┤
-  │                                              │
-  │  NO (Rechazado)                      SÍ (Aprobado)
-  │  ┌─────────────────────┐       ┌─────────────────────┐
-  │  │ → DRAFT (con        │       │ → PENDING           │
-  │  │   comentarios)      │       │ → 📧 Email Compras  │
-  │  │ → Usuario corrige   │       └─────────────────────┘
-  │  │ → Vuelve a enviar   │              │
-  │  └─────────────────────┘              │
-  │            ↑                          │
-  │            └──── loop ────────────────┤
-  │                                       │
-  ▼                                       ▼
-Día 2                                           
-  │  ┌─────────────────────────────────────┐    
-  │  │ 3. Usuario Base Compras asigna      │    
-  │  │    - Revisa sugerencias IA          │    
-  │  │    - Selecciona 6 proveedores       │    
-  │  │    → Estado: PEND_PURCHASING_APPR.  │    
-  │  │    → 📧 Email a Super Usuario Comp. │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ├───────────────── ¿Aprobado? ─────────────────┤
-  │                                              │
-  │  NO (Rechazado)                      SÍ (Aprobado)
-  │  ┌─────────────────────┐       ┌─────────────────────────┐
-  │  │ → PENDING (para     │       │ → QUOTING               │
-  │  │   reasignar)        │       │ → 📧 Email 6 PROVEEDORES│
-  │  └─────────────────────┘       │ → ⏱️ Inicia plazo 10 días│
-  │            ↑                   │ → 🔒 PUNTO DE NO RETORNO │
-  │            └─ loop ────────────└─────────────────────────┘
-  │                                       │
-  ▼                                       ▼
-                     [... continúa igual que el flujo normal ...]
-```
+Día 0
+  │
+  │  ┌─────────────────────────────────────┐
+  │  │ 1. Usuario de Industrialización     │
+  │  │    (base o admin) crea la RFQ       │
+  │  │    - Llena campos técnicos          │
+  │  │    - Sube PPT y STP                 │
+  │  │    - Guarda como BORRADOR           │
+  │  │    → Estado: DRAFT                  │
+  │  │    → 👤 Solo él puede ver/editar    │
+  │  └─────────────────────────────────────┘
+  │
+  ▼
+Día 1
+  │  ┌─────────────────────────────────────┐
+  │  │ 2. Usuario envía la RFQ             │
+  │  │    → Estado: PENDING                │
+  │  │    → 📧 Email a Compras             │
+  │  └─────────────────────────────────────┘
+  │
+  ▼
+Día 2
+  │  ┌─────────────────────────────────────┐
+  │  │ 3. Usuario de Compras (base o admin)│
+  │  │    asigna proveedores               │
+  │  │    - Revisa sugerencias IA          │
+  │  │    - Selecciona 6 proveedores       │
+  │  │    → Estado: QUOTING                │
+  │  │    → 📧 Email a 6 PROVEEDORES       │
+  │  │    → ⏱️ Inicia plazo 10 días        │
+  │  └─────────────────────────────────────┘
+  │
+  ▼
+                     [... continúa con cotización, benchmark y cierre ...]
 
-#### 3.5.2 Camino B: Super Usuario (Sin aprobaciones)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                    FLUJO DIRECTO - SUPER USUARIO (Sin aprobaciones)                      │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+══════════════════════════════════════════════════════════════════════════════════════════
+                  RAMA DE EXCEPCIÓN: CANCELACIÓN POR SUPER USUARIO
+══════════════════════════════════════════════════════════════════════════════════════════
 
-Día 0                                           
-  │                                              
-  │  ┌─────────────────────────────────────┐    
-  │  │ 1. Super Usuario Indust. crea RFQ   │    
-  │  │    - Llena campos técnicos          │    
-  │  │    - Sube PPT y STP                 │    
-  │  │    - Guarda como BORRADOR           │    
-  │  │    → Estado: DRAFT                  │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ▼                                              
-Día 1                                           
-  │  ┌─────────────────────────────────────┐    
-  │  │ 2. Super Usuario envía DIRECTO      │    
-  │  │    → Estado: PENDING                │  ← ¡Salta aprobación interna!
-  │  │    → 📧 Email a COMPRAS             │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ▼                                              
-Día 2                                           
-  │  ┌─────────────────────────────────────┐    
-  │  │ 3. Super Usuario Compras asigna     │    
-  │  │    - Revisa sugerencias IA          │    
-  │  │    - Selecciona 6 proveedores       │    
-  │  │    → Estado: QUOTING                │  ← ¡Salta aprobación de compras!
-  │  │    → 📧 Email a 6 PROVEEDORES       │    
-  │  │    → ⏱️ Inicia plazo 10 días        │    
-  │  │    → 🔒 PUNTO DE NO RETORNO         │    
-  │  └─────────────────────────────────────┘    
-  │                                              
-  ▼                                              
+  Cualquier estado no terminal puede salir a CANCELLED por intervención del
+  Super Usuario:
+
+    DRAFT ──┐
+    PENDING ┘  →  CANCEL_EARLY  → CANCELLED  (notifica solo a internos)
+
+    QUOTING ─────┐
+    PARTIALLY_QUOTED ─┐
+    BENCHMARK_READY ──┤  →  CANCEL_LATE  →  CANCELLED
+    EXPIRED ─────────┘                       │
+                                             ├─ 📧 Notifica a TODOS los proveedores
+                                             ├─ Archiva cotizaciones recibidas
+                                             └─ 🆕 Genera RFQ de reemplazo en DRAFT
+
+
         [... continúa igual que el flujo normal ...]
 ```
 
@@ -988,17 +895,17 @@ Día 2
 
 | Transición | Destinatarios | Contenido del Email |
 |------------|---------------|---------------------|
-| `DRAFT` → `PENDING_INTERNAL_APPROVAL` | Super Usuario Industrialización | Nueva RFQ pendiente de tu aprobación |
-| `PENDING_INTERNAL_APPROVAL` → `DRAFT` (Rechazada) | Creador original | Tu RFQ fue rechazada: [Motivo]. Por favor corrige. |
-| `PENDING_INTERNAL_APPROVAL` → `PENDING` (Aprobada) | Compras (todos) | Nueva RFQ aprobada, pendiente de asignación |
-| `DRAFT` → `PENDING` (Super Usuario directo) | Compras (todos) | Nueva RFQ pendiente de asignación |
-| `PENDING` → `PENDING_PURCHASING_APPROVAL` | Super Usuario Compras | Asignación de proveedores pendiente de tu aprobación |
-| `PENDING_PURCHASING_APPROVAL` → `PENDING` (Rechazada) | Usuario que asignó | Asignación rechazada: [Motivo]. Reasigna proveedores. |
-| `PENDING` / `PEND_PURCH_APPR` → `QUOTING` | Proveedores asignados | RFQ asignada, tienes 10 días para cotizar |
+| `DRAFT` → `PENDING` | Compras (todos) | Nueva RFQ pendiente de asignación |
+| `PENDING` → `QUOTING` | Proveedores asignados | RFQ asignada, tienes 10 días para cotizar |
 | `QUOTING` → `PARTIALLY_QUOTED` | Compras, Industrialización | Nueva cotización recibida de [Proveedor] |
 | `PARTIALLY_QUOTED` → `BENCHMARK_READY` | Compras, Industrialización | Benchmark disponible para RFQ [ID] |
 | Proveedor excluido (vencimiento) | Proveedor, Compras | Exclusión por vencimiento de plazo |
-| `*` → `CANCELLED` | Todos los involucrados | RFQ cancelada: [Motivo] |
+| `DRAFT` / `PENDING` → `CANCELLED` (cancelación temprana) | Creador, Compras | RFQ cancelada por Super Usuario: [Motivo] |
+| `QUOTING` / `PARTIALLY_QUOTED` / `BENCHMARK_READY` / `EXPIRED` → `CANCELLED` (cancelación tardía) | Creador, Compras, **TODOS los proveedores asignados** | RFQ cancelada por Super Usuario: [Motivo]. Se generó la RFQ de reemplazo [NEW_ID]. |
+| RFQ de reemplazo creada (por cancelación tardía) | Creador original, Compras | Nueva RFQ [NEW_ID] generada en DRAFT por cancelación de [OLD_ID] |
+| `PENDING` → `PENDING_EDIT_REQUEST` | Compras (todos) | [Creador] solicitó editar la RFQ [ID]. Debes aprobar o rechazar la solicitud para continuar con la asignación. |
+| `PENDING_EDIT_REQUEST` → `DRAFT` (aprobado) | Creador | Compras aprobó tu solicitud de edición. La RFQ [ID] está de nuevo en borrador; corrígela y vuelve a enviarla. |
+| `PENDING_EDIT_REQUEST` → `PENDING` (rechazado) | Creador | Compras rechazó tu solicitud de edición de la RFQ [ID]. Motivo: [Motivo]. La RFQ continúa en espera de asignación. |
 
 ### 3.8 Reglas de Negocio Críticas
 
@@ -1066,6 +973,22 @@ Día 2
 │     - Toda acción de Super Usuario se registra: quién, cuándo, qué cambió   │
 │     - Rechazos siempre tienen motivo obligatorio                            │
 │     - Ediciones de Super Usuario muestran diff de cambios                   │
+│                                                                              │
+│  📌 REGLA 12: Solicitud de Edición en PENDING                               │
+│     - Solo el CREADOR original puede solicitar edición (no otros usuarios   │
+│       de Industrialización aunque tengan el mismo rol)                       │
+│     - Solo aplica cuando la RFQ está en estado PENDING                      │
+│     - Solo puede haber UNA solicitud activa por RFQ a la vez               │
+│     - La solicitud requiere un motivo (>= 10 caracteres) del creador        │
+│     - La solicitud notifica automáticamente a TODO el equipo de Compras     │
+│     - Mientras existe una solicitud activa, Compras NO puede asignar        │
+│       proveedores (el botón de asignación queda bloqueado en la UI)         │
+│     - Compras puede: Aprobar (→ RFQ pasa a DRAFT) o Rechazar (→ PENDING)   │
+│     - Rechazo requiere motivo obligatorio de Compras                        │
+│     - Aprobación: RFQ pasa a DRAFT, solo visible por el creador;           │
+│       el creador debe volver a enviarla cuando termine de editar            │
+│     - Toda solicitud queda en audit trail: quién solicitó, quién resolvió, │
+│       timestamp de solicitud, timestamp de resolución y decisión tomada      │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
