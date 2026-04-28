@@ -1,16 +1,19 @@
-import type { DashboardMetric, DashboardTabKey } from '@/features/analytics/types';
-
-type DashboardMetricCardProps = {
+type DashboardMetricCardProps<TMetricKey extends string> = {
   isActive: boolean;
-  metric: DashboardMetric;
-  onSelect: (key: DashboardTabKey) => void;
+  metric: {
+    key: TMetricKey;
+    label: string;
+    value: string;
+    valueColor: string;
+  };
+  onSelect: (key: TMetricKey) => void;
 };
 
-export function DashboardMetricCard({
+export function DashboardMetricCard<TMetricKey extends string>({
   isActive,
   metric,
   onSelect,
-}: DashboardMetricCardProps) {
+}: DashboardMetricCardProps<TMetricKey>) {
   return (
     <button
       type="button"

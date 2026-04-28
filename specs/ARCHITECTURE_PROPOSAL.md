@@ -243,6 +243,16 @@ Si BOCAR confirma más adelante que cuenta con Kerberos, ADFS o Microsoft Entra 
     │  • Soft delete (datos preservados)          │
     │  • Notifica a todos los involucrados        │
     │                                             │
+    │  🔒 VISIBILIDAD POST-CANCELACIÓN:           │
+    │  • Solo pueden ver la RFQ cancelada los     │
+    │    Super Usuarios: Indust. Admin y          │
+    │    Compras Admin                            │
+    │  • Usuarios base (Indust., Compras) y       │
+    │    Proveedores NO pueden acceder a          │
+    │    RFQs marcadas como CANCELLED             │
+    │  • La RFQ desaparece del listado y          │
+    │    del detalle para todos los demás         │
+    │                                             │
     │  Cancelación temprana (antes de QUOTING):   │
     │  • No hay proveedores notificados aún       │
     │  • Solo se notifica al equipo interno       │
@@ -491,9 +501,12 @@ Reglas comunes a ambas modalidades
 ├─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Acción                          │ Indust. │ Indust. Admin │ Compras │ Compras Admin │ Proveedor │       │
 ├─────────────────────────────────┼─────────┼───────────────┼─────────┼───────────────┼───────────┤       │
-│ Ver RFQ (histórico)             │   ✅    │      ✅       │   ✅    │      ✅       │   👁️     │       │
-│ Ver motivo de cancelación       │   ✅    │      ✅       │   ✅    │      ✅       │    ✅     │       │
+│ Ver RFQ (histórico)             │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
+│ Ver motivo de cancelación       │   ❌    │      ✅       │   ❌    │      ✅       │    ❌     │       │
 │ Cualquier modificación          │   ❌    │      ❌       │   ❌    │      ❌       │    ❌     │       │
+│                                 │         │               │         │               │           │       │
+│ 🔒 Las RFQs CANCELADAS son visibles ÚNICAMENTE para Super Usuarios (Indust. Admin y Compras Admin) │       │
+│ 🔒 Ningún usuario base (Industrialización, Compras) ni Proveedor puede acceder a una RFQ cancelada │       │
 └─────────────────────────────────┴─────────┴───────────────┴─────────┴───────────────┴───────────┴───────┘
 ```
 
@@ -758,11 +771,13 @@ export const RFQ_STATE_TRANSITIONS = {
   },
   
   CANCELLED: {
-    description: 'RFQ cancelada - Solo lectura con motivo de cancelación',
+    description: 'RFQ cancelada - Solo lectura. Visible únicamente para Super Usuarios; usuarios base y proveedores no tienen acceso.',
     allowedTransitions: [],
     triggers: {},
     finalState: true,
-    visibleTo: ['all'], // Histórico visible para auditoría
+    // REGLA CRÍTICA: Solo Super Usuarios pueden ver RFQs canceladas.
+    // Usuarios base (industrializacion, compras) y proveedores NO tienen acceso.
+    visibleTo: ['industrializacion_admin', 'compras_admin'],
     requiresCancellationReason: true,
   },
 } as const;
@@ -900,8 +915,8 @@ Día 2
 | `QUOTING` → `PARTIALLY_QUOTED` | Compras, Industrialización | Nueva cotización recibida de [Proveedor] |
 | `PARTIALLY_QUOTED` → `BENCHMARK_READY` | Compras, Industrialización | Benchmark disponible para RFQ [ID] |
 | Proveedor excluido (vencimiento) | Proveedor, Compras | Exclusión por vencimiento de plazo |
-| `DRAFT` / `PENDING` → `CANCELLED` (cancelación temprana) | Creador, Compras | RFQ cancelada por Super Usuario: [Motivo] |
-| `QUOTING` / `PARTIALLY_QUOTED` / `BENCHMARK_READY` / `EXPIRED` → `CANCELLED` (cancelación tardía) | Creador, Compras, **TODOS los proveedores asignados** | RFQ cancelada por Super Usuario: [Motivo]. Se generó la RFQ de reemplazo [NEW_ID]. |
+| `DRAFT` / `PENDING` / `PENDING_EDIT_REQUEST` → `CANCELLED` (cancelación temprana) | Creador, Compras (base y admin) | RFQ cancelada por Super Usuario: [Motivo]. ⚠️ Este email es el único medio por el que el creador y los usuarios base conocen el motivo — la RFQ ya no será visible para ellos. |
+| `QUOTING` / `PARTIALLY_QUOTED` / `BENCHMARK_READY` / `EXPIRED` → `CANCELLED` (cancelación tardía) | Creador, Compras (base y admin), **TODOS los proveedores asignados** | RFQ cancelada por Super Usuario: [Motivo]. Se generó la RFQ de reemplazo [NEW_ID]. ⚠️ Este email es el único medio por el que los afectados conocen el motivo — la RFQ cancelada solo es visible para Super Usuarios. |
 | RFQ de reemplazo creada (por cancelación tardía) | Creador original, Compras | Nueva RFQ [NEW_ID] generada en DRAFT por cancelación de [OLD_ID] |
 | `PENDING` → `PENDING_EDIT_REQUEST` | Compras (todos) | [Creador] solicitó editar la RFQ [ID]. Debes aprobar o rechazar la solicitud para continuar con la asignación. |
 | `PENDING_EDIT_REQUEST` → `DRAFT` (aprobado) | Creador | Compras aprobó tu solicitud de edición. La RFQ [ID] está de nuevo en borrador; corrígela y vuelve a enviarla. |
@@ -953,11 +968,17 @@ Día 2
 │     - Se registra quién y cuándo desbloqueó (audit log)                     │
 │                                                                              │
 │  📌 REGLA 8: Cancelación Permitida                                          │
-│     - Solo puede cancelarse en estados: DRAFT, PENDING_INTERNAL_APPROVAL,   │
-│       PENDING, PENDING_PURCHASING_APPROVAL                                  │
-│     - Solo Super Usuarios pueden cancelar                                   │
-│     - Requiere motivo obligatorio                                           │
-│     - Soft delete: la RFQ se marca CANCELLED, no se borra físicamente       │
+│     - Solo Super Usuarios (industrializacion_admin, compras_admin) cancelan  │
+│     - Aplica en cualquier estado no terminal: DRAFT, PENDING,               │
+│       PENDING_EDIT_REQUEST, QUOTING, PARTIALLY_QUOTED,                      │
+│       BENCHMARK_READY, EXPIRED                                              │
+│     - ❌ NUNCA desde CLOSED ni desde CANCELLED                               │
+│     - Requiere motivo obligatorio (>= 10 caracteres)                        │
+│     - Soft delete: la RFQ se marca CANCELLED, no se borra físicamente        │
+│     - Cancelación temprana (DRAFT, PENDING, PENDING_EDIT_REQUEST):           │
+│       notifica solo a equipo interno; sin RFQ de reemplazo                  │
+│     - Cancelación tardía (QUOTING en adelante): notifica a todos los         │
+│       proveedores y genera RFQ de reemplazo en DRAFT automáticamente         │
 │                                                                              │
 │  📌 REGLA 9: Visibilidad de Proveedores                                     │
 │     - Proveedor SOLO ve RFQs donde está asignado                            │
@@ -974,7 +995,21 @@ Día 2
 │     - Rechazos siempre tienen motivo obligatorio                            │
 │     - Ediciones de Super Usuario muestran diff de cambios                   │
 │                                                                              │
-│  📌 REGLA 12: Solicitud de Edición en PENDING                               │
+│  📌 REGLA 12: Visibilidad de RFQs Canceladas                                │
+│     - Una RFQ en estado CANCELLED solo puede ser vista por Super Usuarios:  │
+│       industrializacion_admin y compras_admin                               │
+│     - Usuarios base (industrializacion, compras) NO pueden ver ni acceder   │
+│       a RFQs canceladas, ni en listados ni en el detalle                    │
+│     - Proveedores NO pueden ver RFQs canceladas bajo ninguna circunstancia  │
+│     - La RFQ desaparece de todos los listados para usuarios no autorizados  │
+│       en el momento en que pasa a CANCELLED                                 │
+│     - Los Super Usuarios sí pueden buscar y consultar el historial de RFQs  │
+│       canceladas para auditoría y trazabilidad                              │
+│     - Las notificaciones de cancelación (emails) se envían antes de que la  │
+│       RFQ quede invisible; son el único medio por el que usuarios base y     │
+│       proveedores se enteran del motivo                                     │
+│                                                                              │
+│  📌 REGLA 13: Solicitud de Edición en PENDING                               │
 │     - Solo el CREADOR original puede solicitar edición (no otros usuarios   │
 │       de Industrialización aunque tengan el mismo rol)                       │
 │     - Solo aplica cuando la RFQ está en estado PENDING                      │

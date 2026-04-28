@@ -6,6 +6,7 @@ import {
   type FieldErrors,
   type FieldPath,
   type SubmitErrorHandler,
+  useFieldArray,
   useForm,
   useFormContext,
   useWatch,
@@ -33,33 +34,42 @@ const costRowSchema = z.object({
 });
 
 const workspaceSchema = z.object({
-  alloy: z.string(),
   buhler: z.string(),
   comments: z.string(),
-  considerations: z.record(z.string(), z.object({ checked: z.string(), notes: z.string() })),
+  considerations: z.record(z.string(), z.object({ notes: z.string() })),
   costs: z.record(z.string(), z.record(z.string(), costRowSchema)),
   cust: z.string(),
-  dtq: z.string(),
-  elab: z.string(),
+  description: z.string(),
   gates: z.string(),
   hydr_slides: z.string(),
   mech_slides: z.string(),
   num_cav: z.string(),
   num_tools: z.string(),
+  ot_inf: z.string(),
   part_dim: z.string(),
   part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
   part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
   part_tech: z.string(),
   parts_stroke: z.string(),
-  pnum: z.string(),
   ppy: z.string(),
-  prlf: z.string(),
   projected: z.string(),
   rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
-  sk_part: z.string(),
+  spareparts: z.array(
+    z.object({
+      name: z.string(),
+      notes: z.string(),
+      price: z.string(),
+      qty: z.string(),
+      weeks: z.string(),
+    }),
+  ),
   surface: z.string(),
+  tdim_ej: z.string(),
+  tdim_fixed: z.string(),
   three_plate: z.string(),
-  tt: z.string(),
+  tool_type: z.string(),
+  tw_ej: z.string(),
+  tw_fixed: z.string(),
   volume: z.string(),
   wall_max: z.string(),
   wall_min: z.string(),
@@ -94,7 +104,7 @@ type CostPageKey =
   | 'logistics'
   | 'sampling';
 
-type ConsiderationGroupKey = 'DCM' | 'DIRITPOTD' | 'OTHER' | 'OT_INF';
+type ConsiderationGroupKey = 'DCM' | 'DIRITPOTD' | 'OTHER';
 
 type ConsiderationItem = {
   id: string;
@@ -105,8 +115,8 @@ type ConsiderationItem = {
 type ConsiderationGroup = {
   key: ConsiderationGroupKey;
   page: PageKey;
-  subtitle: string;
   title: string;
+  subtitle: string;
   items: ConsiderationItem[];
 };
 
@@ -171,7 +181,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   comments: {
     navLabel: 'COMMENTS',
     subtitle: 'Notas finales y contexto adicional para el proveedor.',
-    title: '10. Comments',
+    title: '16. Comments',
   },
   corrections: {
     navLabel: 'COST BREAKDOWN',
@@ -191,7 +201,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   geometry: {
     navLabel: 'PART GEOMETRY',
     subtitle: 'Dimensiones y propiedades del componente.',
-    title: '8. Part Geometry',
+    title: '14. Part Geometry',
   },
   logistics: {
     navLabel: 'COST BREAKDOWN',
@@ -215,7 +225,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   },
   ot_inf: {
     navLabel: 'OT INF',
-    subtitle: 'Documentacion adicional requerida al proveedor.',
+    subtitle: 'Datos complementarios de la orden de trabajo.',
     title: '6. OT INF',
   },
   sampling: {
@@ -230,13 +240,13 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   },
   tool_eng: {
     navLabel: 'TOOL ENG.',
-    subtitle: 'Configuracion y parametros del herramental.',
+    subtitle: 'Configuracion de maquina y parametros del herramental.',
     title: '2. Tool Engineering',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
     subtitle: 'Dimensiones y configuracion detallada del herramental.',
-    title: '9. Tool Specification',
+    title: '15. Tool Specification',
   },
 };
 
@@ -268,31 +278,33 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
+const TOOL_TYPES = ['PRODUCTION', 'EVOLUTION', 'PROTOTYPE'];
+
 const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   {
     items: [
-      { id: 'smach', label: 'Smash' },
-      { id: 'no_cav', label: 'No.CAV' },
-      { id: 'no_hs', label: 'No.ofHS' },
-      { id: 'no_ms', label: 'No.ofMS' },
+      { id: 'smach', label: 'Maquina de inyeccion (Smach)' },
+      { id: 'no_cav', label: 'No. de cavidades' },
+      { id: 'no_hs', label: 'No. de hot slides' },
+      { id: 'no_ms', label: 'No. de mech. slides' },
       {
         id: 'third_p_supp',
-        label: '3thPSupp',
+        label: '3er proveedor (estructural AlSi10)',
         noteExample: 'Para partes estructurales con aleacion AlSi10, considerar acero 3D forjado.',
       },
-      { id: 'no_subc', label: 'No.subc' },
-      { id: 'jco', label: 'Jco' },
-      { id: 'qc_sys', label: 'QcSys' },
-      { id: 'ihtcs', label: 'Ihtcs' },
-      { id: 'spin', label: 'Spin' },
+      { id: 'no_subc', label: 'No. de sub-cores' },
+      { id: 'jco', label: 'Jet cooling (Jco)' },
+      { id: 'qc_sys', label: 'Sistema de enfriamiento controlado' },
+      { id: 'ihtcs', label: 'IHTCS' },
+      { id: 'spin', label: 'Squeeze pin (Spin)' },
       { id: 'hics', label: 'HICS' },
-      { id: 'cm_gom', label: 'CMGOM' },
-      { id: 'sp_thermo', label: 'SPforThermoR' },
-      { id: 'n_return_v', label: 'NReturnV' },
-      { id: 'vac_v', label: 'VacV' },
-      { id: 'chill_bl', label: 'ChillBl' },
-      { id: 'no_pl_jco', label: 'No.Pl.Jco sys' },
-      { id: 'ctbd', label: 'Oth' },
+      { id: 'cm_gom', label: 'CMM / GOM' },
+      { id: 'sp_thermo', label: 'Spare parts termorregulador' },
+      { id: 'n_return_v', label: 'Valvula de no retorno' },
+      { id: 'vac_v', label: 'Valvula de vacio' },
+      { id: 'chill_bl', label: 'Chill blocks' },
+      { id: 'no_pl_jco', label: 'No. de placas jet cooling' },
+      { id: 'ctbd', label: 'Cost Breakdown adjunto' },
     ],
     key: 'DCM',
     page: 'dcm',
@@ -301,24 +313,36 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   },
   {
     items: [
-      { id: 'd_3d', label: '3D' },
-      { id: 'flan', label: 'FiAn' },
-      { id: 'run_des', label: 'Run des' },
-      { id: 'run_over', label: 'Run and over mod' },
+      { id: 'd_3d', label: 'Modelo 3D' },
+      { id: 'flan', label: 'Analisis de flujo (FlAn)' },
+      { id: 'run_des', label: 'Runner design' },
+      { id: 'run_over', label: 'Runner y sobre-mod' },
       {
         id: 'man_prop',
-        label: 'ManProp',
+        label: 'Propuesta de manufactura',
         noteExample: 'Para partes estructurales con aleacion AlSi10, acero 3D forjado requerido.',
       },
-      { id: 'ldi', label: 'Ldi' },
-      { id: 'add_mach', label: 'Add of mach st.' },
-      { id: 'sketch', label: 'Sketch d conc, inc s dim' },
+      { id: 'ldi', label: 'Listado de insertos (Ldi)' },
+      { id: 'add_mach', label: 'Adicion de stock de maquinado' },
+      { id: 'sketch', label: 'Sketch del concepto con dim.' },
       {
         id: 'drw_2d',
-        label: '2D Dr DesPDF and CNFl',
+        label: 'Plano 2D de fabricacion (PDF + CNF)',
         noteExample: 'Incluir componentes, cavidades, insertos, core pins, ejector pins y spare parts criticos.',
       },
-      { id: 'drw_3d', label: '3D D. Mod. solid. (Native Format)' },
+      { id: 'drw_3d', label: 'Modelo solido 3D (formato nativo)' },
+      { id: 'ot_inf', label: 'Informacion adicional (OT INF)' },
+      { id: 'comp_d', label: 'Diseno completo (M1)' },
+      { id: 'subseq_d', label: 'Disenos subsecuentes (M2+)' },
+      {
+        id: 'repl_h13',
+        label: 'Set de reemplazo H-13',
+        noteExample: 'Cavidades de reemplazo.',
+      },
+      { id: 'sp_ei', label: 'Spare set de insertos eyector' },
+      { id: 'ficf', label: 'FICF' },
+      { id: 'hcls', label: 'HCLS' },
+      { id: 'fr_refur', label: 'Refurbishment de marco' },
     ],
     key: 'DIRITPOTD',
     page: 'diritpotd',
@@ -327,50 +351,31 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   },
   {
     items: [
-      { id: 'eyeb', label: 'Eyeb' },
-      { id: 'ow_conn', label: 'C&W Conn' },
-      { id: 'stm', label: 'STM (1&2)' },
+      { id: 'eyeb', label: 'Eyebolts' },
+      { id: 'ow_conn', label: 'Conectores O&W' },
+      { id: 'stm', label: 'STM (1 & 2)' },
       {
         id: 'cmm_rep',
-        label: 'CMM dim rep cal',
+        label: 'Reporte dimensional CMM (cavidades principales)',
         noteExample: 'Tolerancia de posicion 10% del producto.',
       },
       {
         id: 'gom_rep',
-        label: 'GOM rep. Ass cav, sl, in, cpln',
+        label: 'Reporte GOM (cavidades, slides, insertos, core pins)',
         noteExample: 'Tolerancia superficies de aluminio 10% del producto.',
       },
       {
         id: 'h_val',
-        label: 'H val subc& in',
+        label: 'Dureza subcores e insertos',
         noteExample: '44 - 46 HRC (H11 - H13).',
       },
-      { id: 'dim_corr', label: 'Dim con&opt' },
-      { id: 'sp_pt', label: 'Sp Pl' },
+      { id: 'dim_corr', label: 'Correccion dimensional y optimizacion' },
+      { id: 'sp_pt', label: 'Spare parts' },
     ],
     key: 'OTHER',
     page: 'other_cons',
     subtitle: PAGE_META.other_cons.subtitle,
     title: PAGE_META.other_cons.title,
-  },
-  {
-    items: [
-      { id: 'comp_d', label: 'Comp. D.' },
-      { id: 'subseq_d', label: 'Subseq. D.' },
-      {
-        id: 'repl_h13',
-        label: 'Set of repl. H-13',
-        noteExample: 'Cavidades de reemplazo.',
-      },
-      { id: 'sp_ei', label: 'Sp. set of E.I.' },
-      { id: 'ficf', label: 'FICF' },
-      { id: 'hcls', label: 'HCLS' },
-      { id: 'fr_refur', label: 'Fr Refur.' },
-    ],
-    key: 'OT_INF',
-    page: 'ot_inf',
-    subtitle: PAGE_META.ot_inf.subtitle,
-    title: PAGE_META.ot_inf.title,
   },
 ];
 
@@ -536,33 +541,34 @@ function readStoredPage(storageBaseKey: string) {
 
 function getCreateDefaultValues(): WorkspaceFormValues {
   return {
-    alloy: '',
     buhler: '',
     comments: '',
     considerations: {},
     costs: {},
     cust: '',
-    dtq: '',
-    elab: '',
+    description: '',
     gates: '',
     hydr_slides: '',
     mech_slides: '',
     num_cav: '',
     num_tools: '',
+    ot_inf: '',
     part_dim: '',
     part_name: '',
     part_number: '',
     part_tech: '',
     parts_stroke: '',
-    pnum: '',
     ppy: '',
-    prlf: '',
     projected: '',
     rfq_name: '',
-    sk_part: '',
+    spareparts: [],
     surface: '',
+    tdim_ej: '',
+    tdim_fixed: '',
     three_plate: '',
-    tt: '',
+    tool_type: '',
+    tw_ej: '',
+    tw_fixed: '',
     volume: '',
     wall_max: '',
     wall_min: '',
@@ -572,16 +578,14 @@ function getCreateDefaultValues(): WorkspaceFormValues {
 
 function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
   return {
-    alloy: 'AlSi10MnMg',
     buhler: '3400',
     comments: 'Validar paquete dimensional con el proveedor antes del release final.',
     considerations: {
-      cmm_rep: { checked: 'yes', notes: 'Tolerancia de posicion 10% del producto.' },
-      comp_d: { checked: 'yes', notes: '' },
-      d_3d: { checked: 'yes', notes: 'Modelo preliminar disponible en revision M1.' },
-      drw_2d: { checked: 'yes', notes: 'Se requiere PDF + CNF con componentes criticos.' },
-      man_prop: { checked: 'yes', notes: 'Cotizar propuesta con acero 3D forjado.' },
-      smach: { checked: '', notes: 'Buhler 3400T confirmada para la corrida.' },
+      ctbd: { notes: 'Adjuntar desglose en USD y EUR.' },
+      d_3d: { notes: 'Modelo preliminar disponible en revision M1.' },
+      drw_2d: { notes: 'Se requiere PDF + CNF con componentes criticos.' },
+      man_prop: { notes: 'Cotizar propuesta con acero 3D forjado.' },
+      smach: { notes: 'Buhler 3400T confirmada para la corrida.' },
     },
     costs: {
       accessories: {
@@ -596,27 +600,31 @@ function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
       },
     },
     cust: 'Name XX',
-    dtq: '12',
-    elab: 'Ing. Torres',
+    description: 'Soporte lateral de puerta con revision de flujo y liberacion de drawing final.',
     gates: '2',
     hydr_slides: '1',
     mech_slides: '2',
     num_cav: '2',
     num_tools: '1',
+    ot_inf: 'Proyecto vinculado a programa MY27. Revisar folio tecnico con Compras.',
     part_dim: '410 x 180 x 88',
     part_name: 'Door side support',
     part_number: `${(rfqId ?? 'RFQ-021').toUpperCase()}-MAT`,
     part_tech: 'POWERTRAIN',
     parts_stroke: '1',
-    pnum: 'MAT-2024-001',
     ppy: '240000',
-    prlf: '5',
     projected: '336',
     rfq_name: 'Proyecto soporte puerta',
-    sk_part: 'Inserto lateral H13 (Set de seguridad) - 2 pzas.\nCavidad principal de reemplazo (H13 forjado) - 1 pza.',
+    spareparts: [
+      { name: 'Inserto lateral H13', notes: 'Set de seguridad', price: '950', qty: '2', weeks: '3' },
+    ],
     surface: '522',
-    three_plate: '0',
-    tt: 'PRODUCTION',
+    tdim_ej: '690 x 620 x 280',
+    tdim_fixed: '720 x 640 x 300',
+    three_plate: 'No',
+    tool_type: 'PRODUCTION',
+    tw_ej: '1480',
+    tw_fixed: '1620',
     volume: '418',
     wall_max: '4.2',
     wall_min: '2.6',
@@ -640,6 +648,7 @@ function mergeFormValues(baseValues: WorkspaceFormValues, storedValues: Partial<
       ...baseValues.costs,
       ...(storedValues.costs ?? {}),
     },
+    spareparts: Array.isArray(storedValues.spareparts) ? storedValues.spareparts : baseValues.spareparts,
   };
 }
 
@@ -818,6 +827,42 @@ function TextAreaField({
   );
 }
 
+function SelectField({
+  hint,
+  label,
+  name,
+  options,
+  placeholder = 'Selecciona una opcion',
+  span = 1,
+}: {
+  hint?: string;
+  label: string;
+  name: FieldPath<WorkspaceFormValues>;
+  options: readonly string[];
+  placeholder?: string;
+  span?: 1 | 2;
+}) {
+  const {
+    formState,
+    getFieldState,
+    register,
+  } = useFormContext<WorkspaceFormValues>();
+  const { error } = getFieldState(name, formState);
+
+  return (
+    <FieldShell error={error?.message} hint={hint} label={label} span={span}>
+      <select aria-invalid={Boolean(error)} className={inputBaseClasses(Boolean(error))} {...register(name)}>
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </FieldShell>
+  );
+}
+
 function SectionCard({
   children,
   subtitle,
@@ -852,41 +897,6 @@ function ChevronDownIcon({ rotated = false }: { rotated?: boolean }) {
     >
       <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
     </svg>
-  );
-}
-
-function YesNoToggle({ name }: { name: FieldPath<WorkspaceFormValues> }) {
-  const { control, setValue } = useFormContext<WorkspaceFormValues>();
-  const rawValue = useWatch({ control, name });
-  const value = typeof rawValue === 'string' ? rawValue : '';
-
-  return (
-    <div className="flex gap-1.5">
-      <button
-        className={[
-          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
-          value === 'yes'
-            ? 'border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] text-white'
-            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
-        ].join(' ')}
-        type="button"
-        onClick={() => setValue(name, value === 'yes' ? '' : 'yes', { shouldDirty: true })}
-      >
-        YES
-      </button>
-      <button
-        className={[
-          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
-          value === 'no'
-            ? 'border-transparent bg-[rgba(170,0,15,0.85)] text-white'
-            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
-        ].join(' ')}
-        type="button"
-        onClick={() => setValue(name, value === 'no' ? '' : 'no', { shouldDirty: true })}
-      >
-        NO
-      </button>
-    </div>
   );
 }
 
@@ -990,6 +1000,7 @@ function WorkspaceSidebarMobile({
             ))}
           </optgroup>
         ))}
+        {/* Ensure current page is selectable even if outside visible groups (defensive). */}
         {!allItems.some((item) => item.key === current) ? (
           <option value={current}>{PAGE_META[current]?.navLabel ?? current}</option>
         ) : null}
@@ -997,8 +1008,6 @@ function WorkspaceSidebarMobile({
     </div>
   );
 }
-
-// ─── Section 1: RFQ ───────────────────────────────────────────────────────────
 
 function BasicPage() {
   return (
@@ -1019,26 +1028,28 @@ function BasicPage() {
   );
 }
 
-// ─── Section 2: Tool Engineering ──────────────────────────────────────────────
-
 function ToolEngineeringPage() {
   return (
     <SectionCard subtitle={PAGE_META.tool_eng.subtitle} title={PAGE_META.tool_eng.title}>
       <FormGrid>
-        <TextField label="PNUM" name="pnum" />
-        <TextField label="DTQ" name="dtq" placeholder="WEEK" />
-        <TextField label="PRLF" name="prlf" placeholder="X Years" />
-        <TextField label="ELAB" name="elab" placeholder="NAME" />
-        <TextField label="TT" name="tt" placeholder="PRODUCTION" />
+        <TextField label="Buhler Machine (Ton)" name="buhler" type="number" />
+        <TextField label="Numero de cavidades / sets" name="num_cav" type="number" />
+        <SelectField label="Three plate mold" name="three_plate" options={['Si', 'No']} placeholder="Selecciona una opcion" />
+        <SelectField label="Tool Type" name="tool_type" options={TOOL_TYPES} />
+        <TextField label="Gates por parte" name="gates" type="number" />
+        <TextField label="Slides mecanicos" name="mech_slides" type="number" />
+        <TextField label="Slides hidraulicos" name="hydr_slides" type="number" />
+        <TextField label="Partes por tiro" name="parts_stroke" type="number" />
+        <TextField label="Numero de herramentales" name="num_tools" type="number" />
       </FormGrid>
     </SectionCard>
   );
 }
 
-// ─── Section 3: DCM (DESC + SPECS) ────────────────────────────────────────────
-
 function ConsiderationPage({ group }: { group: ConsiderationGroup }) {
-  const { register } = useFormContext<WorkspaceFormValues>();
+  const {
+    register,
+  } = useFormContext<WorkspaceFormValues>();
 
   return (
     <SectionCard subtitle={group.subtitle} title={group.title}>
@@ -1067,118 +1078,93 @@ function ConsiderationPage({ group }: { group: ConsiderationGroup }) {
   );
 }
 
-// ─── Sections 4 / 5 / 6: DESC + YES/NO + NOTES ───────────────────────────────
-
-function ConsiderationTogglePage({ group }: { group: ConsiderationGroup }) {
-  const { register } = useFormContext<WorkspaceFormValues>();
-
+function AdditionalInfoPage() {
   return (
-    <SectionCard subtitle={group.subtitle} title={group.title}>
-      <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-          Entregable / requisito
-        </div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-          Aplica
-        </div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-          Especificaciones
-        </div>
-      </div>
-
-      <div className="divide-y divide-[rgba(236,240,245,0.9)]">
-        {group.items.map((item) => (
-          <div
-            key={item.id}
-            className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5"
-          >
-            <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{item.label}</div>
-            <YesNoToggle name={fieldPath(`considerations.${item.id}.checked`)} />
-            <input
-              className={inputBaseClasses(false)}
-              placeholder={item.noteExample ?? 'Especificaciones / notas'}
-              {...register(fieldPath(`considerations.${item.id}.notes`))}
-            />
-          </div>
-        ))}
-      </div>
+    <SectionCard subtitle={PAGE_META.ot_inf.subtitle} title={PAGE_META.ot_inf.title}>
+      <TextAreaField
+        label="Informacion adicional de la OT"
+        name="ot_inf"
+        placeholder="Notas, referencias, folio de OT, validaciones o cualquier dato complementario."
+      />
     </SectionCard>
   );
 }
-
-// ─── Section 7: SK PART ───────────────────────────────────────────────────────
 
 function SparePartsPage() {
+  const {
+    control,
+    register,
+  } = useFormContext<WorkspaceFormValues>();
+  const { append, fields, remove } = useFieldArray({
+    control,
+    name: 'spareparts',
+  });
+
   return (
     <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
-      <TextAreaField
-        label="Descripcion"
-        name="sk_part"
-        placeholder="Ingresa una descripcion adicional"
-        rows={8}
-        span={2}
-      />
-    </SectionCard>
-  );
-}
-
-// ─── Section 8: Part Geometry (single column) ─────────────────────────────────
-
-function GeometryPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.geometry.subtitle} title={PAGE_META.geometry.title}>
-      <div className="grid gap-5">
-        <TextField label="Part Name" name="part_name" placeholder="Product / E-PCP Folio" required />
-        <TextField label="Alloy" name="alloy" />
-        <TextField label="Part Number" name="part_number" required />
-        <TextField label="Part dimension in mm" name="part_dim" placeholder="L x W x H" />
-        <TextField label="Min. wall thickness in mm" name="wall_min" type="number" />
-        <TextField label="Max. wall thickness in mm" name="wall_max" type="number" />
-        <TextField label="Projected area in cm2" name="projected" type="number" />
-        <TextField label="Surface in cm2" name="surface" type="number" />
-        <TextField label="Volume in cm3" name="volume" type="number" />
-        <TextField label="Gross weight in g" name="weight" type="number" />
+      <div className="overflow-x-auto rounded-[14px] border border-[rgba(217,222,229,0.92)]">
+        <table className="min-w-[760px] w-full border-collapse">
+          <thead>
+            <tr className="bg-[rgba(0,46,93,0.05)] text-left">
+              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Concepto</th>
+              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Cantidad</th>
+              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Precio/Unidad</th>
+              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Semanas</th>
+              <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Notas</th>
+              <th className="w-[56px] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]"> </th>
+            </tr>
+          </thead>
+          <tbody>
+            {fields.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-[13px] text-[var(--bocar-blue-50)]" colSpan={6}>
+                  Aun no agregas refacciones criticas.
+                </td>
+              </tr>
+            ) : (
+              fields.map((field, index) => (
+                <tr key={field.id} className="border-t border-[rgba(236,240,245,0.95)]">
+                  <td className="p-3">
+                    <input className={inputBaseClasses(false)} {...register(fieldPath(`spareparts.${index}.name`))} />
+                  </td>
+                  <td className="p-3">
+                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.qty`))} />
+                  </td>
+                  <td className="p-3">
+                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.price`))} />
+                  </td>
+                  <td className="p-3">
+                    <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`spareparts.${index}.weeks`))} />
+                  </td>
+                  <td className="p-3">
+                    <input className={inputBaseClasses(false)} {...register(fieldPath(`spareparts.${index}.notes`))} />
+                  </td>
+                  <td className="p-3 text-center">
+                    <button
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(217,222,229,0.92)] bg-white text-[18px] text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]"
+                      type="button"
+                      onClick={() => remove(index)}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+
+      <button
+        className="mt-4 inline-flex rounded-[10px] border border-dashed border-[var(--bocar-blue-100)] px-4 py-2.5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:bg-[rgba(0,46,93,0.05)]"
+        type="button"
+        onClick={() => append({ name: '', notes: '', price: '', qty: '', weeks: '' })}
+      >
+        + Agregar fila
+      </button>
     </SectionCard>
   );
 }
-
-// ─── Section 9: Tool Specification (single column) ────────────────────────────
-
-function ToolSpecificationPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
-      <div className="grid gap-5">
-        <TextField label="Bühler Machine Ton" name="buhler" type="number" />
-        <TextField label="Number of cavities / sets" name="num_cav" type="number" />
-        <TextField label="Three plate mold" name="three_plate" type="number" />
-        <TextField label="Number of gates per part" name="gates" type="number" />
-        <TextField label="Number of mech. slides" name="mech_slides" type="number" />
-        <TextField label="Number of hydr. slides" name="hydr_slides" type="number" />
-        <TextField label="Number of parts per stroke" name="parts_stroke" type="number" />
-        <TextField label="Number of tools" name="num_tools" type="number" />
-      </div>
-    </SectionCard>
-  );
-}
-
-// ─── Section 10: Comments ─────────────────────────────────────────────────────
-
-function CommentsPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
-      <TextAreaField
-        label="Comentarios adicionales"
-        name="comments"
-        placeholder="Ingresa un comentario adicional"
-        rows={8}
-        span={2}
-      />
-    </SectionCard>
-  );
-}
-
-// ─── Cost breakdown pages ─────────────────────────────────────────────────────
 
 function CostTable({
   rows,
@@ -1284,35 +1270,89 @@ function CostPage({ section }: { section: CostSection }) {
   );
 }
 
-// ─── Page router ──────────────────────────────────────────────────────────────
+function GeometryPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.geometry.subtitle} title={PAGE_META.geometry.title}>
+      <FormGrid>
+        <TextField label="Part Name" name="part_name" required />
+        <TextField label="Part Number" name="part_number" required />
+        <TextField label="Dimension de la parte (mm)" name="part_dim" placeholder="L x W x H" />
+        <TextField label="Peso bruto (g)" name="weight" type="number" />
+        <TextField label="Espesor minimo (mm)" name="wall_min" type="number" />
+        <TextField label="Espesor maximo (mm)" name="wall_max" type="number" />
+        <TextField label="Area proyectada (cm2)" name="projected" type="number" />
+        <TextField label="Superficie (cm2)" name="surface" type="number" />
+        <TextField label="Volumen (cm3)" name="volume" type="number" />
+      </FormGrid>
+    </SectionCard>
+  );
+}
+
+function ToolSpecificationPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
+      <FormGrid>
+        <TextField label="Dim. lado fijo (mm)" name="tdim_fixed" />
+        <TextField label="Dim. lado eyector (mm)" name="tdim_ej" />
+        <TextField label="Peso lado fijo (kg)" name="tw_fixed" type="number" />
+        <TextField label="Peso lado eyector (kg)" name="tw_ej" type="number" />
+      </FormGrid>
+    </SectionCard>
+  );
+}
+
+function CommentsPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
+      <div className="grid gap-5">
+        <TextAreaField label="Descripcion" name="description" placeholder="Contexto tecnico, materiales, alcance y comentarios de liberacion." span={2} />
+        <TextAreaField label="Comentarios adicionales" name="comments" placeholder="Consideraciones de empaque, requerimientos especiales, fechas clave, etc." span={2} />
+      </div>
+    </SectionCard>
+  );
+}
 
 function renderPage(page: PageKey) {
-  if (page === 'basic') return <BasicPage />;
-  if (page === 'tool_eng') return <ToolEngineeringPage />;
-  if (page === 'spareparts') return <SparePartsPage />;
-  if (page === 'geometry') return <GeometryPage />;
-  if (page === 'tool_spec') return <ToolSpecificationPage />;
-  if (page === 'comments') return <CommentsPage />;
+  if (page === 'basic') {
+    return <BasicPage />;
+  }
 
-  if (page === 'dcm') {
-    const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
+  if (page === 'tool_eng') {
+    return <ToolEngineeringPage />;
+  }
+
+  if (page === 'ot_inf') {
+    return <AdditionalInfoPage />;
+  }
+
+  if (page === 'spareparts') {
+    return <SparePartsPage />;
+  }
+
+  if (page === 'geometry') {
+    return <GeometryPage />;
+  }
+
+  if (page === 'tool_spec') {
+    return <ToolSpecificationPage />;
+  }
+
+  if (page === 'comments') {
+    return <CommentsPage />;
+  }
+
+  if (page === 'dcm' || page === 'diritpotd' || page === 'other_cons') {
+    const group = CONSIDERATION_GROUPS.find((currentGroup) => currentGroup.page === page);
     return group ? <ConsiderationPage group={group} /> : null;
   }
 
-  if (page === 'diritpotd' || page === 'other_cons' || page === 'ot_inf') {
-    const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
-    return group ? <ConsiderationTogglePage group={group} /> : null;
-  }
-
   if (isCostPage(page)) {
-    const section = COST_SECTIONS.find((s) => s.key === page);
+    const section = COST_SECTIONS.find((currentSection) => currentSection.key === page);
     return section ? <CostPage section={section} /> : null;
   }
 
   return null;
 }
-
-// ─── Root component ───────────────────────────────────────────────────────────
 
 export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   const storageBaseKey = getStorageBaseKey(mode, rfqId);

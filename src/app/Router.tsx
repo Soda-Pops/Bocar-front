@@ -2,7 +2,11 @@ import { ROUTES } from '@/app/config/routes';
 import DashboardPage from '@/pages/industrializacion/DashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import LoginPage from '@/pages/auth/LoginPage';
+import PurchasingBenchmarkPage from '@/pages/purchasing/BenchmarkPage';
+import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
+import PurchasingRfqListPage from '@/pages/purchasing/RfqListPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
+import PurchasingUnlockRequestsPage from '@/pages/purchasing/UnlockRequestsPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
 import { Navigate, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 
@@ -44,6 +48,16 @@ const appRouter = createBrowserRouter([
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
     element: <DashboardPage />,
   },
+  // Programada: dashboard operativo principal de Compras.
+  {
+    path: ROUTES.PURCHASING.DASHBOARD,
+    element: <PurchasingDashboardPage />,
+  },
+  // Programada: listado operativo de RFQs de Compras.
+  {
+    path: ROUTES.PURCHASING.RFQ_LIST,
+    element: <PurchasingRfqListPage />,
+  },
   // Programada: creacion de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_CREATE,
@@ -64,6 +78,16 @@ const appRouter = createBrowserRouter([
     path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
     element: <SupplierSelectionPage />,
   },
+  // Programada: bandeja de desbloqueos para Compras admin.
+  {
+    path: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
+    element: <PurchasingUnlockRequestsPage />,
+  },
+  // Programada: punto inicial del benchmark de Compras.
+  {
+    path: ROUTES.PURCHASING.BENCHMARK,
+    element: <PurchasingBenchmarkPage />,
+  },
   // Programada: detalle de RFQ en Compras con pantalla compartida.
   {
     path: ROUTES.PURCHASING.RFQ_DETAIL,
@@ -79,7 +103,6 @@ const appRouter = createBrowserRouter([
     path: ROUTES.SUPPLIER.QUOTATION_DETAIL,
     element: <RfqDetailPage />,
   },
-  // No programada: ROUTES.PURCHASING.RFQ_LIST necesita pantalla de listado de Compras.
   // No programada: ROUTES.SUPPLIER.RFQ_LIST necesita pantalla de listado de RFQs del Proveedor.
   // No programada: ROUTES.SUPPLIER.QUOTATION_LIST necesita pantalla de listado de cotizaciones.
   // Programada: fallback para rutas no reconocidas.

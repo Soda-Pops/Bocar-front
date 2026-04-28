@@ -12,7 +12,7 @@ function SupplierSelectionPage() {
   return (
     <MainLayout header={<Header areaLabel="Selección Proveedores" user={dashboardUser} />}>
       <RfqDetailWorkspace
-        backHref={ROUTES.INDUSTRIALIZATION.DASHBOARD}
+        backHref={ROUTES.PURCHASING.RFQ_LIST}
         mode="assign"
         referenceId={id}
       />

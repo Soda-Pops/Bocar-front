@@ -146,11 +146,12 @@ Cuando un usuario de Compras abre el detalle
 Entonces el botón "Asignar proveedores" aparece deshabilitado con tooltip "Hay una solicitud de edición pendiente de resolución".
 
 ### ⚙️ Reglas de Negocio
-- `CLOSED` y `CANCELLED` son siempre solo lectura para todos.
+- `CLOSED` es solo lectura para todos.
+- `CANCELLED` es solo lectura y **únicamente visible para Super Usuarios** (Indust. Admin y Compras Admin). Usuarios base y proveedores no pueden acceder ni en listados ni en el detalle.
 - `DRAFT` solo lo edita y ve el creador original (regla 👤).
 - La cancelación la puede ejecutar únicamente un Super Usuario (Industrialización Admin o Compras Admin) en cualquier estado no terminal.
-- Cancelación temprana (DRAFT, PENDING, PENDING_EDIT_REQUEST): sin protocolo especial, solo notifica a internos.
-- Cancelación tardía (QUOTING, PARTIALLY_QUOTED, BENCHMARK_READY, EXPIRED): protocolo especial, notifica a todos los proveedores y genera RFQ de reemplazo.
+- Cancelación temprana (DRAFT, PENDING, PENDING_EDIT_REQUEST): sin protocolo especial, solo notifica a internos por email (ese email es el único medio por el que los afectados conocen el motivo).
+- Cancelación tardía (QUOTING, PARTIALLY_QUOTED, BENCHMARK_READY, EXPIRED): protocolo especial, notifica a todos los proveedores por email y genera RFQ de reemplazo.
 - El badge debe usar `--bocar-done`, `--bocar-review`, `--bocar-error` o `--bocar-neutral` según semántica.
 
 ### 🧪 Casos de Prueba
@@ -159,6 +160,8 @@ Entonces el botón "Asignar proveedores" aparece deshabilitado con tooltip "Hay 
 - Tooltip de cancelación tardía diferente al de cancelación temprana.
 - Creador ve "Solicitar edición" en PENDING; otro usuario de Industrialización no la ve.
 - Compras ve "Asignar" deshabilitado en PENDING_EDIT_REQUEST.
+- Un usuario base que tenía una RFQ en su lista ya no la ve una vez que pasa a CANCELLED.
+- Un Super Usuario sí puede buscar y consultar RFQs canceladas en su listado/historial.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - Crear `src/features/rfq/state/rfqStateMachine.ts` con `RfqStatus` enum y matriz `actionsByStateAndRole`.
@@ -173,6 +176,17 @@ Entonces el botón "Asignar proveedores" aparece deshabilitado con tooltip "Hay 
 
 ### 🏷️ Título
 Dashboard operativo de Compras con KPIs, cola y atajos de asignación
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se implementó `src/pages/purchasing/DashboardPage.tsx` con KPIs navegables, cola de RFQs por asignar, widget de vencimientos y widget de desbloqueos visible solo para `compras_admin`.
+
+### Pendientes para marcar como completada
+- Falta cubrir el escenario vacío institucional para widgets sin RFQs urgentes o sin desbloqueos pendientes.
+- Falta validar explícitamente la variante de usuario base con datos/métricas limitadas más allá del mock actual.
+- Falta dejar evidencia de los casos de prueba del backlog para render con datos vacíos y diferencia visual base vs admin.
 
 ### 👤 Historia de Usuario
 Como usuario de Compras,
@@ -220,6 +234,18 @@ Entonces los widgets muestran estado vacío institucional con mensaje específic
 
 ### 🏷️ Título
 Lista de RFQ de Compras con filtros, progreso por proveedor y acciones por fila
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se implementó `src/pages/purchasing/RfqListPage.tsx` con búsqueda, filtros principales, paginación mock, menú compacto por fila, navegación a benchmark y resaltado visual de urgencia.
+
+### Pendientes para marcar como completada
+- Los filtros no son persistentes en su totalidad: hoy solo el filtro de `status` se refleja en la URL.
+- La columna/bloque de progreso sigue mostrando texto para estados donde el backlog indica que solo debe aplicar a `QUOTING`, `PARTIALLY_QUOTED` y `BENCHMARK_READY`.
+- No existe todavía el componente técnico separado `src/features/rfq/components/RfqList/PurchasingRfqTable.tsx` indicado en el alcance.
+- Falta formalizar los casos de prueba del backlog para combinaciones de filtros, deshabilitación contextual y datasets grandes.
 
 ### 👤 Historia de Usuario
 Como usuario de Compras,
@@ -529,7 +555,9 @@ Entonces la opción no se renderiza en absoluto (no solo deshabilitada).
 
 ### ⚙️ Reglas de Negocio
 - Solo `industrializacion_admin` o `compras_admin` pueden cancelar.
-- Cancelación es soft delete; el detalle y el motivo quedan visibles en el histórico.
+- Cancelación es soft delete; el detalle y el motivo quedan visibles **únicamente para Super Usuarios** en el histórico.
+- Usuarios base (Industrialización, Compras) y Proveedores **NO pueden ver** una RFQ cancelada: desaparece de sus listados y el detalle les devuelve error de acceso.
+- El email de notificación es el único medio por el que usuarios base y proveedores conocen el motivo de la cancelación.
 - CLOSED y CANCELLED son los únicos estados donde la cancelación es imposible.
 - La cancelación tardía siempre genera una RFQ de reemplazo en DRAFT que hereda datos técnicos y archivos.
 
@@ -539,6 +567,8 @@ Entonces la opción no se renderiza en absoluto (no solo deshabilitada).
 - Motivo con menos de 10 caracteres bloquea el botón.
 - Usuario base no ve la opción de cancelar.
 - RFQ de reemplazo aparece en DRAFT tras cancelación tardía.
+- Usuario base que tenía la RFQ en su lista: ya no aparece tras la cancelación; navegar al detalle retorna pantalla de acceso denegado o 404.
+- Super Usuario sí puede acceder al detalle de la RFQ cancelada y ver el motivo y el historial completo.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - `src/features/rfq/components/RfqModals/CancelRfqModal.tsx` con prop `cancellationType: 'early' | 'late'` derivada del estado actual.
@@ -670,6 +700,18 @@ Entonces el sistema redirige al detalle con mensaje "Esta RFQ ya no es editable 
 
 ### 🏷️ Título
 Pantalla de Benchmark con tabla comparativa, scorecards y exportación
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se creó un entry point funcional en `src/pages/purchasing/BenchmarkPage.tsx` y la navegación desde la lista de RFQs en estado `BENCHMARK_READY`.
+
+### Pendientes para marcar como completada
+- Falta la tabla comparativa con 4+ proveedores, scorecards, outliers y CTAs administrativos.
+- Falta exportación a Excel.
+- Falta el modo parcial para RFQs `PARTIALLY_QUOTED`.
+- No están implementados `BenchmarkTable` ni `SupplierScorecard`.
 
 ### 👤 Historia de Usuario
 Como usuario interno (Compras o Industrialización),
@@ -849,6 +891,18 @@ Entonces el botón está deshabilitado con tooltip "Resuelve la solicitud de edi
 ### 🏷️ Título
 Solicitud y aprobación de desbloqueo de cotización
 
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se creó la ruta y pantalla base `src/pages/purchasing/UnlockRequestsPage.tsx`, además del acceso desde el widget administrativo del dashboard de Compras.
+
+### Pendientes para marcar como completada
+- Falta el flujo de creación de solicitud desde proveedor o detalle de cotización/RFQ.
+- Falta la aprobación/rechazo real por parte de `compras_admin`.
+- Falta timeline, resumen de cotización bloqueada y patrón master-detail.
+- No existen aún `UnlockRequestModal` ni `useUnlockRequests`.
+
 ### 👤 Historia de Usuario
 Como proveedor o Compras operativo,
 Quiero solicitar el desbloqueo de una cotización ya enviada,
@@ -952,6 +1006,7 @@ Entonces cada panel muestra estado vacío institucional con mensaje específico.
 ### ⚙️ Reglas de Negocio
 - Solo `compras_admin` puede acceder a esta pantalla.
 - La resolución de solicitudes de edición (aprobar/rechazar) se hace desde el detalle de la RFQ, no desde este dashboard.
+- El admin de Compras puede consultar el historial de RFQs canceladas; usuarios base de Compras no tienen acceso a ellas.
 
 ### 🧪 Casos de Prueba
 - Renderizado con 0 y N pendientes por cola.
@@ -1005,9 +1060,11 @@ Entonces no existe ningún panel ni cola de "aprobaciones pendientes".
 - Solo `industrializacion_admin` puede acceder a esta pantalla.
 - La cancelación es la única acción exclusiva del admin; todas las demás acciones operativas (crear, editar, enviar) las ejecutan los usuarios base.
 - No existe bandeja de aprobaciones ni flujo de aprobar/rechazar.
+- El admin puede ver y consultar el historial de RFQs en estado CANCELLED; los usuarios base no tienen acceso a ellas.
 
 ### 🧪 Casos de Prueba
 - Admin ve RFQs de otros usuarios de Industrialización; usuario base no las ve.
+- Admin puede filtrar y abrir el detalle de RFQs canceladas; usuario base no puede.
 - Panel de alertas resalta correctamente RFQs en estado EXPIRED o tardíos sin movimiento.
 - CTA "Cancelar" en el detalle abre el modal correcto según el estado de la RFQ.
 
