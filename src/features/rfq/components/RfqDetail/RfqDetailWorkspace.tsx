@@ -13,6 +13,12 @@ type SelectedSupplier = {
   status: string;
 };
 
+type RfqSpecField = {
+  code: string;
+  label: string;
+  value: string;
+};
+
 type SupplierBenchmark = {
   quality: string;
   score: string;
@@ -27,6 +33,13 @@ type RfqDetailWorkspaceProps = {
   mode?: 'readonly' | 'assign';
   referenceId?: string;
 };
+
+const rfqSpecFields: RfqSpecField[] = [
+  { code: 'DESC', label: 'Descripcion', value: 'Product / E-PCP Folio' },
+  { code: 'CUST', label: 'Cliente', value: 'GM Mexico' },
+  { code: 'PPY', label: 'Piezas por año', value: '120,000' },
+  { code: 'PT', label: 'Part Technology', value: 'POWERTRAIN' },
+];
 
 const uploadedFiles: UploadedFile[] = [
   { name: 'plano_motor.stp' },
@@ -274,6 +287,41 @@ export function RfqDetailWorkspace({
               </button>
             </div>
           ) : null}
+        </div>
+
+        <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Especificaciones del RFQ</h2>
+              <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">
+                Campos clave registrados en la seccion 1. RFQ del formulario.
+              </p>
+            </div>
+            <span className="rounded-[4px] bg-[var(--bocar-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+              Solo lectura
+            </span>
+          </div>
+
+          <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
+            {rfqSpecFields.map((field) => (
+              <div
+                key={field.code}
+                className="flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-[4px] bg-[var(--bocar-blue-100)] px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                    {field.code}
+                  </span>
+                  <dt className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+                    {field.label}
+                  </dt>
+                </div>
+                <dd className="m-0 text-[15px] font-semibold leading-[1.25] text-[var(--bocar-text)]">
+                  {field.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
         <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">

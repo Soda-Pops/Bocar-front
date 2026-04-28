@@ -28,7 +28,6 @@ Thumbs.db
 documentacion/
 output/
 /scripts
-/specs
 /.codex
 /.github
 /.playwright-cli
@@ -36,7 +35,6 @@ output/
 
 /nueva-pantallas-de creacion de rfq
 /Api-docs
-/.claude
 /.screenshots
 /.vscode
 

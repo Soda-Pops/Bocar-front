@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { DashboardHeader } from '@/features/analytics/components/DashboardHeader';
 import { FilterSelect } from '@/features/analytics/components/Filters/FilterSelect';
@@ -17,6 +18,7 @@ import type { SortOption } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
+import { ROUTES } from '@/app/config/routes';
 
 const PAGE_SIZE = 4;
 
@@ -53,6 +55,7 @@ function getNextSortOption(value: string): SortOption {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'borradores' | 'revision' | 'activas' | 'historicas'>(
     'borradores',
   );
@@ -69,6 +72,9 @@ function DashboardPage() {
   const visibleRows = filteredRows.slice(0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const hasRows = visibleRows.length > 0;
+  const handleViewRfq = (rfqId: string) => {
+    navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId));
+  };
 
   return (
     <MainLayout
@@ -158,6 +164,7 @@ function DashboardPage() {
                     <button
                       type="button"
                       className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
+                      onClick={() => handleViewRfq(row.id)}
                     >
                       Ver
                     </button>
@@ -220,6 +227,7 @@ function DashboardPage() {
                         <button
                           type="button"
                           className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] lg:h-7 lg:min-w-[48px] lg:px-3 lg:text-[12px]"
+                          onClick={() => handleViewRfq(row.id)}
                         >
                           Ver
                         </button>

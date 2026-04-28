@@ -1,11 +1,23 @@
+import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { ROUTES } from '@/app/config/routes';
+
 export function LoginForm() {
+  const navigate = useNavigate();
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    navigate(ROUTES.INDUSTRIALIZATION.DASHBOARD);
+  };
+
   return (
     <div className="flex w-full max-w-[430px] flex-col rounded-[2px] bg-white px-6 pb-8 pt-10 shadow-[0_24px_42px_rgba(21,38,63,0.16)] sm:px-9 sm:pb-12 sm:pt-16 lg:h-[min(628px,calc(100svh-64px))] lg:max-w-[456px] lg:px-[44px] lg:pb-[42px] lg:pt-[66px]">
       <h2 className="m-0 text-center text-[24px] font-extrabold tracking-[-0.02em] text-[#002E5D] sm:text-[26px]">
         INICIAR SESIÓN
       </h2>
 
-      <form className="mt-10 flex h-full flex-col gap-5" onSubmit={(event) => event.preventDefault()}>
+      <form className="mt-10 flex h-full flex-col gap-5" onSubmit={handleSubmit}>
         <FormField
           label="Correo electronico"
           name="email"
