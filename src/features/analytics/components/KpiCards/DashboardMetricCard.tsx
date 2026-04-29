@@ -1,9 +1,7 @@
-import type { DashboardMetric, DashboardTabKey } from '@/features/analytics/types';
-
 type DashboardMetricCardProps = {
   isActive: boolean;
-  metric: DashboardMetric;
-  onSelect: (key: DashboardTabKey) => void;
+  metric: { key: string; label: string; value: string; valueColor: string };
+  onSelect: (key: string) => void;
 };
 
 export function DashboardMetricCard({

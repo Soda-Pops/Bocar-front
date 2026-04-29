@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { ROUTES } from '@/app/config/routes';
 import { RfqWorkspace } from '@/features/rfq/components/RfqForm/RfqWorkspace';
 
 function RfqFormPage() {
@@ -12,7 +11,7 @@ function RfqFormPage() {
     <RfqWorkspace
       mode={isEditMode ? 'edit' : 'create'}
       rfqId={id}
-      onBack={() => navigate(ROUTES.INDUSTRIALIZATION.DASHBOARD)}
+      onBack={() => navigate(-1)}
     />
   );
 }

@@ -7,14 +7,14 @@ import { SearchField } from '@/features/analytics/components/Filters/SearchField
 import { MonthlyRfqChart } from '@/features/analytics/components/Charts/MonthlyRfqChart';
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import {
-  dashboardMetrics,
-  dashboardRowsByTab,
-  dashboardTabs,
   dashboardUser,
   getFilteredDashboardRows,
   monthlyRfqSeries,
+  superuserMetrics,
+  superuserRowsByTab,
+  superuserTabs,
 } from '@/features/analytics/services/analyticsService';
-import type { SortOption } from '@/features/analytics/types';
+import type { SuperUserTabKey, SortOption } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
@@ -23,47 +23,27 @@ import { ROUTES } from '@/app/config/routes';
 const PAGE_SIZE = 4;
 
 function getSortLabel(sortValue: SortOption) {
-  if (sortValue === 'material') {
-    return 'Material';
-  }
-
-  if (sortValue === 'creator') {
-    return 'Creador';
-  }
-
-  if (sortValue === 'recent') {
-    return 'Mas reciente';
-  }
-
+  if (sortValue === 'material') return 'Material';
+  if (sortValue === 'creator') return 'Creador';
+  if (sortValue === 'recent') return 'Mas reciente';
   return '';
 }
 
 function getNextSortOption(value: string): SortOption {
-  if (value === 'Material') {
-    return 'material';
-  }
-
-  if (value === 'Creador') {
-    return 'creator';
-  }
-
-  if (value === 'Mas reciente') {
-    return 'recent';
-  }
-
+  if (value === 'Material') return 'material';
+  if (value === 'Creador') return 'creator';
+  if (value === 'Mas reciente') return 'recent';
   return '';
 }
 
-function DashboardPage() {
+function SuperUserDashboardPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'borradores' | 'revision' | 'activas' | 'historicas'>(
-    'borradores',
-  );
+  const [activeTab, setActiveTab] = useState<SuperUserTabKey>('borradores');
   const [searchValue, setSearchValue] = useState('');
   const [supplierValue, setSupplierValue] = useState('');
   const [sortValue, setSortValue] = useState<SortOption>('');
 
-  const rows = dashboardRowsByTab[activeTab];
+  const rows = superuserRowsByTab[activeTab];
   const supplierOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.supplier))), [rows]);
   const filteredRows = useMemo(
     () => getFilteredDashboardRows(rows, searchValue, supplierValue, sortValue),
@@ -72,28 +52,29 @@ function DashboardPage() {
   const visibleRows = filteredRows.slice(0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const hasRows = visibleRows.length > 0;
+
   const handleViewRfq = (rfqId: string) => {
     navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId));
   };
 
   return (
     <MainLayout
-      header={<Header areaLabel="Industrializacion" user={dashboardUser} />}
+      header={<Header areaLabel="Industrialización . Superusuario" variant="dark" user={dashboardUser} />}
     >
       <div
         className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-8 lg:pt-8 xl:px-14"
-        data-testid="industrialization-dashboard-main"
+        data-testid="superuser-dashboard-main"
       >
         <DashboardHeader />
 
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(405px,0.9fr)] lg:items-stretch xl:grid-cols-[minmax(0,1fr)_minmax(470px,0.96fr)]">
           <div className="grid gap-3 sm:grid-cols-2 lg:gap-3">
-            {dashboardMetrics.map((metric) => (
+            {superuserMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
                 isActive={metric.key === activeTab}
                 metric={metric}
-                onSelect={(key) => setActiveTab(key as typeof activeTab)}
+                onSelect={(key) => setActiveTab(key as SuperUserTabKey)}
               />
             ))}
           </div>
@@ -103,9 +84,8 @@ function DashboardPage() {
 
         <section className="mt-8 border-b border-[rgba(217,222,229,0.9)]">
           <nav className="flex justify-between gap-6 overflow-x-auto pb-2.5 lg:gap-7">
-            {dashboardTabs.map((tab) => {
+            {superuserTabs.map((tab) => {
               const isActive = tab.key === activeTab;
-
               return (
                 <button
                   key={tab.key}
@@ -267,4 +247,4 @@ function DashboardPage() {
   );
 }
 
-export default DashboardPage;
+export default SuperUserDashboardPage;

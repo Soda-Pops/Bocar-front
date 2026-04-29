@@ -1,5 +1,6 @@
 import { ROUTES } from '@/app/config/routes';
 import DashboardPage from '@/pages/industrializacion/DashboardPage';
+import SuperUserDashboardPage from '@/pages/industrializacion/SuperUserDashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
@@ -43,6 +44,11 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
     element: <DashboardPage />,
+  },
+  // Programada: dashboard del Superusuario de Industrializacion.
+  {
+    path: ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD,
+    element: <SuperUserDashboardPage />,
   },
   // Programada: creacion de RFQ en Industrializacion.
   {
