@@ -26,7 +26,7 @@ No existe en código (gap principal):
 
 - Ninguna pantalla dedicada para Compras (dashboard, lista, detalle propio, benchmark, admin, catálogo, desbloqueos).
 - Ninguna pantalla dedicada para Proveedor (dashboard, lista asignada, detalle restringido, formulario de cotización, historial, detalle de cotización).
-- Sistema de estados de RFQ (`DRAFT`, `PENDING_INTERNAL_APPROVAL`, `PENDING`, `PENDING_PURCHASING_APPROVAL`, `QUOTING`, `PARTIALLY_QUOTED`, `BENCHMARK_READY`, `EXPIRED`, `CLOSED`, `CANCELLED`) y CTAs contextuales por estado/rol.
+- Sistema de estados de RFQ (`DRAFT`, `PENDING`, `PENDING_EDIT_REQUEST`, `QUOTING`, `PARTIALLY_QUOTED`, `BENCHMARK_READY`, `EXPIRED`, `CLOSED`, `CANCELLED`) y CTAs contextuales por estado/rol.
 - Modales críticos (`CancelRfqModal`, `RejectWithReasonModal`, `EditAndApproveWorkspace`, `UnlockRequestModal`, `ExtendOrResendModal`, `CloseRfqModal`, `FilePreviewOverlay`).
 - Centro de notificaciones global.
 - Páginas de error (`/401`, `/404`, `/500`) y `SSOCallbackPage`.
@@ -115,38 +115,53 @@ Quiero ver claramente en qué estado está la RFQ y qué acciones puedo ejecutar
 Para tomar decisiones correctas sin recorrer el flujo manualmente.
 
 ### 🎯 Descripción
-La pantalla `RfqDetailWorkspace` actual muestra contenido fijo (Activo/Review) y no respeta el ciclo de vida descrito en `ARCHITECTURE_PROPOSAL.md §3`. Esta historia introduce un state machine visible: badge de estado, banner contextual, CTAs habilitadas/deshabilitadas según estado y rol, y mensajería sobre puntos de no retorno (`QUOTING`, `PARTIALLY_QUOTED`, `BENCHMARK_READY`, `EXPIRED`).
+La pantalla `RfqDetailWorkspace` actual muestra contenido fijo (Activo/Review) y no respeta el ciclo de vida descrito en `ARCHITECTURE_PROPOSAL.md §3`. Esta historia introduce un state machine visible: badge de estado, banner contextual, CTAs habilitadas/deshabilitadas según estado y rol, y mensajería diferenciada entre cancelación temprana y tardía.
 
-Incluye los 10 estados, las matrices del documento y deshabilitar acciones bloqueadas con tooltip explicativo.
-
-No incluye los modales (se cubren en historias separadas) ni timeline (historia P1).
+Incluye los 9 estados activos del flujo, las matrices del documento y deshabilitar acciones bloqueadas con tooltip explicativo. No incluye los modales (se cubren en historias separadas) ni timeline (historia P1).
 
 ### ✅ Criterios de Aceptación
 **Escenario 1: Badge y banner por estado**
 Dado un detalle de RFQ en estado `QUOTING`
 Cuando el usuario abre la pantalla
-Entonces se muestra el badge "En Cotización" y un banner persistente "Punto de no retorno: la cancelación ya no está disponible".
+Entonces se muestra el badge "En Cotización" y un banner persistente que advierte que la cancelación en este punto aplica el protocolo especial (notificación a proveedores + RFQ de reemplazo).
 
-**Escenario 2: CTAs según rol y estado**
-Dado un Industrialización Admin viendo una RFQ en `PENDING_INTERNAL_APPROVAL`
+**Escenario 2: CTAs exclusivos de Super Usuario**
+Dado un Industrialización Admin o Compras Admin viendo una RFQ en cualquier estado no terminal
 Cuando carga el detalle
-Entonces se muestran CTAs `Aprobar`, `Rechazar`, `Editar y aprobar`, `Cancelar` habilitados; cualquier otro rol ve solo lectura.
+Entonces se muestra únicamente la CTA `Cancelar` como acción exclusiva del Super Usuario; el resto de CTAs operativas (`Asignar`, `Solicitar edición`, etc.) las manejan roles base según estado.
 
-**Escenario 3: CTA bloqueada**
-Dado una RFQ en `BENCHMARK_READY`
-Cuando un Compras admin intenta cancelar
-Entonces el botón "Cancelar" se ve deshabilitado con tooltip que explica la regla de negocio.
+**Escenario 3: CTA de cancelación tardía diferenciada**
+Dado una RFQ en `QUOTING` o posterior
+Cuando un Super Usuario ve la opción Cancelar
+Entonces el botón está visible pero con etiqueta o badge que comunica "cancelación con protocolo especial" y abre un modal de confirmación reforzada.
+
+**Escenario 4: CTA de solicitud de edición**
+Dado el creador original viendo su RFQ en `PENDING`
+Cuando carga el detalle
+Entonces ve la CTA "Solicitar edición" (solo visible para él); cualquier otro usuario de Industrialización no la ve.
+
+**Escenario 5: Estado PENDING_EDIT_REQUEST bloqueado para Compras**
+Dado una RFQ en `PENDING_EDIT_REQUEST`
+Cuando un usuario de Compras abre el detalle
+Entonces el botón "Asignar proveedores" aparece deshabilitado con tooltip "Hay una solicitud de edición pendiente de resolución".
 
 ### ⚙️ Reglas de Negocio
-- Los estados `QUOTING`, `PARTIALLY_QUOTED`, `BENCHMARK_READY`, `EXPIRED` son no-cancelables.
-- `DRAFT` solo lo edita el creador original (regla 👤).
-- `CLOSED` y `CANCELLED` siempre son solo lectura.
+- `CLOSED` es solo lectura para todos.
+- `CANCELLED` es solo lectura y **únicamente visible para Super Usuarios** (Indust. Admin y Compras Admin). Usuarios base y proveedores no pueden acceder ni en listados ni en el detalle.
+- `DRAFT` solo lo edita y ve el creador original (regla 👤).
+- La cancelación la puede ejecutar únicamente un Super Usuario (Industrialización Admin o Compras Admin) en cualquier estado no terminal.
+- Cancelación temprana (DRAFT, PENDING, PENDING_EDIT_REQUEST): sin protocolo especial, solo notifica a internos por email (ese email es el único medio por el que los afectados conocen el motivo).
+- Cancelación tardía (QUOTING, PARTIALLY_QUOTED, BENCHMARK_READY, EXPIRED): protocolo especial, notifica a todos los proveedores por email y genera RFQ de reemplazo.
 - El badge debe usar `--bocar-done`, `--bocar-review`, `--bocar-error` o `--bocar-neutral` según semántica.
 
 ### 🧪 Casos de Prueba
-- Renderizar las 10 variantes de estado y validar CTAs.
-- Cambio de rol cambia las acciones visibles.
-- Tooltip de acción bloqueada visible al hover/focus.
+- Renderizar las 9 variantes de estado y validar CTAs por rol.
+- Super Usuario solo ve `Cancelar` como acción exclusiva; no ve `Aprobar` ni `Rechazar`.
+- Tooltip de cancelación tardía diferente al de cancelación temprana.
+- Creador ve "Solicitar edición" en PENDING; otro usuario de Industrialización no la ve.
+- Compras ve "Asignar" deshabilitado en PENDING_EDIT_REQUEST.
+- Un usuario base que tenía una RFQ en su lista ya no la ve una vez que pasa a CANCELLED.
+- Un Super Usuario sí puede buscar y consultar RFQs canceladas en su listado/historial.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - Crear `src/features/rfq/state/rfqStateMachine.ts` con `RfqStatus` enum y matriz `actionsByStateAndRole`.
@@ -155,12 +170,23 @@ Entonces el botón "Cancelar" se ve deshabilitado con tooltip que explica la reg
 
 ### 🎨 Consideraciones UX/UI
 - Header del detalle con bloque de estado dominante (brief 4.5).
-- Banners diferenciados: rojo suave para bloqueos, azul para informativos.
+- Banners diferenciados: amarillo para estados transitorios (PENDING_EDIT_REQUEST), naranja para advertencia de protocolo especial.
 
 ---
 
 ### 🏷️ Título
 Dashboard operativo de Compras con KPIs, cola y atajos de asignación
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se implementó `src/pages/purchasing/DashboardPage.tsx` con KPIs navegables, cola de RFQs por asignar, widget de vencimientos y widget de desbloqueos visible solo para `compras_admin`.
+
+### Pendientes para marcar como completada
+- Falta cubrir el escenario vacío institucional para widgets sin RFQs urgentes o sin desbloqueos pendientes.
+- Falta validar explícitamente la variante de usuario base con datos/métricas limitadas más allá del mock actual.
+- Falta dejar evidencia de los casos de prueba del backlog para render con datos vacíos y diferencia visual base vs admin.
 
 ### 👤 Historia de Usuario
 Como usuario de Compras,
@@ -208,6 +234,18 @@ Entonces los widgets muestran estado vacío institucional con mensaje específic
 
 ### 🏷️ Título
 Lista de RFQ de Compras con filtros, progreso por proveedor y acciones por fila
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se implementó `src/pages/purchasing/RfqListPage.tsx` con búsqueda, filtros principales, paginación mock, menú compacto por fila, navegación a benchmark y resaltado visual de urgencia.
+
+### Pendientes para marcar como completada
+- Los filtros no son persistentes en su totalidad: hoy solo el filtro de `status` se refleja en la URL.
+- La columna/bloque de progreso sigue mostrando texto para estados donde el backlog indica que solo debe aplicar a `QUOTING`, `PARTIALLY_QUOTED` y `BENCHMARK_READY`.
+- No existe todavía el componente técnico separado `src/features/rfq/components/RfqList/PurchasingRfqTable.tsx` indicado en el alcance.
+- Falta formalizar los casos de prueba del backlog para combinaciones de filtros, deshabilitación contextual y datasets grandes.
 
 ### 👤 Historia de Usuario
 Como usuario de Compras,
@@ -261,7 +299,7 @@ Quiero un detalle orientado a la decisión de asignación, cotización y cierre,
 Para no leer una ficha técnica sino saber qué acción comercial sigue.
 
 ### 🎯 Descripción
-Hoy `RfqDetailWorkspace` es genérica y no diferencia el shell ni los CTAs de Compras vs Industrialización. Esta historia divide el detalle por rol cuando el contenido cambia: header con CTAs comerciales (`Asignar`, `Aprobar`, `Editar proveedores`, `Cerrar`, `Extender`), columna principal con progreso comercial y proveedores, columna secundaria con resumen técnico/documentos.
+Hoy `RfqDetailWorkspace` es genérica y no diferencia el shell ni los CTAs de Compras vs Industrialización. Esta historia divide el detalle por rol cuando el contenido cambia: header con CTAs comerciales (`Asignar`, `Aprobar solicitud de edición`, `Rechazar solicitud de edición`, `Editar proveedores`, `Cerrar`, `Extender`), columna principal con progreso comercial y proveedores, columna secundaria con resumen técnico/documentos.
 
 Depende de la historia "Sistema de estados visibles".
 
@@ -271,12 +309,17 @@ Dado un comprador con RFQ en `PENDING`
 Cuando abre el detalle
 Entonces ve CTA primario "Asignar proveedores" y resumen técnico colapsable.
 
-**Escenario 2: RFQ en `EXPIRED`**
+**Escenario 2: RFQ en `PENDING_EDIT_REQUEST`**
+Dado un comprador con RFQ cuyo creador solicitó edición
+Cuando abre el detalle
+Entonces ve un banner "Solicitud de edición pendiente" con el motivo del creador y CTAs `Aprobar solicitud` y `Rechazar solicitud`; el CTA "Asignar proveedores" está deshabilitado.
+
+**Escenario 3: RFQ en `EXPIRED`**
 Dado un Compras admin con RFQ vencida
 Cuando abre el detalle
 Entonces ve banner "Vencida" + CTAs `Cerrar` o `Extender`.
 
-**Escenario 3: RFQ en `BENCHMARK_READY`**
+**Escenario 4: RFQ en `BENCHMARK_READY`**
 Dado un Compras admin
 Cuando abre el detalle
 Entonces ve link directo a la pantalla de benchmark y CTA `Cerrar`.
@@ -284,18 +327,23 @@ Entonces ve link directo a la pantalla de benchmark y CTA `Cerrar`.
 ### ⚙️ Reglas de Negocio
 - El detalle de Compras nunca debe verse como un formulario.
 - En estados terminales todo es solo lectura.
+- En `PENDING_EDIT_REQUEST`, la asignación de proveedores está bloqueada hasta que Compras resuelva la solicitud.
+- `Aprobar solicitud` y `Rechazar solicitud` son acciones disponibles para cualquier rol de Compras (base o admin).
 
 ### 🧪 Casos de Prueba
-- Render por estado y por rol.
+- Render por estado y por rol (base vs admin).
+- Escenario PENDING_EDIT_REQUEST: "Asignar" bloqueado, CTAs de resolución visibles.
+- Rechazo de solicitud de edición requiere motivo (campo obligatorio).
 - Navegación correcta a benchmark, asignación y desbloqueos.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - Extraer secciones de `RfqDetailWorkspace` en componentes (`RfqStatusHeader`, `SuppliersProgressPanel`, `TechnicalSummaryCard`).
 - Crear variantes `IndustrializationRfqDetail`, `PurchasingRfqDetail`, `SupplierRfqDetail`.
+- `PurchasingRfqDetail` debe renderizar `EditRequestResolutionBanner` cuando `status === 'PENDING_EDIT_REQUEST'`.
 
 ### 🎨 Consideraciones UX/UI
 - Cabecera con badge dominante y bloque de CTAs (brief 4.10).
-- Banners de bloqueo persistentes en estados sensibles.
+- Banner de solicitud de edición en amarillo con motivo expandible y CTAs inline.
 
 ---
 
@@ -469,86 +517,130 @@ Entonces ve cada fila con estado de su cotización y CTA contextual.
 ---
 
 ### 🏷️ Título
-Modal de cancelación de RFQ con motivo obligatorio y auditoría
+Modal de cancelación de RFQ con motivo obligatorio, auditoría y protocolo diferenciado
 
 ### 👤 Historia de Usuario
-Como administrador (Industrialización o Compras),
-Quiero capturar el motivo al cancelar una RFQ,
-Para garantizar trazabilidad y comunicar la razón a los involucrados.
+Como Super Usuario (Industrialización Admin o Compras Admin),
+Quiero capturar el motivo al cancelar una RFQ con una confirmación proporcional al impacto,
+Para garantizar trazabilidad y que el equipo comprenda las consecuencias antes de confirmar.
 
 ### 🎯 Descripción
-Modal global `CancelRfqModal` invocable desde dashboards y detalle. Solo disponible en estados `DRAFT`, `PENDING_INTERNAL_APPROVAL`, `PENDING`, `PENDING_PURCHASING_APPROVAL`. Motivo obligatorio (>= 10 caracteres), confirmación fuerte, deja huella en timeline y notifica a involucrados.
+Modal global `CancelRfqModal` invocable desde dashboards y detalle, exclusivo para Super Usuarios. Aplica en **todos los estados no terminales** con dos modalidades de experiencia según el estado:
+
+- **Cancelación temprana** (DRAFT, PENDING, PENDING_EDIT_REQUEST): confirmación simple, notifica solo a equipo interno, no genera RFQ de reemplazo.
+- **Cancelación tardía con protocolo especial** (QUOTING, PARTIALLY_QUOTED, BENCHMARK_READY, EXPIRED): confirmación reforzada que comunica explícitamente el impacto (notificación a todos los proveedores, generación automática de RFQ de reemplazo en DRAFT).
+
+Motivo obligatorio (>= 10 caracteres) en ambas modalidades.
 
 ### ✅ Criterios de Aceptación
-**Escenario 1: Cancelación con motivo válido**
-Dado admin con RFQ en `PENDING`
+**Escenario 1: Cancelación temprana (PENDING)**
+Dado un Super Usuario con RFQ en `PENDING`
 Cuando captura motivo y confirma
-Entonces la RFQ pasa a `CANCELLED`, se cierra el modal y se muestra toast de éxito.
+Entonces la RFQ pasa a `CANCELLED`, se notifica al equipo interno y se muestra toast de éxito.
 
-**Escenario 2: Motivo vacío**
-Dado el modal abierto
+**Escenario 2: Cancelación tardía (QUOTING)**
+Dado un Super Usuario con RFQ en `QUOTING`
+Cuando abre el modal de cancelación
+Entonces ve una confirmación reforzada que describe: "Se notificará a todos los proveedores asignados" y "El sistema creará automáticamente una RFQ de reemplazo en borrador". Al confirmar, ambas acciones se ejecutan.
+
+**Escenario 3: Motivo vacío**
+Dado el modal abierto en cualquier modalidad
 Cuando se intenta confirmar sin motivo
-Entonces el botón está deshabilitado y se resalta el textarea.
+Entonces el botón de confirmar está deshabilitado y el textarea se resalta.
 
-**Escenario 3: Estado bloqueado**
-Dado RFQ en `QUOTING`
-Cuando se intenta abrir el modal
-Entonces el sistema niega la apertura y muestra explicación contextual.
+**Escenario 4: No Super Usuario**
+Dado un usuario base (Industrialización o Compras) en cualquier estado
+Cuando el sistema evalúa si mostrar la CTA de cancelación
+Entonces la opción no se renderiza en absoluto (no solo deshabilitada).
 
 ### ⚙️ Reglas de Negocio
-- Cancelación es soft delete; el detalle queda visible con la razón.
-- La acción debe estar protegida por permiso `rfq:cancel`.
+- Solo `industrializacion_admin` o `compras_admin` pueden cancelar.
+- Cancelación es soft delete; el detalle y el motivo quedan visibles **únicamente para Super Usuarios** en el histórico.
+- Usuarios base (Industrialización, Compras) y Proveedores **NO pueden ver** una RFQ cancelada: desaparece de sus listados y el detalle les devuelve error de acceso.
+- El email de notificación es el único medio por el que usuarios base y proveedores conocen el motivo de la cancelación.
+- CLOSED y CANCELLED son los únicos estados donde la cancelación es imposible.
+- La cancelación tardía siempre genera una RFQ de reemplazo en DRAFT que hereda datos técnicos y archivos.
 
 ### 🧪 Casos de Prueba
-- Validar mínimo de caracteres.
-- Validar permisos por rol.
-- Confirmación doble step.
+- Cancelación temprana (DRAFT, PENDING, PENDING_EDIT_REQUEST): sin mención de proveedores ni RFQ de reemplazo.
+- Cancelación tardía (QUOTING+): confirmación reforzada con lista de consecuencias.
+- Motivo con menos de 10 caracteres bloquea el botón.
+- Usuario base no ve la opción de cancelar.
+- RFQ de reemplazo aparece en DRAFT tras cancelación tardía.
+- Usuario base que tenía la RFQ en su lista: ya no aparece tras la cancelación; navegar al detalle retorna pantalla de acceso denegado o 404.
+- Super Usuario sí puede acceder al detalle de la RFQ cancelada y ver el motivo y el historial completo.
 
 ### 📦 Alcance Técnico / Notas para Dev
-- `src/features/rfq/components/RfqModals/CancelRfqModal.tsx`.
-- Hook `useCancelRfq(id)`.
+- `src/features/rfq/components/RfqModals/CancelRfqModal.tsx` con prop `cancellationType: 'early' | 'late'` derivada del estado actual.
+- Hook `useCancelRfq(id)` con dos mutaciones distintas según modalidad.
 
 ### 🎨 Consideraciones UX/UI
-- Diseño sobrio, foco en `--bocar-error`.
-- Texto de impacto explícito antes del input.
+- Cancelación temprana: fondo rojo suave, texto claro de impacto mínimo.
+- Cancelación tardía: fondo rojo más intenso, checklist de consecuencias antes del campo de motivo.
 
 ---
 
 ### 🏷️ Título
-Modal de rechazo con motivo obligatorio para flujos de aprobación
+Solicitud de edición de RFQ desde estado PENDING (flujo PENDING → PENDING_EDIT_REQUEST)
 
 ### 👤 Historia de Usuario
-Como Super Usuario (Industrialización o Compras),
-Quiero rechazar una RFQ o asignación con motivo obligatorio,
-Para que el solicitante reciba contexto y pueda corregir.
+Como creador de una RFQ que ya está en estado PENDING,
+Quiero solicitar que Compras me permita editar la RFQ antes de que asignen proveedores,
+Para corregir errores sin necesidad de cancelar y crear una nueva desde cero.
 
 ### 🎯 Descripción
-Modal `RejectWithReasonModal` reutilizable en `PENDING_INTERNAL_APPROVAL` (regresa a `DRAFT`) y en `PENDING_PURCHASING_APPROVAL` (regresa a `PENDING`). Captura motivo obligatorio, registra autor y timestamp, dispara notificación.
+CTA e inline form accesible únicamente para el creador original desde el detalle de una RFQ en `PENDING`. El creador captura el motivo de la edición, confirma la solicitud y el sistema notifica automáticamente a todo el equipo de Compras. La RFQ pasa a `PENDING_EDIT_REQUEST` y la asignación de proveedores queda bloqueada hasta resolución.
+
+Cubre la perspectiva del **creador de Industrialización**. La perspectiva de Compras (aprobar/rechazar) se cubre en la historia "Panel de resolución de solicitudes de edición para Compras" (P1).
 
 ### ✅ Criterios de Aceptación
-**Escenario 1: Rechazo de RFQ interna**
-Dado admin de Industrialización
-Cuando rechaza con motivo
-Entonces la RFQ regresa a `DRAFT` y el creador recibe notificación.
+**Escenario 1: Solicitud exitosa**
+Dado el creador original viendo su RFQ en `PENDING`
+Cuando hace click en "Solicitar edición", captura un motivo (>= 10 caracteres) y confirma
+Entonces la RFQ pasa a `PENDING_EDIT_REQUEST`, el estado cambia en la UI, se envía notificación a Compras y el creador ve un banner "Solicitud enviada — en espera de aprobación de Compras".
 
-**Escenario 2: Rechazo de asignación**
-Dado admin de Compras
-Cuando rechaza la propuesta de proveedores
-Entonces la RFQ regresa a `PENDING` y el comprador recibe notificación.
+**Escenario 2: Motivo vacío**
+Dado el modal/inline form abierto
+Cuando el creador intenta confirmar sin motivo
+Entonces el botón de envío está deshabilitado y el campo se resalta.
+
+**Escenario 3: Usuario no es el creador**
+Dado otro usuario de Industrialización (no el creador) viendo la misma RFQ en `PENDING`
+Cuando carga el detalle
+Entonces la CTA "Solicitar edición" no se renderiza.
+
+**Escenario 4: Solicitud ya activa**
+Dado que ya existe una solicitud de edición pendiente para esa RFQ
+Cuando el creador intenta volver a abrir el formulario
+Entonces ve el estado "Solicitud en proceso — pendiente de respuesta de Compras" sin poder enviar otra.
+
+**Escenario 5: Compras aprueba (resultado esperado para el creador)**
+Dado que Compras aprobó la solicitud
+Cuando el creador regresa al detalle
+Entonces la RFQ está en `DRAFT`, puede ver y editar sus campos, y debe volver a enviarla cuando termine.
 
 ### ⚙️ Reglas de Negocio
+- Solo el creador original puede iniciar la solicitud.
+- Solo aplica cuando la RFQ está en `PENDING`.
+- Solo puede existir una solicitud activa por RFQ a la vez.
 - Motivo obligatorio (>= 10 caracteres).
-- Solo invocable por Super Usuarios.
+- La solicitud queda en audit trail con autor, timestamp, motivo y resultado final.
 
 ### 🧪 Casos de Prueba
-- Rechazo con motivo válido y rechazo con motivo vacío.
-- Notificación visible para el solicitante.
+- Solicitud enviada → estado cambia a `PENDING_EDIT_REQUEST`.
+- Motivo vacío bloquea el envío.
+- Otro usuario de Industrialización no ve el CTA.
+- No se puede enviar segunda solicitud mientras hay una activa.
+- Después de aprobación de Compras, la RFQ está en DRAFT solo visible para el creador.
 
 ### 📦 Alcance Técnico / Notas para Dev
-- `RejectWithReasonModal` parametrizado por origen (`internal`, `purchasing`).
+- CTA inline en `IndustrializationRfqDetail` con visibilidad `isCreator && status === 'PENDING'`.
+- Hook `useRequestEditRfq(rfqId)` con mutación hacia el endpoint de solicitud.
+- Banner de estado activo mientras `status === 'PENDING_EDIT_REQUEST'`.
 
 ### 🎨 Consideraciones UX/UI
-- Mismos tokens que el modal de cancelación pero copy distinto.
+- CTA secundario (no primario) en el header del detalle, con ícono de lápiz.
+- Banner amarillo suave mientras la solicitud está pendiente.
 
 ---
 
@@ -561,35 +653,44 @@ Quiero corregir mi borrador con la misma sensación de captura,
 Para entender que estoy editando, no creando desde cero.
 
 ### 🎯 Descripción
-Hoy `RfqFormPage` se renderiza igual para `crear` y `:id/editar`. Esta historia ajusta el workspace para mostrar contexto de "editando RFQ-XXXX", precargar datos, mostrar progreso de campos llenados, mantener el botón "Guardar borrador" y el de "Enviar a aprobación". Bloquea edición cuando la RFQ ya no está en `DRAFT`.
+Hoy `RfqFormPage` se renderiza igual para `crear` y `:id/editar`. Esta historia ajusta el workspace para mostrar contexto de "editando RFQ-XXXX", precargar datos, mostrar progreso de campos llenados, mantener el botón "Guardar borrador" y el de "Enviar". Bloquea edición cuando la RFQ ya no está en `DRAFT`.
+
+El estado `DRAFT` puede darse en dos contextos: borrador inicial (antes de enviarse) o borrador restaurado (tras una aprobación de solicitud de edición de Compras). El workspace debe funcionar igual en ambos casos.
 
 ### ✅ Criterios de Aceptación
-**Escenario 1: Edit válido**
-Dado creador con RFQ en `DRAFT`
+**Escenario 1: Edit de borrador inicial**
+Dado creador con RFQ en `DRAFT` (antes de envío)
 Cuando abre `:id/editar`
 Entonces los campos están precargados y el header indica "Editando RFQ-001".
 
-**Escenario 2: Estado no editable**
-Dado creador con RFQ en `PENDING`
+**Escenario 2: Edit tras aprobación de solicitud de edición**
+Dado creador cuya solicitud de edición fue aprobada por Compras (RFQ regresó a `DRAFT`)
+Cuando abre `:id/editar`
+Entonces ve un banner informativo "Compras aprobó tu solicitud de edición. Edita y vuelve a enviar la RFQ cuando termines."
+
+**Escenario 3: Estado no editable**
+Dado creador con RFQ en `PENDING` (sin solicitud de edición aprobada)
 Cuando intenta abrir `:id/editar`
-Entonces el sistema redirige al detalle con mensaje "Esta RFQ ya no es editable".
+Entonces el sistema redirige al detalle con mensaje "Esta RFQ ya no es editable directamente. Puedes solicitar edición desde el detalle."
 
 ### ⚙️ Reglas de Negocio
-- Solo editable en `DRAFT`.
-- Solo editable por el creador o por un admin desde el flujo "Editar y aprobar".
+- Solo editable en `DRAFT` (borrador inicial o restaurado tras aprobación de solicitud).
+- Solo editable por el creador original.
+- No existen flujos de "editar y aprobar" por parte de Super Usuarios; si un admin quiere un cambio, debe comunicarse con el creador para que haga la solicitud de edición.
 
 ### 🧪 Casos de Prueba
 - Edición de un campo y guardar borrador.
 - Edición + envío.
-- Acceso denegado en estados no editables.
+- Acceso denegado en estados distintos a DRAFT.
+- Banner correcto en el contexto de borrador restaurado vs. borrador inicial.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - `RfqWorkspace` ya recibe `mode`. Cablear precarga vía `useRfq(id)` y usar el modo para microcopy.
-- Guardar diff para auditoría futura.
+- Detectar si la RFQ tiene `replacedFromEditRequest: true` para mostrar el banner de contexto.
 
 ### 🎨 Consideraciones UX/UI
 - Subtítulo que comunique edición.
-- Indicador de campos modificados respecto al borrador inicial.
+- Banner azul informativo cuando el borrador proviene de una solicitud aprobada.
 
 ---
 
@@ -599,6 +700,18 @@ Entonces el sistema redirige al detalle con mensaje "Esta RFQ ya no es editable"
 
 ### 🏷️ Título
 Pantalla de Benchmark con tabla comparativa, scorecards y exportación
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se creó un entry point funcional en `src/pages/purchasing/BenchmarkPage.tsx` y la navegación desde la lista de RFQs en estado `BENCHMARK_READY`.
+
+### Pendientes para marcar como completada
+- Falta la tabla comparativa con 4+ proveedores, scorecards, outliers y CTAs administrativos.
+- Falta exportación a Excel.
+- Falta el modo parcial para RFQs `PARTIALLY_QUOTED`.
+- No están implementados `BenchmarkTable` ni `SupplierScorecard`.
 
 ### 👤 Historia de Usuario
 Como usuario interno (Compras o Industrialización),
@@ -724,46 +837,71 @@ Entonces el indicador desaparece sin cerrar el drawer.
 ---
 
 ### 🏷️ Título
-Workspace de "Editar y aprobar" con diff y auditoría obligatoria
+Panel de resolución de solicitudes de edición para Compras (PENDING_EDIT_REQUEST → DRAFT / PENDING)
 
 ### 👤 Historia de Usuario
-Como Super Usuario,
-Quiero ajustar campos y aprobar la RFQ con razón documentada,
-Para no devolver al creador cuando el ajuste es menor.
+Como usuario de Compras (base o admin),
+Quiero revisar y resolver las solicitudes de edición que los creadores de Industrialización envían sobre RFQs en PENDING,
+Para desbloquear la asignación de proveedores o devolver la RFQ a borrador para corrección.
 
 ### 🎯 Descripción
-Vista invocada desde detalle en `PENDING_INTERNAL_APPROVAL` o `PENDING_PURCHASING_APPROVAL`. Permite editar campos clave, mostrar diff antes de confirmar, exigir razón por cada cambio o por el set completo, registrar todo en auditoría.
+Cuando una RFQ pasa a `PENDING_EDIT_REQUEST`, Compras recibe una notificación y debe resolver la solicitud antes de poder asignar proveedores. Esta historia cubre la UI de resolución: banner en el detalle de la RFQ con el motivo del creador, CTAs `Aprobar solicitud` (→ DRAFT) y `Rechazar solicitud` (→ PENDING, con motivo obligatorio).
+
+Complementa la historia de "Solicitud de edición desde Industrialización" (P0). La cola de solicitudes pendientes en el dashboard de Compras se cubre en "Admin Dashboard de Compras".
 
 ### ✅ Criterios de Aceptación
-**Escenario 1: Edición y aprobación**
-Dado admin con RFQ en aprobación
-Cuando edita 3 campos y captura razón
-Entonces antes de confirmar se muestra el diff y la razón; al confirmar pasa a `PENDING` (o `QUOTING`).
+**Escenario 1: Compras aprueba la solicitud**
+Dado un usuario de Compras con una RFQ en `PENDING_EDIT_REQUEST`
+Cuando hace click en "Aprobar solicitud" y confirma
+Entonces la RFQ pasa a `DRAFT`, el creador recibe notificación, y el detalle de Compras muestra el nuevo estado con mensaje "RFQ devuelta a borrador — el creador debe volver a enviarla".
 
-**Escenario 2: Aprobación sin razón**
-Dado un cambio sin razón
-Cuando intenta confirmar
-Entonces el envío se bloquea.
+**Escenario 2: Compras rechaza la solicitud**
+Dado un usuario de Compras con una RFQ en `PENDING_EDIT_REQUEST`
+Cuando hace click en "Rechazar solicitud", captura un motivo (>= 10 caracteres) y confirma
+Entonces la RFQ regresa a `PENDING`, el creador recibe notificación con el motivo, y Compras puede continuar con la asignación de proveedores.
+
+**Escenario 3: Intento de asignar con solicitud activa**
+Dado una RFQ en `PENDING_EDIT_REQUEST`
+Cuando un usuario de Compras intenta hacer click en "Asignar proveedores"
+Entonces el botón está deshabilitado con tooltip "Resuelve la solicitud de edición antes de asignar".
 
 ### ⚙️ Reglas de Negocio
-- La razón se registra junto con autor y timestamp.
-- El diff debe mostrar valores anteriores y nuevos.
+- Cualquier rol de Compras (base o admin) puede aprobar o rechazar solicitudes de edición.
+- El rechazo requiere motivo obligatorio (>= 10 caracteres).
+- La aprobación no requiere motivo (es una acción de desbloqueo, no de juicio).
+- Toda resolución queda en audit trail con autor, timestamp y decisión.
 
 ### 🧪 Casos de Prueba
-- Edición con y sin diff real.
-- Razón vacía.
+- Aprobar solicitud → RFQ en DRAFT, notificación al creador.
+- Rechazar sin motivo → botón bloqueado.
+- Rechazar con motivo válido → RFQ en PENDING, notificación al creador con motivo.
+- "Asignar proveedores" deshabilitado mientras solicitud está activa.
 
 ### 📦 Alcance Técnico / Notas para Dev
-- `EditAndApproveWorkspace.tsx` reutilizando primitives del form.
+- `EditRequestResolutionBanner.tsx` montado en `PurchasingRfqDetail` cuando `status === 'PENDING_EDIT_REQUEST'`.
+- Hook `useResolveEditRequest(rfqId)` con mutaciones `approve` y `reject`.
+- `reject` requiere campo `reason` en el payload.
 
 ### 🎨 Consideraciones UX/UI
-- Vista lateral o overlay grande.
-- Diff con badges de "antes/después".
+- Banner prominente en la parte superior del detalle, amarillo con borde, que muestra el motivo del creador.
+- Dos CTAs inline: "Aprobar" (verde) y "Rechazar" (rojo suave), con modal de confirmación para rechazar que incluye el campo de motivo.
 
 ---
 
 ### 🏷️ Título
 Solicitud y aprobación de desbloqueo de cotización
+
+### Estado de implementación
+`En proceso (2026-04-28)`
+
+### Nota de avance
+Se creó la ruta y pantalla base `src/pages/purchasing/UnlockRequestsPage.tsx`, además del acceso desde el widget administrativo del dashboard de Compras.
+
+### Pendientes para marcar como completada
+- Falta el flujo de creación de solicitud desde proveedor o detalle de cotización/RFQ.
+- Falta la aprobación/rechazo real por parte de `compras_admin`.
+- Falta timeline, resumen de cotización bloqueada y patrón master-detail.
+- No existen aún `UnlockRequestModal` ni `useUnlockRequests`.
 
 ### 👤 Historia de Usuario
 Como proveedor o Compras operativo,
@@ -839,64 +977,105 @@ Entonces ve timeline y CTA "Solicitar desbloqueo" si aplica.
 ---
 
 ### 🏷️ Título
-Admin Dashboard de Compras con aprobaciones y desbloqueos
+Admin Dashboard de Compras con solicitudes de edición, desbloqueos y vencimientos
 
 ### 👤 Historia de Usuario
 Como Compras admin,
-Quiero un command center con aprobaciones, desbloqueos y vencimientos,
-Para no perder ninguna decisión administrativa del día.
+Quiero un command center con solicitudes de edición pendientes, desbloqueos, vencimientos y cancelaciones,
+Para no perder ninguna decisión crítica del día.
 
 ### 🎯 Descripción
-Pantalla `/compras/admin` con paneles tipo control tower: aprobaciones de asignación pendientes, desbloqueos pendientes, RFQs en `BENCHMARK_READY` esperando cierre, RFQs `EXPIRED`. Configuración de alertas como subpanel.
+Pantalla `/compras/admin` con paneles tipo control tower: solicitudes de edición pendientes (`PENDING_EDIT_REQUEST`), desbloqueos de cotización pendientes, RFQs en `BENCHMARK_READY` esperando cierre, RFQs `EXPIRED`. La sección de cancelaciones tardías es visible pero no accionable desde este dashboard (se ejecutan desde el detalle de cada RFQ). Configuración de alertas como subpanel.
 
 ### ✅ Criterios de Aceptación
 **Escenario 1: Render con cargas**
 Dado admin con varias colas activas
 Cuando entra al dashboard
-Entonces ve cards de cada cola con CTA directo.
+Entonces ve cards de cada cola con CTA directo que navega a la RFQ o solicitud correspondiente.
+
+**Escenario 2: Cola de solicitudes de edición**
+Dado que existen RFQs en `PENDING_EDIT_REQUEST`
+Cuando carga el dashboard
+Entonces ve el panel "Solicitudes de edición pendientes" con la RFQ, el creador, el motivo resumido y CTA "Resolver".
+
+**Escenario 3: Panel vacío**
+Dado que no hay pendientes en ninguna cola
+Cuando carga el dashboard
+Entonces cada panel muestra estado vacío institucional con mensaje específico.
 
 ### ⚙️ Reglas de Negocio
-- Solo `compras_admin` puede acceder.
+- Solo `compras_admin` puede acceder a esta pantalla.
+- La resolución de solicitudes de edición (aprobar/rechazar) se hace desde el detalle de la RFQ, no desde este dashboard.
+- El admin de Compras puede consultar el historial de RFQs canceladas; usuarios base de Compras no tienen acceso a ellas.
 
 ### 🧪 Casos de Prueba
-- Renderizado con 0 y N pendientes.
+- Renderizado con 0 y N pendientes por cola.
+- CTA "Resolver" navega al detalle de la RFQ en `PENDING_EDIT_REQUEST`.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - `src/pages/purchasing/AdminDashboardPage.tsx`.
+- Nuevo servicio mock `adminPurchasingService` con datos de solicitudes de edición y desbloqueos.
 
 ### 🎨 Consideraciones UX/UI
 - Tipo command center (brief 4.14).
+- Panel de solicitudes de edición con badge de urgencia si llevan más de 24h sin resolverse.
 
 ---
 
 ### 🏷️ Título
-Admin Dashboard de Industrialización con cola de aprobaciones internas
+Admin Dashboard de Industrialización con visibilidad total de RFQs y gestión de cancelaciones
 
 ### 👤 Historia de Usuario
 Como Super Usuario de Industrialización,
-Quiero una bandeja con RFQs en `PENDING_INTERNAL_APPROVAL` y RFQs cancelables,
-Para resolver mi cola sin perder contexto.
+Quiero una vista de todas las RFQs del departamento (no solo las mías) con la capacidad de cancelar cualquiera según sea necesario,
+Para monitorear el estado del pipeline y actuar cuando una RFQ deba detenerse.
 
 ### 🎯 Descripción
-Pantalla `/industrializacion/admin` con cola de aprobaciones, panel de eventos recientes y conteos de pendientes críticos.
+Pantalla `/industrializacion/admin` que diferencia al admin del usuario base en un aspecto clave: puede ver **todas las RFQs** del departamento, no solo las propias. El panel central muestra el pipeline completo con filtros por estado, creador y prioridad. La acción exclusiva disponible es **Cancelar** (en cualquier estado no terminal), ejecutada directamente desde el detalle de cada RFQ. El dashboard también muestra un panel lateral de actividad reciente y alertas de RFQs vencidas o en riesgo.
+
+No existe cola de aprobaciones; el admin no aprueba ni rechaza nada. Su rol es de supervisión y cancelación de último recurso.
 
 ### ✅ Criterios de Aceptación
-**Escenario 1: Aprobar desde la cola**
-Dado admin con 5 pendientes
-Cuando hace click en una fila
-Entonces se navega al detalle con CTAs `Aprobar`, `Rechazar`, `Editar+Aprobar`.
+**Escenario 1: Visibilidad total**
+Dado un admin de Industrialización
+Cuando carga el dashboard
+Entonces ve todas las RFQs del departamento (incluidas las de otros usuarios), no solo las propias.
+
+**Escenario 2: Identificar RFQs en riesgo**
+Dado el pipeline con RFQs vencidas o en estados tardíos sin actividad
+Cuando carga el dashboard
+Entonces ve un panel de alertas que resalta esas RFQs con CTA "Ver detalle" para navegar y evaluar si cancelar.
+
+**Escenario 3: Cancelar desde el detalle**
+Dado admin que decide cancelar una RFQ en cualquier estado no terminal
+Cuando navega al detalle y usa la CTA "Cancelar"
+Entonces se le presenta el modal de cancelación correspondiente (temprana o tardía según el estado).
+
+**Escenario 4: Sin aprobaciones**
+Dado el dashboard del admin
+Cuando lo inspecciona
+Entonces no existe ningún panel ni cola de "aprobaciones pendientes".
 
 ### ⚙️ Reglas de Negocio
-- Solo `industrializacion_admin` accede.
+- Solo `industrializacion_admin` puede acceder a esta pantalla.
+- La cancelación es la única acción exclusiva del admin; todas las demás acciones operativas (crear, editar, enviar) las ejecutan los usuarios base.
+- No existe bandeja de aprobaciones ni flujo de aprobar/rechazar.
+- El admin puede ver y consultar el historial de RFQs en estado CANCELLED; los usuarios base no tienen acceso a ellas.
 
 ### 🧪 Casos de Prueba
-- Cola con 0 y N pendientes.
+- Admin ve RFQs de otros usuarios de Industrialización; usuario base no las ve.
+- Admin puede filtrar y abrir el detalle de RFQs canceladas; usuario base no puede.
+- Panel de alertas resalta correctamente RFQs en estado EXPIRED o tardíos sin movimiento.
+- CTA "Cancelar" en el detalle abre el modal correcto según el estado de la RFQ.
 
 ### 📦 Alcance Técnico / Notas para Dev
 - `src/pages/industrializacion/AdminDashboardPage.tsx`.
+- Servicio mock `adminIndustrializationService` que devuelve RFQs de todo el departamento.
+- Reutilizar componentes de la lista operativa con un flag `viewAll: true`.
 
 ### 🎨 Consideraciones UX/UI
-- Tabla central + panel lateral de actividad (brief 4.6).
+- Tabla central con columna "Creador" visible (brief 4.6).
+- Panel lateral de alertas/actividad reciente con badge de urgencia.
 
 ---
 
@@ -1413,9 +1592,18 @@ Entonces se rechaza antes de iniciar el upload con mensaje específico.
 
 | Prioridad | Cantidad | Foco |
 |-----------|----------|------|
-| P0 | 12 historias | Multi-rol funcional, estados RFQ, formulario de cotización, modales críticos. |
-| P1 | 12 historias | Cierre de flujos: benchmark, timeline, notificaciones, desbloqueos, admin dashboards, sidebar por rol, vencimiento. |
+| P0 | 12 historias | Multi-rol funcional, estados RFQ (incluye PENDING_EDIT_REQUEST), formulario de cotización, modales críticos. |
+| P1 | 12 historias | Cierre de flujos: benchmark, timeline, notificaciones, desbloqueos, resolución de solicitudes de edición (Compras), admin dashboards, sidebar por rol, vencimiento. |
 | P2 | 7 historias | Predicción, analytics, catálogo, gestión admin, errores, callback. |
 | P3 | 5 historias | Soporte: AuthProvider real, file preview, estados de feedback, validación, upload. |
 
 Cumpliendo P0 y P1 el frontend cubre el flujo de negocio completo descrito en `SCREENS_AND_FLOWS.md`. P2 y P3 elevan calidad, completitud analítica y robustez del producto.
+
+### Nota sobre cambios de arquitectura aplicados (2026-04-28)
+
+Las historias de este backlog reflejan el flujo simplificado vigente en `ARCHITECTURE_PROPOSAL.md`:
+
+1. **Super Usuarios (Industrialización Admin y Compras Admin)** tienen una única acción exclusiva: **cancelar RFQs** (cancelación temprana o tardía con protocolo especial). Ya **no aprueban, rechazan ni editan-y-aprueban** solicitudes.
+2. **Solicitud de Edición**: cuando una RFQ está en `PENDING`, el creador puede solicitar edición (→ `PENDING_EDIT_REQUEST`). Compras recibe notificación y debe aprobar (→ `DRAFT`) o rechazar (→ `PENDING`) antes de poder asignar proveedores.
+
+Las historias obsoletas que cubrían los flujos de aprobación eliminados (`PENDING_INTERNAL_APPROVAL`, `PENDING_PURCHASING_APPROVAL`, "Editar y aprobar") fueron reescritas o reemplazadas.

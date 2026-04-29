@@ -1,7 +1,7 @@
 type FilterSelectProps = {
   label: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: Array<string | { label: string; value: string }>;
   value: string;
 };
 
@@ -24,11 +24,16 @@ export function FilterSelect({ label, onChange, options, value }: FilterSelectPr
         onChange={(event) => onChange(event.target.value)}
       >
         <option value="">{label}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {options.map((option) => {
+          const normalizedOption =
+            typeof option === 'string' ? { label: option, value: option } : option;
+
+          return (
+            <option key={normalizedOption.value} value={normalizedOption.value}>
+              {normalizedOption.label}
+            </option>
+          );
+        })}
       </select>
       <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
         <ChevronDownIcon />

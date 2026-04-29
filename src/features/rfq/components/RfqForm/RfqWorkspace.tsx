@@ -25,46 +25,83 @@ type RfqWorkspaceProps = {
   rfqId?: string;
 };
 
-const costRowSchema = z.object({
+const TOGGLE_REQUIRED_CONSIDERATIONS = new Set([
+  'd_3d',
+  'flan',
+  'run_des',
+  'run_over',
+  'man_prop',
+  'ldi',
+  'add_mach',
+  'sketch',
+  'drw_2d',
+  'drw_3d',
+  'eyeb',
+  'ow_conn',
+  'stm',
+  'cmm_rep',
+  'gom_rep',
+  'h_val',
+  'dim_corr',
+  'sp_pt',
+  'comp_d',
+  'subseq_d',
+  'repl_h13',
+  'sp_ei',
+  'ficf',
+  'hcls',
+  'fr_refur',
+]);
+
+const considerationSchema = z.object({
+  checked: z.string().optional(),
   notes: z.string(),
-  price: z.string(),
-  unit: z.string(),
-  weeks: z.string(),
 });
 
-const workspaceSchema = z.object({
-  alloy: z.string(),
-  buhler: z.string(),
-  comments: z.string(),
-  considerations: z.record(z.string(), z.object({ checked: z.string(), notes: z.string() })),
-  costs: z.record(z.string(), z.record(z.string(), costRowSchema)),
-  cust: z.string(),
-  dtq: z.string(),
-  elab: z.string(),
-  gates: z.string(),
-  hydr_slides: z.string(),
-  mech_slides: z.string(),
-  num_cav: z.string(),
-  num_tools: z.string(),
-  part_dim: z.string(),
-  part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
-  part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
-  part_tech: z.string(),
-  parts_stroke: z.string(),
-  pnum: z.string(),
-  ppy: z.string(),
-  prlf: z.string(),
-  projected: z.string(),
-  rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
-  sk_part: z.string(),
-  surface: z.string(),
-  three_plate: z.string(),
-  tt: z.string(),
-  volume: z.string(),
-  wall_max: z.string(),
-  wall_min: z.string(),
-  weight: z.string(),
-});
+const workspaceSchema = z
+  .object({
+    alloy: z.string(),
+    buhler: z.string(),
+    comments: z.string(),
+    considerations: z.record(z.string(), considerationSchema),
+    cust: z.string(),
+    dtq: z.string(),
+    elab: z.string(),
+    gates: z.string(),
+    hydr_slides: z.string(),
+    mech_slides: z.string(),
+    num_cav: z.string(),
+    num_tools: z.string(),
+    part_dim: z.string(),
+    part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
+    part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
+    part_tech: z.string(),
+    parts_stroke: z.string(),
+    pnum: z.string(),
+    ppy: z.string(),
+    prlf: z.string(),
+    projected: z.string(),
+    rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
+    sk_part: z.string(),
+    surface: z.string(),
+    three_plate: z.string(),
+    tt: z.string(),
+    volume: z.string(),
+    wall_max: z.string(),
+    wall_min: z.string(),
+    weight: z.string(),
+  })
+  .superRefine((values, ctx) => {
+    Object.entries(values.considerations).forEach(([key, value]) => {
+      if (TOGGLE_REQUIRED_CONSIDERATIONS.has(key) && !value.checked?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Selecciona si aplica.',
+          path: ['considerations', key, 'checked'],
+        });
+      }
+    });
+  });
 
 type WorkspaceFormValues = z.infer<typeof workspaceSchema>;
 
@@ -76,23 +113,9 @@ type PageKey =
   | 'other_cons'
   | 'ot_inf'
   | 'spareparts'
-  | 'accessories'
-  | 'materials'
-  | 'manufacturing'
-  | 'corrections'
-  | 'logistics'
-  | 'sampling'
   | 'geometry'
   | 'tool_spec'
   | 'comments';
-
-type CostPageKey =
-  | 'accessories'
-  | 'materials'
-  | 'manufacturing'
-  | 'corrections'
-  | 'logistics'
-  | 'sampling';
 
 type ConsiderationGroupKey = 'DCM' | 'DIRITPOTD' | 'OTHER' | 'OT_INF';
 
@@ -110,26 +133,6 @@ type ConsiderationGroup = {
   items: ConsiderationItem[];
 };
 
-type CostRow = {
-  id: string;
-  label: string;
-};
-
-type CostSubsection = {
-  rows: CostRow[];
-  title: string;
-  unitHeader: 'hours' | 'unit';
-};
-
-type CostSection = {
-  key: CostPageKey;
-  rows?: CostRow[];
-  subsections?: CostSubsection[];
-  subtitle: string;
-  title: string;
-  unitHeader?: 'hours' | 'unit';
-};
-
 const PAGES: readonly PageKey[] = [
   'basic',
   'tool_eng',
@@ -143,26 +146,12 @@ const PAGES: readonly PageKey[] = [
   'comments',
 ];
 
-const COST_PAGES: readonly CostPageKey[] = [
-  'accessories',
-  'materials',
-  'manufacturing',
-  'corrections',
-  'logistics',
-  'sampling',
-];
-
 const REQUIRED_FIELDS_BY_PAGE: Partial<Record<PageKey, readonly FieldPath<WorkspaceFormValues>[]>> = {
   basic: ['rfq_name'],
   geometry: ['part_name', 'part_number'],
 };
 
 const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: string }> = {
-  accessories: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Costos de accesorios. Lo llena el toolmaker.',
-    title: '8. Accessories',
-  },
   basic: {
     navLabel: 'RFQ',
     subtitle: 'Datos principales del requerimiento que disparan el flujo.',
@@ -172,11 +161,6 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
     navLabel: 'COMMENTS',
     subtitle: 'Notas finales y contexto adicional para el proveedor.',
     title: '10. Comments',
-  },
-  corrections: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Medicion y optimizacion de cavidades.',
-    title: '11. Corrections',
   },
   dcm: {
     navLabel: 'DCM',
@@ -193,21 +177,6 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
     subtitle: 'Dimensiones y propiedades del componente.',
     title: '8. Part Geometry',
   },
-  logistics: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Empaque, transporte y otros costos logisticos.',
-    title: '12. Logistics',
-  },
-  manufacturing: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Tiempos y costos por proceso.',
-    title: '10. Manufacturing',
-  },
-  materials: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Partes compradas y materia prima.',
-    title: '9. Materials',
-  },
   other_cons: {
     navLabel: 'OTHER',
     subtitle: 'Otros entregables de la cotizacion.',
@@ -217,11 +186,6 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
     navLabel: 'OT INF',
     subtitle: 'Documentacion adicional requerida al proveedor.',
     title: '6. OT INF',
-  },
-  sampling: {
-    navLabel: 'COST BREAKDOWN',
-    subtitle: 'Muestreo en las instalaciones del toolmaker.',
-    title: '13. Sampling',
   },
   spareparts: {
     navLabel: 'SK PART',
@@ -374,121 +338,6 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
   },
 ];
 
-const COST_SECTIONS: readonly CostSection[] = [
-  {
-    key: 'accessories',
-    rows: [
-      { id: 'acc_parker', label: 'Cilindros hidraulicos Parker & Square D' },
-      { id: 'acc_jet', label: 'Jet cooling' },
-      { id: 'acc_squeeze', label: 'Squeeze pin' },
-      { id: 'acc_interch', label: 'Insertos intercambiables' },
-      { id: 'acc_chill', label: 'Chill blocks / Vacuum valves' },
-      { id: 'acc_eye', label: 'Eyebolts' },
-      { id: 'acc_owconn', label: 'Conectores O&W' },
-      { id: 'acc_leth', label: 'Distribuidor Lethiguel' },
-      { id: 'acc_other', label: 'Otros' },
-    ],
-    subtitle: PAGE_META.accessories.subtitle,
-    title: PAGE_META.accessories.title,
-    unitHeader: 'unit',
-  },
-  {
-    key: 'materials',
-    rows: [
-      { id: 'mat_frame', label: 'Die frame' },
-      { id: 'mat_cav', label: 'Cavidad' },
-      { id: 'mat_pipes', label: 'Tuberia de acero' },
-      { id: 'mat_other', label: 'Otros' },
-    ],
-    subtitle: PAGE_META.materials.subtitle,
-    title: PAGE_META.materials.title,
-    unitHeader: 'unit',
-  },
-  {
-    key: 'manufacturing',
-    subsections: [
-      {
-        rows: [
-          { id: 'man_mill', label: 'Milling' },
-          { id: 'man_turn', label: 'Turning' },
-          { id: 'man_wire', label: 'Corte por hilo' },
-          { id: 'man_edm', label: 'EDM' },
-          { id: 'man_grind', label: 'Rectificado' },
-          { id: 'man_drill', label: 'Barrenado' },
-          { id: 'man_other', label: 'Otros' },
-        ],
-        title: 'Maquinado',
-        unitHeader: 'hours',
-      },
-      {
-        rows: [
-          { id: 'mw_assy', label: 'Ensamble' },
-          { id: 'mw_spot', label: 'Spotting' },
-          { id: 'mw_strip', label: 'Stripping y pulido' },
-          { id: 'mw_other', label: 'Otros' },
-        ],
-        title: 'Trabajo manual',
-        unitHeader: 'hours',
-      },
-      {
-        rows: [
-          { id: 'ht_hard', label: 'Endurecimiento' },
-          { id: 'ht_nitr', label: 'Nitrurado' },
-          { id: 'ht_coat', label: 'Recubrimiento' },
-          { id: 'ht_grain', label: 'Graining' },
-          { id: 'ht_other', label: 'Otros' },
-        ],
-        title: 'Tratamiento termico y superficial',
-        unitHeader: 'hours',
-      },
-      {
-        rows: [
-          { id: 'ed_design', label: 'Diseno' },
-          { id: 'ed_cam', label: 'CAM / programacion NC' },
-          { id: 'ed_other', label: 'Otros' },
-        ],
-        title: 'Ingenieria y diseno',
-        unitHeader: 'hours',
-      },
-    ],
-    subtitle: PAGE_META.manufacturing.subtitle,
-    title: PAGE_META.manufacturing.title,
-  },
-  {
-    key: 'corrections',
-    rows: [
-      { id: 'cor_meas', label: 'Medicion de cavidades' },
-      { id: 'cor_other', label: 'Otros' },
-    ],
-    subtitle: PAGE_META.corrections.subtitle,
-    title: PAGE_META.corrections.title,
-    unitHeader: 'hours',
-  },
-  {
-    key: 'logistics',
-    rows: [
-      { id: 'log_pack', label: 'Limpieza y empaque' },
-      { id: 'log_other', label: 'Otros costos' },
-    ],
-    subtitle: PAGE_META.logistics.subtitle,
-    title: PAGE_META.logistics.title,
-    unitHeader: 'unit',
-  },
-  {
-    key: 'sampling',
-    rows: [
-      { id: 'samp_parts', label: 'Piezas de muestreo (50)' },
-      { id: 'samp_meas', label: 'Mediciones (5)' },
-    ],
-    subtitle: PAGE_META.sampling.subtitle,
-    title: PAGE_META.sampling.title,
-    unitHeader: 'unit',
-  },
-];
-
-function isCostPage(page: PageKey): page is CostPageKey {
-  return COST_PAGES.includes(page as CostPageKey);
-}
 
 function getStorageBaseKey(mode: RfqWorkspaceMode, rfqId?: string) {
   return mode === 'edit' ? `bocar-rfq-workspace-${(rfqId ?? 'RFQ-021').toLowerCase()}` : 'bocar-rfq-workspace-create';
@@ -540,7 +389,6 @@ function getCreateDefaultValues(): WorkspaceFormValues {
     buhler: '',
     comments: '',
     considerations: {},
-    costs: {},
     cust: '',
     dtq: '',
     elab: '',
@@ -583,18 +431,6 @@ function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
       man_prop: { checked: 'yes', notes: 'Cotizar propuesta con acero 3D forjado.' },
       smach: { checked: '', notes: 'Buhler 3400T confirmada para la corrida.' },
     },
-    costs: {
-      accessories: {
-        acc_jet: { notes: 'Set principal', price: '4200', unit: '1', weeks: '2' },
-        acc_parker: { notes: 'Incluye Square D', price: '7800', unit: '2', weeks: '4' },
-      },
-      materials: {
-        mat_cav: { notes: 'Acero H13', price: '13000', unit: '2', weeks: '6' },
-      },
-      sampling: {
-        samp_parts: { notes: '50 piezas funcionales', price: '45', unit: '50', weeks: '1' },
-      },
-    },
     cust: 'Name XX',
     dtq: '12',
     elab: 'Ing. Torres',
@@ -635,10 +471,6 @@ function mergeFormValues(baseValues: WorkspaceFormValues, storedValues: Partial<
     considerations: {
       ...baseValues.considerations,
       ...(storedValues.considerations ?? {}),
-    },
-    costs: {
-      ...baseValues.costs,
-      ...(storedValues.costs ?? {}),
     },
   };
 }
@@ -1178,112 +1010,6 @@ function CommentsPage() {
   );
 }
 
-// ─── Cost breakdown pages ─────────────────────────────────────────────────────
-
-function CostTable({
-  rows,
-  sectionKey,
-  unitHeader,
-}: {
-  rows: readonly CostRow[];
-  sectionKey: CostPageKey;
-  unitHeader: 'hours' | 'unit';
-}) {
-  const {
-    control,
-    register,
-  } = useFormContext<WorkspaceFormValues>();
-  const values = (useWatch({
-    control,
-    name: fieldPath(`costs.${sectionKey}`),
-  }) as Record<string, { notes?: string; price?: string; unit?: string; weeks?: string }> | undefined) ?? {};
-
-  const totalAmount = rows.reduce((accumulator, row) => {
-    const currentRow = values[row.id];
-    return accumulator + Number(currentRow?.unit ?? 0) * Number(currentRow?.price ?? 0);
-  }, 0);
-
-  const maxWeeks = rows.reduce((accumulator, row) => {
-    const currentRow = values[row.id];
-    return Math.max(accumulator, Number(currentRow?.weeks ?? 0));
-  }, 0);
-
-  return (
-    <div className="overflow-x-auto rounded-[14px] border border-[rgba(217,222,229,0.92)]">
-      <table className="min-w-[820px] w-full border-collapse">
-        <thead>
-          <tr className="bg-[rgba(0,46,93,0.05)] text-left">
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Concepto</th>
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
-              {unitHeader === 'hours' ? 'h' : 'Unidad'}
-            </th>
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
-              {unitHeader === 'hours' ? 'Precio/hora' : 'Precio/Unidad'}
-            </th>
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Total</th>
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Semanas</th>
-            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">Notas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const currentRow = values[row.id] ?? {};
-            const total = Number(currentRow.unit ?? 0) * Number(currentRow.price ?? 0);
-
-            return (
-              <tr key={row.id} className="border-t border-[rgba(236,240,245,0.95)]">
-                <td className="px-3 py-3 text-[13px] font-medium text-[var(--bocar-text)]">{row.label}</td>
-                <td className="p-3">
-                  <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`costs.${sectionKey}.${row.id}.unit`))} />
-                </td>
-                <td className="p-3">
-                  <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`costs.${sectionKey}.${row.id}.price`))} />
-                </td>
-                <td className="px-3 py-3 text-[13px] font-medium tabular-nums text-[var(--bocar-blue-100)]">{total.toFixed(2)}</td>
-                <td className="p-3">
-                  <input className={inputBaseClasses(false)} type="number" {...register(fieldPath(`costs.${sectionKey}.${row.id}.weeks`))} />
-                </td>
-                <td className="p-3">
-                  <input className={inputBaseClasses(false)} {...register(fieldPath(`costs.${sectionKey}.${row.id}.notes`))} />
-                </td>
-              </tr>
-            );
-          })}
-          <tr className="border-t border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)]">
-            <td className="px-3 py-3 text-[13px] font-semibold text-[var(--bocar-blue-100)]">S Total</td>
-            <td className="px-3 py-3" />
-            <td className="px-3 py-3" />
-            <td className="px-3 py-3 text-[13px] font-semibold tabular-nums text-[var(--bocar-blue-100)]">{totalAmount.toFixed(2)}</td>
-            <td className="px-3 py-3 text-[13px] font-semibold tabular-nums text-[var(--bocar-blue-100)]">{maxWeeks || ''}</td>
-            <td className="px-3 py-3" />
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function CostPage({ section }: { section: CostSection }) {
-  return (
-    <SectionCard subtitle={section.subtitle} title={section.title}>
-      {section.subsections ? (
-        <div className="space-y-6">
-          {section.subsections.map((subsection) => (
-            <div key={subsection.title}>
-              <p className="m-0 mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bocar-blue-100)]">
-                {subsection.title}
-              </p>
-              <CostTable rows={subsection.rows} sectionKey={section.key} unitHeader={subsection.unitHeader} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <CostTable rows={section.rows ?? []} sectionKey={section.key} unitHeader={section.unitHeader ?? 'unit'} />
-      )}
-    </SectionCard>
-  );
-}
-
 // ─── Page router ──────────────────────────────────────────────────────────────
 
 function renderPage(page: PageKey) {
@@ -1302,11 +1028,6 @@ function renderPage(page: PageKey) {
   if (page === 'diritpotd' || page === 'other_cons' || page === 'ot_inf') {
     const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
     return group ? <ConsiderationTogglePage group={group} /> : null;
-  }
-
-  if (isCostPage(page)) {
-    const section = COST_SECTIONS.find((s) => s.key === page);
-    return section ? <CostPage section={section} /> : null;
   }
 
   return null;
