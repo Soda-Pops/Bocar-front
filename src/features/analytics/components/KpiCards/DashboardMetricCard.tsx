@@ -1,4 +1,13 @@
 
+type DashboardMetricCardProps<TMetricKey extends string> = {
+  isActive: boolean;
+  metric: {
+    key: TMetricKey;
+    label: string;
+    value: string;
+    valueColor: string;
+  };
+  onSelect: (key: TMetricKey) => void;
 };
 
 export function DashboardMetricCard<TMetricKey extends string>({
