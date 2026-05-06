@@ -190,7 +190,7 @@ const PAGE_META: Record<PageKey, { navLabel: string; subtitle: string; title: st
   spareparts: {
     navLabel: 'SK PART',
     subtitle: 'Refacciones criticas a cotizar individualmente.',
-    title: '7. SK PART - Spare Parts',
+    title: '7. SK PART',
   },
   tool_eng: {
     navLabel: 'TOOL ENG.',
