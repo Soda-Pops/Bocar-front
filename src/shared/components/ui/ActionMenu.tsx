@@ -11,6 +11,7 @@ type ActionMenuItem = {
 type ActionMenuProps = {
   actions: ActionMenuItem[];
   buttonLabel?: string;
+  dark?: boolean;
 };
 
 function MenuIcon() {
@@ -23,7 +24,7 @@ function MenuIcon() {
   );
 }
 
-export function ActionMenu({ actions, buttonLabel = 'Abrir acciones' }: ActionMenuProps) {
+export function ActionMenu({ actions, buttonLabel = 'Abrir acciones', dark = false }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -61,7 +62,10 @@ export function ActionMenu({ actions, buttonLabel = 'Abrir acciones' }: ActionMe
         aria-haspopup="menu"
         aria-label={buttonLabel}
         onClick={() => setIsOpen((currentValue) => !currentValue)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[rgba(217,222,229,0.9)] bg-white text-[var(--bocar-blue-90)] transition hover:border-[var(--bocar-blue-30)] hover:bg-[var(--bocar-bg)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]"
+        className={dark
+          ? 'inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(31,58,97,0.18)]'
+          : 'inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[rgba(217,222,229,0.9)] bg-white text-[var(--bocar-blue-90)] transition hover:border-[var(--bocar-blue-30)] hover:bg-[var(--bocar-bg)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]'
+        }
       >
         <MenuIcon />
       </button>

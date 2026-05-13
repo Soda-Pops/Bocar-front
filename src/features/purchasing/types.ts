@@ -11,7 +11,7 @@ export type PurchasingRfqStatus =
   | 'CLOSED'
   | 'CANCELLED';
 
-export type PurchasingDashboardMetricKey = 'pending' | 'quoting' | 'benchmark_ready' | 'expired';
+export type PurchasingDashboardMetricKey = 'pending' | 'quoting' | 'benchmark_ready' | 'expired' | 'eliminated';
 
 export type PurchasingPriority = 'Alta' | 'Media' | 'Baja';
 
@@ -20,7 +20,9 @@ export type PurchasingMachineType =
   | 'Estampado'
   | 'Fundicion'
   | 'Maquinado'
-  | 'Ensamble';
+  | 'Ensamble'
+  | 'Mold'
+  | 'Trimming';
 
 export type PurchasingDeadlineRange = 'TODAY' | 'WITHIN_48H' | 'THIS_WEEK' | 'LATER';
 
@@ -34,7 +36,7 @@ export type PurchasingUser = {
 export type PurchasingDashboardMetric = {
   key: PurchasingDashboardMetricKey;
   label: string;
-  status: Extract<PurchasingRfqStatus, 'PENDING' | 'QUOTING' | 'BENCHMARK_READY' | 'EXPIRED'>;
+  status: Extract<PurchasingRfqStatus, 'PENDING' | 'QUOTING' | 'BENCHMARK_READY' | 'EXPIRED' | 'CANCELLED'>;
   value: string;
   valueColor: string;
 };
@@ -45,11 +47,14 @@ export type PurchasingDashboardRow = {
   project: string;
   supplierSuggestion: string;
   region: string;
+  machineType: PurchasingMachineType;
   deadline: string;
   hoursToDeadline: number;
   priority: PurchasingPriority;
   owner: string;
   status: PurchasingRfqStatus;
+  createdAt: string;
+  supplierProgress: PurchasingSupplierProgress | null;
 };
 
 export type PurchasingWidgetItem = {

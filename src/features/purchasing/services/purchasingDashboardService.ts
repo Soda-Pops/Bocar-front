@@ -1,6 +1,6 @@
 import { ROUTES } from '@/app/config/routes';
 import type { ChartPoint } from '@/features/analytics/types';
-import { getDeadlineUrgencyTone, getPriorityRank } from '@/features/purchasing/constants';
+import { getDeadlineRange, getDeadlineUrgencyTone, getPriorityRank } from '@/features/purchasing/constants';
 import type {
   PurchasingDashboardMetric,
   PurchasingDashboardRow,
@@ -16,34 +16,79 @@ export const purchasingUser: PurchasingUser = {
   role: 'compras_admin',
 };
 
+export const purchasingAdminUser: PurchasingUser = {
+  initials: 'AR',
+  name: 'Anairam Rodriguez',
+  department: 'Ing.Materiales',
+  role: 'compras_admin',
+};
+
 export const purchasingMetrics: PurchasingDashboardMetric[] = [
   {
     key: 'pending',
-    label: 'RFQs por asignar',
+    label: 'RFQs POR ASIGNAR',
     status: 'PENDING',
-    value: '12',
+    value: '2',
     valueColor: 'var(--bocar-blue-100)',
   },
   {
     key: 'quoting',
-    label: 'En cotizacion',
+    label: 'RFQs EN COTIZACIÓN',
     status: 'QUOTING',
-    value: '18',
-    valueColor: 'var(--bocar-blue-90)',
-  },
-  {
-    key: 'benchmark_ready',
-    label: 'Benchmark listo',
-    status: 'BENCHMARK_READY',
-    value: '5',
+    value: '3',
     valueColor: 'var(--bocar-done)',
   },
   {
     key: 'expired',
-    label: 'Vencidas',
+    label: 'RFQs VENCIDAS',
     status: 'EXPIRED',
-    value: '3',
+    value: '6',
     valueColor: 'var(--bocar-error)',
+  },
+  {
+    key: 'benchmark_ready',
+    label: 'RFQs HISTÓRICAS',
+    status: 'BENCHMARK_READY',
+    value: '10',
+    valueColor: 'var(--bocar-blue-50)',
+  },
+];
+
+export const superuserPurchasingMetrics: PurchasingDashboardMetric[] = [
+  {
+    key: 'pending',
+    label: 'RFQs POR ASIGNAR',
+    status: 'PENDING',
+    value: '2',
+    valueColor: 'var(--bocar-blue-100)',
+  },
+  {
+    key: 'quoting',
+    label: 'RFQs EN COTIZACIÓN',
+    status: 'QUOTING',
+    value: '3',
+    valueColor: 'var(--bocar-done)',
+  },
+  {
+    key: 'eliminated',
+    label: 'RFQs ELIMINADAS',
+    status: 'CANCELLED',
+    value: '3',
+    valueColor: 'var(--bocar-blue-50)',
+  },
+  {
+    key: 'expired',
+    label: 'RFQs VENCIDAS',
+    status: 'EXPIRED',
+    value: '6',
+    valueColor: 'var(--bocar-error)',
+  },
+  {
+    key: 'benchmark_ready',
+    label: 'RFQs HISTÓRICAS',
+    status: 'BENCHMARK_READY',
+    value: '10',
+    valueColor: 'var(--bocar-blue-50)',
   },
 ];
 
@@ -63,11 +108,14 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Cubierta sensor caja EV',
     supplierSuggestion: 'PLASTIMEX',
     region: 'Norteamerica',
+    machineType: 'Mold',
     deadline: '29/04/2026',
     hoursToDeadline: 18,
     priority: 'Alta',
     owner: 'Karen Salgado',
-    status: 'PENDING',
+    status: 'QUOTING',
+    createdAt: '20/06/2024',
+    supplierProgress: null,
   },
   {
     id: 'RFQ-1018',
@@ -75,11 +123,14 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Soporte carcasa inverter',
     supplierSuggestion: 'FUNDIMEX',
     region: 'Europa',
+    machineType: 'Trimming',
     deadline: '30/04/2026',
     hoursToDeadline: 34,
     priority: 'Alta',
     owner: 'Daniel Nunez',
-    status: 'PENDING',
+    status: 'QUOTING',
+    createdAt: '20/06/2024',
+    supplierProgress: null,
   },
   {
     id: 'RFQ-1009',
@@ -87,11 +138,14 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Bracket refuerzo frontal',
     supplierSuggestion: 'STAMPFORGE',
     region: 'Norteamerica',
+    machineType: 'Mold',
     deadline: '02/05/2026',
-    hoursToDeadline: 76,
+    hoursToDeadline: 18,
     priority: 'Media',
     owner: 'Mariana Cruz',
-    status: 'PENDING',
+    status: 'EXPIRED',
+    createdAt: '19/06/2024',
+    supplierProgress: null,
   },
   {
     id: 'RFQ-1003',
@@ -99,11 +153,14 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Alojamiento ducto HVAC',
     supplierSuggestion: 'INYECTA BAJIO',
     region: 'Latam',
+    machineType: 'Mold',
     deadline: '05/05/2026',
-    hoursToDeadline: 132,
+    hoursToDeadline: 144,
     priority: 'Media',
     owner: 'Carlos Mena',
-    status: 'PENDING',
+    status: 'EXPIRED',
+    createdAt: '18/06/2024',
+    supplierProgress: null,
   },
   {
     id: 'RFQ-0996',
@@ -111,11 +168,14 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Base soporte pedal',
     supplierSuggestion: 'MECANIZADOS DEL NORTE',
     region: 'Asia',
+    machineType: 'Trimming',
     deadline: '08/05/2026',
     hoursToDeadline: 198,
     priority: 'Baja',
     owner: 'Sandra Fierro',
-    status: 'PENDING',
+    status: 'QUOTING',
+    createdAt: '17/06/2024',
+    supplierProgress: null,
   },
   {
     id: 'RFQ-0991',
@@ -123,41 +183,170 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
     project: 'Marco consola central',
     supplierSuggestion: 'RAMCO',
     region: 'Norteamerica',
+    machineType: 'Mold',
     deadline: '09/05/2026',
     hoursToDeadline: 226,
     priority: 'Baja',
     owner: 'Oscar Villegas',
-    status: 'PENDING',
+    status: 'EXPIRED',
+    createdAt: '16/06/2024',
+    supplierProgress: null,
+  },
+];
+
+export const historicalRows: PurchasingDashboardRow[] = [
+  {
+    id: 'RFQ-0979',
+    material: 'ABS FR',
+    project: 'Marco consola central',
+    supplierSuggestion: 'RAMCO',
+    region: 'Europa',
+    machineType: 'Inyeccion',
+    deadline: '06/03/2026',
+    hoursToDeadline: 9999,
+    priority: 'Baja',
+    owner: 'Oscar Villegas',
+    status: 'CLOSED',
+    createdAt: '10/01/2026',
+    supplierProgress: { quotedSuppliers: 4, totalSuppliers: 5, label: '4/5 cotizados' },
+  },
+  {
+    id: 'RFQ-0974',
+    material: 'Zamak 5',
+    project: 'Inserto fijo cerradura',
+    supplierSuggestion: 'FUNDICION GLOBAL',
+    region: 'Latam',
+    machineType: 'Fundicion',
+    deadline: '01/03/2026',
+    hoursToDeadline: 9999,
+    priority: 'Media',
+    owner: 'Daniel Nunez',
+    status: 'EXPIRED',
+    createdAt: '05/01/2026',
+    supplierProgress: { quotedSuppliers: 1, totalSuppliers: 4, label: '1/4 cotizados' },
+  },
+  {
+    id: 'RFQ-0968',
+    material: 'PA12',
+    project: 'Tapa ducto aire lateral',
+    supplierSuggestion: 'PLASTIMEX',
+    region: 'Norteamerica',
+    machineType: 'Inyeccion',
+    deadline: '20/02/2026',
+    hoursToDeadline: 9999,
+    priority: 'Baja',
+    owner: 'Karen Salgado',
+    status: 'CANCELLED',
+    createdAt: '03/12/2025',
+    supplierProgress: null,
+  },
+  {
+    id: 'RFQ-0955',
+    material: 'Acero galvanizado',
+    project: 'Bracket bateria HEV',
+    supplierSuggestion: 'STAMPFORGE',
+    region: 'Latam',
+    machineType: 'Estampado',
+    deadline: '10/02/2026',
+    hoursToDeadline: 9999,
+    priority: 'Alta',
+    owner: 'Mariana Cruz',
+    status: 'CLOSED',
+    createdAt: '15/11/2025',
+    supplierProgress: { quotedSuppliers: 3, totalSuppliers: 3, label: '3/3 cotizados' },
+  },
+  {
+    id: 'RFQ-0941',
+    material: 'Acero SAE 1018',
+    project: 'Soporte manguera turbo',
+    supplierSuggestion: 'MECANIZADOS DEL NORTE',
+    region: 'Asia',
+    machineType: 'Maquinado',
+    deadline: '28/01/2026',
+    hoursToDeadline: 9999,
+    priority: 'Media',
+    owner: 'Sandra Fierro',
+    status: 'CLOSED',
+    createdAt: '01/11/2025',
+    supplierProgress: { quotedSuppliers: 2, totalSuppliers: 2, label: '2/2 cotizados' },
+  },
+];
+
+export const eliminatedRows: PurchasingDashboardRow[] = [
+  {
+    id: 'RFQ-0968',
+    material: 'PA12',
+    project: 'Tapa ducto aire lateral',
+    supplierSuggestion: 'PLASTIMEX',
+    region: 'Norteamerica',
+    machineType: 'Mold',
+    deadline: '20/02/2026',
+    hoursToDeadline: 9999,
+    priority: 'Baja',
+    owner: 'Karen Salgado',
+    status: 'CANCELLED',
+    createdAt: '03/12/2025',
+    supplierProgress: null,
+  },
+  {
+    id: 'RFQ-0952',
+    material: 'ABS FR',
+    project: 'Cubierta modulo BCM',
+    supplierSuggestion: 'RAMCO',
+    region: 'Norteamerica',
+    machineType: 'Trimming',
+    deadline: '15/01/2026',
+    hoursToDeadline: 9999,
+    priority: 'Media',
+    owner: 'Daniel Nunez',
+    status: 'CANCELLED',
+    createdAt: '20/11/2025',
+    supplierProgress: null,
+  },
+  {
+    id: 'RFQ-0940',
+    material: 'PP Impact',
+    project: 'Panel puerta trasera',
+    supplierSuggestion: 'INYECTA BAJIO',
+    region: 'Latam',
+    machineType: 'Mold',
+    deadline: '05/01/2026',
+    hoursToDeadline: 9999,
+    priority: 'Baja',
+    owner: 'Sandra Fierro',
+    status: 'CANCELLED',
+    createdAt: '10/11/2025',
+    supplierProgress: null,
   },
 ];
 
 export const urgentDeadlines: PurchasingWidgetItem[] = [
   {
-    id: 'RFQ-1012',
-    title: 'RFQ-1012',
-    subtitle: 'Conector plastico motor HVAC',
-    meta: '2 de 5 cotizados · GM Silao',
+    id: 'urgent-rfq-004',
+    title: 'RFQ-004',
+    subtitle: '',
+    meta: '2 de 5 cotizados',
     href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 22,
-    actionLabel: 'Abrir lista',
+    hoursToDeadline: 18,
+    actionLabel: '',
   },
   {
-    id: 'RFQ-1005',
-    title: 'RFQ-1005',
-    subtitle: 'Carcasa soporte radar ADAS',
-    meta: '3 de 4 cotizados · Ford Hermosillo',
+    id: 'urgent-rfq-003a',
+    title: 'RFQ-003',
+    subtitle: '',
+    meta: '3 de 4 cotizados',
     href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 41,
-    actionLabel: 'Abrir lista',
+    hoursToDeadline: 34,
+    actionLabel: '',
   },
   {
-    id: 'RFQ-0988',
-    title: 'RFQ-0988',
-    subtitle: 'Troquel bracket lateral',
-    meta: '1 de 4 cotizados · Stellantis Toluca',
+    id: 'urgent-rfq-003b',
+    title: 'RFQ-003',
+    subtitle: '',
+    meta: '1 de 4 cotizados',
     href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 62,
-    actionLabel: 'Abrir lista',
+    hoursToDeadline: 144,
+    actionLabel: '',
   },
 ];
 
@@ -179,6 +368,41 @@ export const unlockRequests: PurchasingWidgetItem[] = [
     actionLabel: 'Atender',
   },
 ];
+
+export function getFilteredDashboardRows(
+  rows: PurchasingDashboardRow[],
+  {
+    searchValue = '',
+    tipoValue = '',
+    deadlineValue = '',
+  }: { searchValue?: string; tipoValue?: string; deadlineValue?: string },
+) {
+  const normalized = searchValue.trim().toLowerCase();
+
+  return rows.filter((row) => {
+    if (
+      normalized &&
+      ![row.id, row.material, row.project, row.owner, row.supplierSuggestion].some((field) =>
+        field.toLowerCase().includes(normalized),
+      )
+    ) {
+      return false;
+    }
+
+    if (tipoValue && row.machineType !== tipoValue) {
+      return false;
+    }
+
+    if (deadlineValue && row.hoursToDeadline < 9999) {
+      const range = getDeadlineRange(row.hoursToDeadline);
+      if (range !== deadlineValue) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
 
 function matchesSearch(row: PurchasingDashboardRow, searchValue: string) {
   const normalizedSearch = searchValue.trim().toLowerCase();

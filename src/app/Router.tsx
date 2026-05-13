@@ -4,6 +4,7 @@ import SuperUserDashboardPage from '@/pages/industrializacion/SuperUserDashboard
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import PurchasingBenchmarkPage from '@/pages/purchasing/BenchmarkPage';
+import PurchasingAdminDashboardPage from '@/pages/purchasing/AdminDashboardPage';
 import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
 import PurchasingRfqListPage from '@/pages/purchasing/RfqListPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
@@ -83,6 +84,11 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
     element: <SupplierSelectionPage />,
+  },
+  // Programada: dashboard del Superusuario de Compras.
+  {
+    path: ROUTES.PURCHASING.ADMIN_DASHBOARD,
+    element: <PurchasingAdminDashboardPage />,
   },
   // Programada: bandeja de desbloqueos para Compras admin.
   {

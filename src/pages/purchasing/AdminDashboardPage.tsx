@@ -14,13 +14,15 @@ import {
   purchasingDeadlineRangeOptions,
 } from '@/features/purchasing/constants';
 import {
+  eliminatedRows,
   getDashboardCardStatusClass,
   getFilteredDashboardRows,
   historicalRows,
-  purchasingMetrics,
+  purchasingAdminUser,
   purchasingMonthlySeries,
   purchasingQueueRows,
-  purchasingUser,
+  superuserPurchasingMetrics,
+  unlockRequests,
   urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
 import type { PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
@@ -30,7 +32,7 @@ import { ActionMenu } from '@/shared/components/ui/ActionMenu';
 
 const PAGE_SIZE = 6;
 
-type DashboardTab = 'pending' | 'historical';
+type AdminTab = 'pending' | 'eliminated' | 'historical';
 
 function ArrowRightIcon() {
   return (
@@ -59,6 +61,13 @@ function DashboardStatusBadge({ status }: { status: PurchasingRfqStatus }) {
     return (
       <span className="inline-flex items-center rounded-full border border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-error)]">
         Vencidas
+      </span>
+    );
+  }
+  if (status === 'CANCELLED') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
+        Eliminada
       </span>
     );
   }
@@ -145,62 +154,71 @@ function WidgetPanel({
       </div>
 
       <div className="mt-4 grid gap-3">
-        {items.map((item) => {
-          const deadlineTone =
-            typeof item.hoursToDeadline === 'number'
-              ? getDeadlineUrgencyTone(item.hoursToDeadline)
-              : 'neutral';
+        {items.length === 0 ? (
+          <p className="m-0 text-[13px] text-[var(--bocar-blue-50)]">Sin solicitudes pendientes.</p>
+        ) : (
+          items.map((item) => {
+            const deadlineTone =
+              typeof item.hoursToDeadline === 'number'
+                ? getDeadlineUrgencyTone(item.hoursToDeadline)
+                : 'neutral';
 
-          return (
-            <div
-              key={item.id}
-              className={[
-                'rounded-[12px] border px-4 py-4',
-                typeof item.hoursToDeadline === 'number'
-                  ? getDashboardCardStatusClass(item.hoursToDeadline)
-                  : 'border-[rgba(217,222,229,0.84)] bg-white',
-              ].join(' ')}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
-                  {item.title}
-                </p>
-                {typeof item.hoursToDeadline === 'number' ? (
-                  <span
-                    className={[
-                      'shrink-0 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold',
-                      deadlineTone === 'critical'
-                        ? 'border-[rgba(170,0,15,0.16)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]'
-                        : deadlineTone === 'warning'
-                          ? 'border-[rgba(255,242,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[var(--bocar-blue-100)]'
-                          : 'border-[rgba(217,222,229,0.9)] bg-[var(--bocar-bg)] text-[var(--bocar-blue-90)]',
-                    ].join(' ')}
-                  >
-                    {formatDeadlineLabel(item.hoursToDeadline)}
-                  </span>
+            return (
+              <div
+                key={item.id}
+                className={[
+                  'rounded-[12px] border px-4 py-4',
+                  typeof item.hoursToDeadline === 'number'
+                    ? getDashboardCardStatusClass(item.hoursToDeadline)
+                    : 'border-[rgba(217,222,229,0.84)] bg-white',
+                ].join(' ')}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
+                    {item.title}
+                  </p>
+                  {typeof item.hoursToDeadline === 'number' ? (
+                    <span
+                      className={[
+                        'shrink-0 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold',
+                        deadlineTone === 'critical'
+                          ? 'border-[rgba(170,0,15,0.16)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]'
+                          : deadlineTone === 'warning'
+                            ? 'border-[rgba(255,242,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[var(--bocar-blue-100)]'
+                            : 'border-[rgba(217,222,229,0.9)] bg-[var(--bocar-bg)] text-[var(--bocar-blue-90)]',
+                      ].join(' ')}
+                    >
+                      {formatDeadlineLabel(item.hoursToDeadline)}
+                    </span>
+                  ) : null}
+                </div>
+                {item.meta ? (
+                  <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{item.meta}</p>
                 ) : null}
               </div>
-              {item.meta ? (
-                <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{item.meta}</p>
-              ) : null}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </section>
   );
 }
 
-function DashboardPage() {
+function AdminDashboardPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('pending');
+  const [activeTab, setActiveTab] = useState<AdminTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
   const [tipoValue, setTipoValue] = useState('');
   const [deadlineValue, setDeadlineValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const sourceRows = activeTab === 'pending' ? purchasingQueueRows : historicalRows;
+  const sourceRows =
+    activeTab === 'pending'
+      ? purchasingQueueRows
+      : activeTab === 'eliminated'
+        ? eliminatedRows
+        : historicalRows;
 
   const filteredRows = useMemo(() => {
     const base = getFilteredDashboardRows(sourceRows, { searchValue, tipoValue, deadlineValue });
@@ -212,7 +230,7 @@ function DashboardPage() {
   const safePage = Math.min(currentPage, totalPages);
   const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  function handleTabChange(tab: DashboardTab) {
+  function handleTabChange(tab: AdminTab) {
     setActiveTab(tab);
     setActiveStatusFilter('');
     setCurrentPage(1);
@@ -221,22 +239,24 @@ function DashboardPage() {
     setDeadlineValue('');
   }
 
-  function handleMetricSelect(key: string) {
-    const metric = purchasingMetrics.find((m) => m.key === key);
-    if (!metric) return;
-    if (metric.status === 'QUOTING' || metric.status === 'EXPIRED') {
-      setActiveStatusFilter((prev) => (prev === metric.status ? '' : metric.status));
-      setCurrentPage(1);
-    } else {
-      navigate(`${ROUTES.PURCHASING.RFQ_LIST}?status=${metric.status}`);
-    }
-  }
-
   function handleFilterChange(setter: (v: string) => void) {
     return (value: string) => {
       setter(value);
       setCurrentPage(1);
     };
+  }
+
+  function handleMetricSelect(key: string) {
+    const metric = superuserPurchasingMetrics.find((m) => m.key === key);
+    if (!metric) return;
+    if (metric.status === 'QUOTING' || metric.status === 'EXPIRED') {
+      setActiveStatusFilter((prev) => (prev === metric.status ? '' : metric.status));
+      setCurrentPage(1);
+    } else if (metric.status === 'CANCELLED') {
+      handleTabChange('eliminated');
+    } else {
+      navigate(`${ROUTES.PURCHASING.RFQ_LIST}?status=${metric.status}`);
+    }
   }
 
   const machineTypeOptions = [
@@ -248,8 +268,22 @@ function DashboardPage() {
     value: opt.value,
   }));
 
+  const tabs: { key: AdminTab; label: string }[] = [
+    { key: 'pending', label: 'RFQs por asignar' },
+    { key: 'eliminated', label: 'RFQs Eliminadas' },
+    { key: 'historical', label: 'Históricas' },
+  ];
+
   return (
-    <MainLayout header={<Header areaLabel="Compras" user={purchasingUser} />}>
+    <MainLayout
+      header={
+        <Header
+          areaLabel="Comercialización . Superusuario"
+          variant="dark"
+          user={purchasingAdminUser}
+        />
+      }
+    >
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-10 lg:pt-8 xl:px-14">
 
         {/* Dashboard title */}
@@ -257,8 +291,8 @@ function DashboardPage() {
 
         {/* KPI cards + chart */}
         <section className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(400px,0.9fr)]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {purchasingMetrics.map((metric) => (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {superuserPurchasingMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
                 isActive={activeStatusFilter !== '' && metric.status === activeStatusFilter}
@@ -272,30 +306,21 @@ function DashboardPage() {
 
         {/* Tabs */}
         <div className="mt-8 flex justify-center border-b border-[var(--bocar-border)]">
-          <button
-            type="button"
-            onClick={() => handleTabChange('pending')}
-            className={[
-              'mr-6 px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'pending'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            RFQs por asignar
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTabChange('historical')}
-            className={[
-              'px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'historical'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            Históricas
-          </button>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => handleTabChange(tab.key)}
+              className={[
+                'px-4 pb-3 pt-1 text-[14px] transition focus:outline-none',
+                activeTab === tab.key
+                  ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
+                  : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Filter bar */}
@@ -506,7 +531,8 @@ function DashboardPage() {
           <WidgetPanel
             title="DESBLOQUEOS PENDIENTES"
             caption="Solicitudes de reapertura recibidas por proveedores."
-            items={[]}
+            actionHref={ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS}
+            items={unlockRequests}
           />
         </section>
 
@@ -515,4 +541,4 @@ function DashboardPage() {
   );
 }
 
-export default DashboardPage;
+export default AdminDashboardPage;
