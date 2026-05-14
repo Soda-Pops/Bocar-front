@@ -11,12 +11,16 @@ export type DashboardMetric = {
   valueColor: string;
 };
 
+export type RfqTipo = 'Trimming' | 'Mold';
+
 export type DashboardRow = {
   id: string;
   material: string;
   createdBy: string;
   date: string;
   supplier: string;
+  tipo?: RfqTipo;
+  status?: string;
 };
 
 export type DashboardTab = {

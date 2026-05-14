@@ -14,6 +14,8 @@ import { z } from 'zod';
 
 import logoBocar from '@/assets/images/Logo-Bocar.png';
 import { dashboardUser } from '@/features/analytics/services/analyticsService';
+import type { RfqTipo } from '@/features/analytics/types';
+import { RfqTypeBadge } from '@/features/rfq/components/RfqForm/RfqTypeBadge';
 import { Button } from '@/shared/components/ui/Button';
 
 type RfqWorkspaceMode = 'create' | 'edit';
@@ -23,6 +25,7 @@ type RfqWorkspaceProps = {
   mode: RfqWorkspaceMode;
   onBack: () => void;
   rfqId?: string;
+  tipo: RfqTipo;
 };
 
 const TOGGLE_REQUIRED_CONSIDERATIONS = new Set([
@@ -85,6 +88,7 @@ const workspaceSchema = z
     sk_part: z.string(),
     surface: z.string(),
     three_plate: z.string(),
+    tipo: z.enum(['Trimming', 'Mold']),
     tt: z.string(),
     volume: z.string(),
     wall_max: z.string(),
@@ -339,51 +343,8 @@ const CONSIDERATION_GROUPS: readonly ConsiderationGroup[] = [
 ];
 
 
-function getStorageBaseKey(mode: RfqWorkspaceMode, rfqId?: string) {
-  return mode === 'edit' ? `bocar-rfq-workspace-${(rfqId ?? 'RFQ-021').toLowerCase()}` : 'bocar-rfq-workspace-create';
-}
 
-function readStorageValue<T>(key: string, fallback: T) {
-  if (typeof window === 'undefined') {
-    return fallback;
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(key);
-
-    if (!rawValue) {
-      return fallback;
-    }
-
-    return JSON.parse(rawValue) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStorageValue(key: string, value: unknown) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // No bloquear el flujo si el navegador restringe almacenamiento local.
-  }
-}
-
-function readStoredPage(storageBaseKey: string) {
-  const storedPage = readStorageValue<string | null>(`${storageBaseKey}-page`, null);
-
-  if (storedPage && PAGES.includes(storedPage as PageKey)) {
-    return storedPage as PageKey;
-  }
-
-  return 'basic' as const;
-}
-
-function getCreateDefaultValues(): WorkspaceFormValues {
+function getCreateDefaultValues(tipo: RfqTipo): WorkspaceFormValues {
   return {
     alloy: '',
     buhler: '',
@@ -410,6 +371,7 @@ function getCreateDefaultValues(): WorkspaceFormValues {
     sk_part: '',
     surface: '',
     three_plate: '',
+    tipo,
     tt: '',
     volume: '',
     wall_max: '',
@@ -418,7 +380,7 @@ function getCreateDefaultValues(): WorkspaceFormValues {
   };
 }
 
-function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
+function getEditDefaultValues(tipo: RfqTipo, rfqId?: string): WorkspaceFormValues {
   return {
     alloy: 'AlSi10MnMg',
     buhler: '3400',
@@ -452,6 +414,7 @@ function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
     sk_part: 'Inserto lateral H13 (Set de seguridad) - 2 pzas.\nCavidad principal de reemplazo (H13 forjado) - 1 pza.',
     surface: '522',
     three_plate: '0',
+    tipo,
     tt: 'PRODUCTION',
     volume: '418',
     wall_max: '4.2',
@@ -460,28 +423,10 @@ function getEditDefaultValues(rfqId?: string): WorkspaceFormValues {
   };
 }
 
-function getDefaultValues(mode: RfqWorkspaceMode, rfqId?: string) {
-  return mode === 'edit' ? getEditDefaultValues(rfqId) : getCreateDefaultValues();
+function getDefaultValues(mode: RfqWorkspaceMode, tipo: RfqTipo, rfqId?: string) {
+  return mode === 'edit' ? getEditDefaultValues(tipo, rfqId) : getCreateDefaultValues(tipo);
 }
 
-function mergeFormValues(baseValues: WorkspaceFormValues, storedValues: Partial<WorkspaceFormValues>) {
-  return {
-    ...baseValues,
-    ...storedValues,
-    considerations: {
-      ...baseValues.considerations,
-      ...(storedValues.considerations ?? {}),
-    },
-  };
-}
-
-function loadInitialValues(mode: RfqWorkspaceMode, rfqId?: string) {
-  const storageBaseKey = getStorageBaseKey(mode, rfqId);
-  const baseValues = getDefaultValues(mode, rfqId);
-  const storedValues = readStorageValue<Partial<WorkspaceFormValues>>(`${storageBaseKey}-draft`, {});
-
-  return mergeFormValues(baseValues, storedValues);
-}
 
 function getInitialFeedback(mode: RfqWorkspaceMode, rfqId?: string) {
   if (mode === 'edit') {
@@ -1035,14 +980,13 @@ function renderPage(page: PageKey) {
 
 // ─── Root component ───────────────────────────────────────────────────────────
 
-export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
-  const storageBaseKey = getStorageBaseKey(mode, rfqId);
-  const [currentPage, setCurrentPage] = useState<PageKey>(() => readStoredPage(storageBaseKey));
+export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
+  const [currentPage, setCurrentPage] = useState<PageKey>('basic');
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() => getInitialFeedback(mode, rfqId));
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const form = useForm<WorkspaceFormValues>({
-    defaultValues: loadInitialValues(mode, rfqId),
+    defaultValues: getDefaultValues(mode, tipo, rfqId),
     mode: 'onBlur',
     reValidateMode: 'onChange',
     resolver: zodResolver(workspaceSchema),
@@ -1060,20 +1004,11 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   const values = useWatch({ control });
 
   useEffect(() => {
-    const nextValues = loadInitialValues(mode, rfqId);
-    reset(nextValues);
-    setCurrentPage(readStoredPage(getStorageBaseKey(mode, rfqId)));
+    reset(getDefaultValues(mode, tipo, rfqId));
+    setCurrentPage('basic');
     setFeedback(getInitialFeedback(mode, rfqId));
     setAttemptedSubmit(false);
-  }, [mode, reset, rfqId]);
-
-  useEffect(() => {
-    writeStorageValue(`${storageBaseKey}-draft`, values);
-  }, [storageBaseKey, values]);
-
-  useEffect(() => {
-    writeStorageValue(`${storageBaseKey}-page`, currentPage);
-  }, [currentPage, storageBaseKey]);
+  }, [mode, reset, rfqId, tipo]);
 
   const currentIndex = PAGES.indexOf(currentPage);
   const completed = useMemo(() => getCompletedMap(values as WorkspaceFormValues), [values]);
@@ -1121,19 +1056,17 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
   }
 
   function handleSaveDraft() {
-    writeStorageValue(`${storageBaseKey}-draft`, values);
     setFeedback({
       text:
         mode === 'edit'
           ? `${(rfqId ?? 'RFQ-021').toUpperCase()} quedo guardada como borrador editable.`
-          : 'Borrador guardado. Puedes retomar el workspace exactamente donde lo dejaste.',
+          : 'Borrador guardado.',
       tone: 'success',
     });
   }
 
   async function handleValidSubmit() {
     setAttemptedSubmit(true);
-    writeStorageValue(`${storageBaseKey}-draft`, values);
     setFeedback({
       text:
         mode === 'edit'
@@ -1169,10 +1102,13 @@ export function RfqWorkspace({ mode, onBack, rfqId }: RfqWorkspaceProps) {
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
         <header className="flex h-[72px] items-center justify-between border-b border-[#d9dee5] bg-white px-6 lg:px-10">
-          <div className="flex items-center gap-4 lg:gap-5">
+          <div className="flex items-center gap-3 lg:gap-5">
             <img alt="Bocar" className="h-9 w-auto lg:h-10" src={logoBocar} />
             <span aria-hidden="true" className="hidden h-8 w-px bg-[#d9dee5] lg:block" />
-            <span className="text-[15px] font-medium text-[var(--bocar-text)]">Industrializacion</span>
+            <span className="hidden text-[15px] font-medium text-[var(--bocar-text)] sm:inline">
+              Industrializacion
+            </span>
+            <RfqTypeBadge tipo={tipo} />
           </div>
 
           <div className="flex items-center gap-3">

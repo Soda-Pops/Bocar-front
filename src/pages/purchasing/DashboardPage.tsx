@@ -198,15 +198,24 @@ function DashboardPage() {
   const [searchValue, setSearchValue] = useState('');
   const [tipoValue, setTipoValue] = useState('');
   const [deadlineValue, setDeadlineValue] = useState('');
+  const [sortValue, setSortValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const sourceRows = activeTab === 'pending' ? purchasingQueueRows : historicalRows;
 
   const filteredRows = useMemo(() => {
-    const base = getFilteredDashboardRows(sourceRows, { searchValue, tipoValue, deadlineValue });
-    if (!activeStatusFilter) return base;
-    return base.filter((row) => row.status === activeStatusFilter);
-  }, [sourceRows, searchValue, tipoValue, deadlineValue, activeStatusFilter]);
+    let base = getFilteredDashboardRows(sourceRows, { searchValue, tipoValue, deadlineValue });
+    if (activeStatusFilter) {
+      base = base.filter((row) => row.status === activeStatusFilter);
+    }
+    if (sortValue === 'Deadline') {
+      return [...base].sort((a, b) => a.hoursToDeadline - b.hoursToDeadline);
+    }
+    if (sortValue === 'Creador') {
+      return [...base].sort((a, b) => a.owner.localeCompare(b.owner));
+    }
+    return base;
+  }, [sourceRows, searchValue, tipoValue, deadlineValue, activeStatusFilter, sortValue]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -219,6 +228,7 @@ function DashboardPage() {
     setSearchValue('');
     setTipoValue('');
     setDeadlineValue('');
+    setSortValue('');
   }
 
   function handleMetricSelect(key: string) {
@@ -316,6 +326,16 @@ function DashboardPage() {
               options={deadlineOptions}
               value={deadlineValue}
               onChange={handleFilterChange(setDeadlineValue)}
+            />
+            <FilterSelect
+              label="Ordenar por"
+              options={[
+                { label: 'Más reciente', value: 'Mas reciente' },
+                { label: 'Deadline', value: 'Deadline' },
+                { label: 'Creador', value: 'Creador' },
+              ]}
+              value={sortValue}
+              onChange={handleFilterChange(setSortValue)}
             />
             <button
               type="button"

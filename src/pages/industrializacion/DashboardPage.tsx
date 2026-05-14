@@ -11,6 +11,7 @@ import {
   dashboardRowsByTab,
   dashboardTabs,
   dashboardUser,
+  getDateOptions,
   getFilteredDashboardRows,
   monthlyRfqSeries,
 } from '@/features/analytics/services/analyticsService';
@@ -19,6 +20,8 @@ import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqB
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ROUTES } from '@/app/config/routes';
+
+const RFQ_TIPO_OPTIONS = ['Trimming', 'Mold'] as const;
 
 const PAGE_SIZE = 4;
 
@@ -60,14 +63,15 @@ function DashboardPage() {
     'borradores',
   );
   const [searchValue, setSearchValue] = useState('');
-  const [supplierValue, setSupplierValue] = useState('');
   const [sortValue, setSortValue] = useState<SortOption>('');
+  const [tipoValue, setTipoValue] = useState('');
+  const [dateValue, setDateValue] = useState('');
 
   const rows = dashboardRowsByTab[activeTab];
-  const supplierOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.supplier))), [rows]);
+  const dateOptions = useMemo(() => getDateOptions(rows), [rows]);
   const filteredRows = useMemo(
-    () => getFilteredDashboardRows(rows, searchValue, supplierValue, sortValue),
-    [rows, searchValue, supplierValue, sortValue],
+    () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
+    [rows, searchValue, sortValue, tipoValue, dateValue],
   );
   const visibleRows = filteredRows.slice(0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -125,28 +129,30 @@ function DashboardPage() {
           </nav>
         </section>
 
-        <section className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid gap-4 lg:flex lg:flex-1 lg:items-center lg:gap-5">
-            <SearchField value={searchValue} onChange={setSearchValue} />
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:min-w-0 lg:flex-1">
-              <FilterSelect
-                label="Proveedores"
-                options={supplierOptions}
-                value={supplierValue}
-                onChange={setSupplierValue}
-              />
-              <FilterSelect
-                label="Ordenar por"
-                options={['Mas reciente', 'Material', 'Creador']}
-                value={getSortLabel(sortValue)}
-                onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
-              />
-            </div>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <SearchField value={searchValue} onChange={setSearchValue} />
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <FilterSelect
+              label="Tipo"
+              options={[...RFQ_TIPO_OPTIONS]}
+              value={tipoValue}
+              onChange={setTipoValue}
+            />
+            <FilterSelect
+              label="Fecha"
+              options={dateOptions}
+              value={dateValue}
+              onChange={setDateValue}
+            />
+            <FilterSelect
+              label="Ordenar por"
+              options={['Mas reciente', 'Material', 'Creador']}
+              value={getSortLabel(sortValue)}
+              onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
+            />
           </div>
-
           <CreateRfqButton />
-        </section>
+        </div>
 
         <section className="mt-6 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
           <div className="grid gap-3 p-4 sm:hidden">
@@ -159,7 +165,7 @@ function DashboardPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
-                      <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.material}</p>
+                      <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
                     </div>
                     <button
                       type="button"
@@ -173,9 +179,9 @@ function DashboardPage() {
                   <dl className="mt-4 grid gap-3 text-[13px]">
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Creado por
+                        Status
                       </dt>
-                      <dd className="m-0">{row.createdBy}</dd>
+                      <dd className="m-0">{row.status ?? '—'}</dd>
                     </div>
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
@@ -183,6 +189,14 @@ function DashboardPage() {
                       </dt>
                       <dd className="m-0">{row.date}</dd>
                     </div>
+                    {activeTab !== 'borradores' && (
+                      <div className="grid gap-1">
+                        <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
+                          Creado por
+                        </dt>
+                        <dd className="m-0">{row.createdBy}</dd>
+                      </div>
+                    )}
                   </dl>
                 </article>
               ))
@@ -197,7 +211,10 @@ function DashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {['ID', 'MATERIAL', 'CREADO POR', 'FECHA', 'ACCION'].map((header) => (
+                  {(activeTab === 'borradores'
+                    ? ['ID', 'TIPO', 'STATUS', 'FECHA', 'ACCION']
+                    : ['ID', 'TIPO', 'STATUS', 'FECHA', 'CREADO POR', 'ACCION']
+                  ).map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-4 text-left text-[13px] font-medium text-[var(--bocar-text)] lg:px-4 lg:py-4"
@@ -215,14 +232,19 @@ function DashboardPage() {
                         {row.id}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.material}
+                        {row.tipo ?? '—'}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.createdBy}
+                        {row.status ?? '—'}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.date}
                       </td>
+                      {activeTab !== 'borradores' && (
+                        <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                          {row.createdBy}
+                        </td>
+                      )}
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
                         <button
                           type="button"
@@ -237,7 +259,7 @@ function DashboardPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={activeTab === 'borradores' ? 5 : 6}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
                       No hay RFQs que coincidan con los filtros actuales.
