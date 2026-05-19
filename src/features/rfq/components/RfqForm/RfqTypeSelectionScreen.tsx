@@ -14,21 +14,18 @@ type TypeOption = {
   tipo: RfqTipo;
   title: string;
   description: string;
-  icon: 'trimming' | 'mold';
 };
 
 const TYPE_OPTIONS: readonly TypeOption[] = [
   {
     tipo: 'Trimming',
     title: 'Trimming',
-    description: 'RFQ para componentes de trimming / recorte.',
-    icon: 'trimming',
+    description: 'RFQ (Request for Quotation) para trimming.',
   },
   {
     tipo: 'Mold',
     title: 'Mold',
-    description: 'RFQ para molde y herramental de inyección.',
-    icon: 'mold',
+    description: 'RFQ (Request for Quotation) para moldes.',
   },
 ];
 
@@ -37,33 +34,6 @@ function BackArrowIcon() {
     <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 16 16">
       <path d="M10.5 3.5L6 8L10.5 12.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
       <path d="M6.5 8H13.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function TrimmingIcon() {
-  return (
-    <svg aria-hidden="true" className="h-9 w-9" fill="none" viewBox="0 0 36 36">
-      <circle cx="10" cy="10" r="4.5" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="10" cy="26" r="4.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M13.5 13L30 23" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-      <path d="M13.5 23L30 13" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function MoldIcon() {
-  return (
-    <svg aria-hidden="true" className="h-9 w-9" fill="none" viewBox="0 0 36 36">
-      <path
-        d="M18 4L31 11V25L18 32L5 25V11L18 4Z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path d="M18 4V32" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M5 11L31 25" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M31 11L5 25" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -96,7 +66,7 @@ function TypeCard({
     <button
       aria-pressed={isSelected}
       className={[
-        'group relative flex flex-col items-start gap-5 rounded-2xl border bg-white p-6 text-left shadow-[0_8px_24px_rgba(0,46,93,0.06)] transition sm:p-7',
+        'group relative flex min-h-[240px] flex-col justify-between rounded-2xl border bg-white p-8 text-left shadow-[0_8px_24px_rgba(0,46,93,0.06)] transition sm:min-h-[280px] sm:p-10',
         isSelected
           ? 'border-[var(--bocar-blue-100)] ring-2 ring-[rgba(0,46,93,0.18)]'
           : 'border-[#d9dee5] hover:border-[var(--bocar-blue-70)] hover:shadow-[0_12px_28px_rgba(0,46,93,0.1)]',
@@ -104,28 +74,18 @@ function TypeCard({
       type="button"
       onClick={onClick}
     >
-      <span
-        className={[
-          'flex h-14 w-14 items-center justify-center rounded-2xl transition',
-          isSelected
-            ? 'bg-[var(--bocar-blue-100)] text-white'
-            : 'bg-[rgba(0,46,93,0.06)] text-[var(--bocar-blue-100)] group-hover:bg-[rgba(0,46,93,0.12)]',
-        ].join(' ')}
-      >
-        {option.icon === 'trimming' ? <TrimmingIcon /> : <MoldIcon />}
-      </span>
+      <div className="flex flex-col gap-4 pr-8">
 
-      <div className="flex flex-col gap-2">
-        <h3 className="m-0 text-[20px] font-semibold tracking-[-0.01em] text-[var(--bocar-text)]">
+        <h3 className="m-0 text-[30px] font-semibold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[34px]">
           {option.title}
         </h3>
-        <p className="m-0 text-[13px] leading-[1.55] text-[var(--bocar-blue-50)]">
+        <p className="m-0 max-w-[360px] text-[15px] leading-[1.65] text-[var(--bocar-blue-70)]">
           {option.description}
         </p>
       </div>
 
       {isSelected ? (
-        <span className="absolute right-5 top-5 text-[var(--bocar-blue-100)]">
+        <span className="absolute right-6 top-6 text-[var(--bocar-blue-100)]">
           <CheckCircleIcon />
         </span>
       ) : null}
@@ -148,7 +108,11 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
         <div className="flex items-center gap-4 lg:gap-5">
           <img alt="Bocar" className="h-9 w-auto lg:h-10" src={logoBocar} />
           <span aria-hidden="true" className="hidden h-8 w-px bg-[#d9dee5] lg:block" />
-          <span className="text-[15px] font-medium text-[var(--bocar-text)]">Industrializacion</span>
+          <nav aria-label="breadcrumb" className="flex items-center gap-2 text-[15px]">
+            <span className="font-medium text-[var(--bocar-blue-90)]">Industrializacion</span>
+            <span aria-hidden="true" className="text-[var(--bocar-blue-30)]">›</span>
+            <span className="font-bold text-[var(--bocar-blue-100)]">Crear RFQ</span>
+          </nav>
         </div>
 
         <div className="flex items-center gap-3">
@@ -167,17 +131,17 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
       </header>
 
       <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-12 lg:py-14">
-        <div className="mx-auto w-full max-w-[880px]">
+        <div className="mx-auto w-full max-w-[1180px]">
           <div className="flex flex-col gap-2">
             <h1 className="m-0 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[32px]">
               Selecciona el tipo de RFQ
             </h1>
-            <p className="m-0 mt-1 text-[14px] leading-[1.6] text-[var(--bocar-blue-50)]">
-              Paso 1 de 2: Selecciona el tipo de RFQ que deseas crear.
+            <p className="m-0 text-[14px] leading-[1.6] text-[var(--bocar-blue-50)]">
+              Paso 1 de 2
             </p>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-2">
+          <div className="mt-8 grid gap-5 sm:gap-6 md:grid-cols-2">
             {TYPE_OPTIONS.map((option) => (
               <TypeCard
                 key={option.tipo}
@@ -187,28 +151,30 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
               />
             ))}
           </div>
-
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              className="inline-flex items-center gap-2 self-start py-2 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)]"
-              type="button"
-              onClick={onBack}
-            >
-              <BackArrowIcon />
-              Regresar
-            </button>
-
-            <Button
-              className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-6 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!selectedTipo}
-              type="button"
-              onClick={handleContinue}
-            >
-              Continuar →
-            </Button>
-          </div>
         </div>
       </main>
+
+      <footer className="bg-[#f5f7fa] px-6 py-4 lg:px-12">
+        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            className="inline-flex items-center gap-2 self-start py-2 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)]"
+            type="button"
+            onClick={onBack}
+          >
+            <BackArrowIcon />
+            Regresar
+          </button>
+
+          <Button
+            className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-6 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!selectedTipo}
+            type="button"
+            onClick={handleContinue}
+          >
+            Continuar →
+          </Button>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FormProvider,
   type FieldErrors,
@@ -15,7 +15,6 @@ import { z } from 'zod';
 import logoBocar from '@/assets/images/Logo-Bocar.png';
 import { dashboardUser } from '@/features/analytics/services/analyticsService';
 import type { RfqTipo } from '@/features/analytics/types';
-import { RfqTypeBadge } from '@/features/rfq/components/RfqForm/RfqTypeBadge';
 import { Button } from '@/shared/components/ui/Button';
 
 type RfqWorkspaceMode = 'create' | 'edit';
@@ -984,6 +983,7 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
   const [currentPage, setCurrentPage] = useState<PageKey>('basic');
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() => getInitialFeedback(mode, rfqId));
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const currentPageRef = useRef<PageKey>('basic');
 
   const form = useForm<WorkspaceFormValues>({
     defaultValues: getDefaultValues(mode, tipo, rfqId),
@@ -1010,6 +1010,8 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
     setAttemptedSubmit(false);
   }, [mode, reset, rfqId, tipo]);
 
+  currentPageRef.current = currentPage;
+
   const currentIndex = PAGES.indexOf(currentPage);
   const completed = useMemo(() => getCompletedMap(values as WorkspaceFormValues), [values]);
   const pageErrors = useMemo(() => getPageErrorMap(errors), [errors]);
@@ -1026,7 +1028,10 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
     const requiredFields = REQUIRED_FIELDS_BY_PAGE[currentPage] ?? [];
 
     if (requiredFields.length > 0) {
+      const pageAtCallTime = currentPage;
       const isCurrentPageValid = await trigger(requiredFields, { shouldFocus: true });
+
+      if (currentPageRef.current !== pageAtCallTime) return;
 
       if (!isCurrentPageValid) {
         setAttemptedSubmit(true);
@@ -1105,10 +1110,15 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
           <div className="flex items-center gap-3 lg:gap-5">
             <img alt="Bocar" className="h-9 w-auto lg:h-10" src={logoBocar} />
             <span aria-hidden="true" className="hidden h-8 w-px bg-[#d9dee5] lg:block" />
-            <span className="hidden text-[15px] font-medium text-[var(--bocar-text)] sm:inline">
-              Industrializacion
-            </span>
-            <RfqTypeBadge tipo={tipo} />
+            <nav aria-label="breadcrumb" className="hidden items-center gap-2 text-[15px] sm:flex">
+              <span className="font-medium text-[var(--bocar-blue-90)]">Industrializacion</span>
+              <span aria-hidden="true" className="text-[var(--bocar-blue-30)]">›</span>
+              <span className="font-medium text-[var(--bocar-blue-90)]">Crear RFQ</span>
+              <span aria-hidden="true" className="text-[var(--bocar-blue-30)]">›</span>
+              <span className="font-bold uppercase tracking-[0.04em] text-[var(--bocar-blue-100)]">
+                {tipo}
+              </span>
+            </nav>
           </div>
 
           <div className="flex items-center gap-3">
