@@ -18,7 +18,6 @@ import {
   getDashboardCardStatusClass,
   getFilteredDashboardRows,
   historicalRows,
-  purchasingAdminUser,
   purchasingMonthlySeries,
   purchasingQueueRows,
   superuserPurchasingMetrics,
@@ -280,7 +279,6 @@ function AdminDashboardPage() {
         <Header
           areaLabel="Comercialización . Superusuario"
           variant="dark"
-          user={purchasingAdminUser}
         />
       }
     >

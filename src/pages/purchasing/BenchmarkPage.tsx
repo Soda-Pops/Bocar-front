@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/config/routes';
 import { PurchasingStatusBadge } from '@/features/purchasing/components/PurchasingStatusBadge';
 import { purchasingRfqRows } from '@/features/purchasing/services/purchasingRfqService';
-import { purchasingUser } from '@/features/purchasing/services/purchasingDashboardService';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 
@@ -32,7 +31,7 @@ function BenchmarkPage() {
   );
 
   return (
-    <MainLayout header={<Header areaLabel="Compras" user={purchasingUser} />}>
+    <MainLayout header={<Header areaLabel="Compras" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 xl:px-14">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

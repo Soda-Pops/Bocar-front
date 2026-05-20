@@ -1,10 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
-import {
-  purchasingUser,
-  unlockRequests,
-} from '@/features/purchasing/services/purchasingDashboardService';
+import { unlockRequests } from '@/features/purchasing/services/purchasingDashboardService';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 
@@ -27,7 +24,7 @@ function UnlockRequestsPage() {
   const navigate = useNavigate();
 
   return (
-    <MainLayout header={<Header areaLabel="Compras Admin" user={purchasingUser} />}>
+    <MainLayout header={<Header areaLabel="Compras Admin" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 xl:px-14">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

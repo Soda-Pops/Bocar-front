@@ -1,7 +1,22 @@
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+import { z } from 'zod';
+
+const envSchema = z.object({
+  VITE_API_BASE_URL: z
+    .string()
+    .url('VITE_API_BASE_URL debe ser una URL valida (ej: http://localhost:8000)'),
+});
+
+const parsed = envSchema.safeParse(import.meta.env);
+
+if (!parsed.success) {
+  const issues = parsed.error.issues.map((issue) => `- ${issue.path.join('.')}: ${issue.message}`).join('\n');
+  throw new Error(`Variables de entorno invalidas:\n${issues}\n\nRevisa tu archivo .env.local.`);
+}
+
+const apiBaseUrl = parsed.data.VITE_API_BASE_URL.replace(/\/+$/, '');
+
 export const env = {
   appName: 'Sistema de Cotizaciones BOCAR',
   mode: import.meta.env.MODE,
+  apiBaseUrl,
 } as const;
-// This file centralizes environment variables and configuration constants for the application.
-// Evita tener que acceder directamente a import.meta.env en múltiples lugares del código, lo que facilita la gestión y el mantenimiento de las variables de entorno.

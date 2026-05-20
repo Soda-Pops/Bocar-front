@@ -56,7 +56,7 @@ export const ROUTES = {
     ADMIN_UNLOCK_REQUESTS: '/compras/admin/desbloqueos',
   },
   SUPPLIER: {
-    // Falta por programar: dashboard/inbox del proveedor.
+    // Programada: placeholder de bienvenida para el area de proveedor.
     DASHBOARD: '/proveedor/dashboard',
     // Falta por programar: listado de RFQs asignadas al proveedor.
     RFQ_LIST: '/proveedor/rfq',

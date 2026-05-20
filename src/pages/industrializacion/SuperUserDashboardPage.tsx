@@ -7,7 +7,6 @@ import { SearchField } from '@/features/analytics/components/Filters/SearchField
 import { MonthlyRfqChart } from '@/features/analytics/components/Charts/MonthlyRfqChart';
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import {
-  dashboardUser,
   getFilteredDashboardRows,
   monthlyRfqSeries,
   superuserMetrics,
@@ -59,7 +58,7 @@ function SuperUserDashboardPage() {
 
   return (
     <MainLayout
-      header={<Header areaLabel="Industrialización . Superusuario" variant="dark" user={dashboardUser} />}
+      header={<Header areaLabel="Industrialización . Superusuario" variant="dark" />}
     >
       <div
         className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-8 lg:pt-8 xl:px-14"

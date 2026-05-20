@@ -10,7 +10,6 @@ import {
   dashboardMetrics,
   dashboardRowsByTab,
   dashboardTabs,
-  dashboardUser,
   getDateOptions,
   getFilteredDashboardRows,
   monthlyRfqSeries,
@@ -82,7 +81,7 @@ function DashboardPage() {
 
   return (
     <MainLayout
-      header={<Header areaLabel="Industrializacion" user={dashboardUser} />}
+      header={<Header areaLabel="Industrializacion" />}
     >
       <div
         className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-8 lg:pt-8 xl:px-14"

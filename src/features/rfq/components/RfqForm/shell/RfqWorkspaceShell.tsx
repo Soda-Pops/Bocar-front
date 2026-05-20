@@ -8,9 +8,8 @@ import {
   useWatch,
 } from 'react-hook-form';
 
-import logoBocar from '@/assets/images/Logo-Bocar.png';
-import { dashboardUser } from '@/features/analytics/services/analyticsService';
 import type { RfqTipo } from '@/features/analytics/types';
+import { Header } from '@/layouts/components/Header';
 import { Button } from '@/shared/components/ui/Button';
 
 import { BackArrowIcon, ChevronDownIcon, getFeedbackClasses } from './primitives';
@@ -268,35 +267,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   return (
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-        <header className="flex h-[72px] items-center justify-between border-b border-[#d9dee5] bg-white px-6 lg:px-10">
-          <div className="flex items-center gap-3 lg:gap-5">
-            <img alt="Bocar" className="h-9 w-auto lg:h-10" src={logoBocar} />
-            <span aria-hidden="true" className="hidden h-8 w-px bg-[#d9dee5] lg:block" />
-            <nav aria-label="breadcrumb" className="hidden items-center gap-2 text-[15px] sm:flex">
-              <span className="font-medium text-[var(--bocar-blue-90)]">Industrializacion</span>
-              <span aria-hidden="true" className="text-[var(--bocar-blue-30)]">›</span>
-              <span className="font-medium text-[var(--bocar-blue-90)]">Crear RFQ</span>
-              <span aria-hidden="true" className="text-[var(--bocar-blue-30)]">›</span>
-              <span className="font-bold uppercase tracking-[0.04em] text-[var(--bocar-blue-100)]">
-                {tipo}
-              </span>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bocar-blue-100)] text-[14px] font-semibold text-white">
-              {dashboardUser.initials}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="m-0 truncate text-[14px] font-semibold text-[var(--bocar-text)]">
-                {dashboardUser.name}
-              </p>
-              <p className="mt-0.5 truncate text-[12px] text-[var(--bocar-blue-70)]">
-                {dashboardUser.department}
-              </p>
-            </div>
-          </div>
-        </header>
+        <Header areaLabel={`Industrializacion · ${headerTitle} · ${tipo}`} />
 
         <div className="flex min-h-0 flex-1">
           <WorkspaceSidebar

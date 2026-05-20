@@ -1,8 +1,17 @@
+import type { ReactNode } from 'react';
+import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
+
 import { ROUTES } from '@/app/config/routes';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { resolveHomeRouteForRole } from '@/features/auth/services/roleRouting';
+import type { AppRole } from '@/features/auth/types';
+import UnauthorizedPage from '@/pages/auth/UnauthorizedPage';
+import LoginPage from '@/pages/auth/LoginPage';
 import DashboardPage from '@/pages/industrializacion/DashboardPage';
 import SuperUserDashboardPage from '@/pages/industrializacion/SuperUserDashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
-import LoginPage from '@/pages/auth/LoginPage';
+import SupplierDashboardPage from '@/pages/proveedor/DashboardPage';
 import PurchasingBenchmarkPage from '@/pages/purchasing/BenchmarkPage';
 import PurchasingAdminDashboardPage from '@/pages/purchasing/AdminDashboardPage';
 import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
@@ -10,117 +19,160 @@ import PurchasingRfqListPage from '@/pages/purchasing/RfqListPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
 import PurchasingUnlockRequestsPage from '@/pages/purchasing/UnlockRequestsPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
-import { Navigate, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
-
-function resolvePreviewScreen(search: string) {
-  const params = new URLSearchParams(search);
-  return params.get('screen');
-}
 
 function LoginRoute() {
-  const { search } = useLocation();
-  const previewScreen = resolvePreviewScreen(search);
+  const auth = useAuth();
 
-  if (previewScreen === 'industrializacion-dashboard') {
-    return <Navigate to={ROUTES.INDUSTRIALIZATION.DASHBOARD} replace />;
+  if (auth.status === 'authenticated') {
+    return <Navigate to={resolveHomeRouteForRole(auth.user.role)} replace />;
   }
 
   return <LoginPage />;
 }
 
-function FallbackRoute() {
-  const { search } = useLocation();
-  const previewScreen = resolvePreviewScreen(search);
-
-  if (previewScreen === 'industrializacion-dashboard') {
-    return <Navigate to={ROUTES.INDUSTRIALIZATION.DASHBOARD} replace />;
-  }
-
-  return <Navigate to={ROUTES.AUTH.LOGIN} replace />;
+function Protected({ children, allowedRoles }: { children: ReactNode; allowedRoles?: AppRole[] }) {
+  return <ProtectedRoute allowedRoles={allowedRoles}>{children}</ProtectedRoute>;
 }
 
 const appRouter = createBrowserRouter([
-  // Programada: login y redireccion de preview.
   {
     path: ROUTES.AUTH.LOGIN,
     element: <LoginRoute />,
   },
-  // Programada: dashboard principal de Industrializacion.
+  {
+    path: ROUTES.AUTH.UNAUTHORIZED,
+    element: <UnauthorizedPage />,
+  },
+
+  // Industrialización
   {
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
-    element: <DashboardPage />,
+    element: (
+      <Protected allowedRoles={['industrializacion']}>
+        <DashboardPage />
+      </Protected>
+    ),
   },
-  // Programada: dashboard del Superusuario de Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD,
-    element: <SuperUserDashboardPage />,
+    element: (
+      <Protected allowedRoles={['industrializacion']}>
+        <SuperUserDashboardPage />
+      </Protected>
+    ),
   },
-  // Programada: dashboard operativo principal de Compras.
-  {
-    path: ROUTES.PURCHASING.DASHBOARD,
-    element: <PurchasingDashboardPage />,
-  },
-  // Programada: listado operativo de RFQs de Compras.
-  {
-    path: ROUTES.PURCHASING.RFQ_LIST,
-    element: <PurchasingRfqListPage />,
-  },
-  // Programada: creacion de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_CREATE,
-    element: <RfqFormPage />,
+    element: (
+      <Protected allowedRoles={['industrializacion']}>
+        <RfqFormPage />
+      </Protected>
+    ),
   },
-  // Programada: edicion de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_EDIT,
-    element: <RfqFormPage />,
+    element: (
+      <Protected allowedRoles={['industrializacion']}>
+        <RfqFormPage />
+      </Protected>
+    ),
   },
-  // Programada: detalle de RFQ en Industrializacion.
   {
     path: ROUTES.INDUSTRIALIZATION.RFQ_DETAIL,
-    element: <RfqDetailPage />,
+    element: (
+      <Protected allowedRoles={['industrializacion']}>
+        <RfqDetailPage />
+      </Protected>
+    ),
   },
-  // Programada: seleccion de proveedores desde Compras.
+
+  // Compras
   {
-    path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
-    element: <SupplierSelectionPage />,
+    path: ROUTES.PURCHASING.DASHBOARD,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <PurchasingDashboardPage />
+      </Protected>
+    ),
   },
-  // Programada: dashboard del Superusuario de Compras.
   {
-    path: ROUTES.PURCHASING.ADMIN_DASHBOARD,
-    element: <PurchasingAdminDashboardPage />,
+    path: ROUTES.PURCHASING.RFQ_LIST,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <PurchasingRfqListPage />
+      </Protected>
+    ),
   },
-  // Programada: bandeja de desbloqueos para Compras admin.
-  {
-    path: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
-    element: <PurchasingUnlockRequestsPage />,
-  },
-  // Programada: punto inicial del benchmark de Compras.
-  {
-    path: ROUTES.PURCHASING.BENCHMARK,
-    element: <PurchasingBenchmarkPage />,
-  },
-  // Programada: detalle de RFQ en Compras con pantalla compartida.
   {
     path: ROUTES.PURCHASING.RFQ_DETAIL,
-    element: <RfqDetailPage />,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <RfqDetailPage />
+      </Protected>
+    ),
   },
-  // Programada: detalle de RFQ para Proveedor con pantalla compartida.
+  {
+    path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <SupplierSelectionPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.PURCHASING.ADMIN_DASHBOARD,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <PurchasingAdminDashboardPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <PurchasingUnlockRequestsPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.PURCHASING.BENCHMARK,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <PurchasingBenchmarkPage />
+      </Protected>
+    ),
+  },
+
+  // Proveedor
+  {
+    path: ROUTES.SUPPLIER.DASHBOARD,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <SupplierDashboardPage />
+      </Protected>
+    ),
+  },
   {
     path: ROUTES.SUPPLIER.RFQ_DETAIL,
-    element: <RfqDetailPage />,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <RfqDetailPage />
+      </Protected>
+    ),
   },
-  // Programada: detalle de cotizacion para Proveedor con pantalla compartida.
   {
     path: ROUTES.SUPPLIER.QUOTATION_DETAIL,
-    element: <RfqDetailPage />,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <RfqDetailPage />
+      </Protected>
+    ),
   },
-  // No programada: ROUTES.SUPPLIER.RFQ_LIST necesita pantalla de listado de RFQs del Proveedor.
-  // No programada: ROUTES.SUPPLIER.QUOTATION_LIST necesita pantalla de listado de cotizaciones.
-  // Programada: fallback para rutas no reconocidas.
+
   {
     path: '*',
-    element: <FallbackRoute />,
+    element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
   },
 ]);
 

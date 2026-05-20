@@ -20,7 +20,6 @@ import {
   purchasingMetrics,
   purchasingMonthlySeries,
   purchasingQueueRows,
-  purchasingUser,
   urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
 import type { PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
@@ -259,7 +258,7 @@ function DashboardPage() {
   }));
 
   return (
-    <MainLayout header={<Header areaLabel="Compras" user={purchasingUser} />}>
+    <MainLayout header={<Header areaLabel="Compras" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-10 lg:pt-8 xl:px-14">
 
         {/* Dashboard title */}
