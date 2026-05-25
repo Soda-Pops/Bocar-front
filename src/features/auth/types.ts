@@ -5,8 +5,9 @@ export const APP_ROLES = ['industrializacion', 'compras', 'proveedor'] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
 export type AuthenticatedUser = {
-  id: string | null;
-  email: string | null;
+  id: number;
+  email: string;
+  username: string;
   role: AppRole;
   isAdmin: boolean;
 };

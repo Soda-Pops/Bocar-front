@@ -15,17 +15,16 @@ const ROLE_LABELS: Record<AppRole, string> = {
   proveedor: 'Proveedor',
 };
 
-function deriveInitials(email: string | null): string {
-  const prefix = email?.split('@')[0] ?? '';
-  return prefix.slice(0, 2).toUpperCase() || '--';
+function deriveInitials(source: string): string {
+  return source.slice(0, 2).toUpperCase() || '--';
 }
 
 export function UserMenu({ variant = 'light' }: UserMenuProps) {
   const auth = useAuth();
   const navigate = useNavigate();
 
-  const initials = auth.status === 'authenticated' ? deriveInitials(auth.user.email) : '--';
-  const name = auth.status === 'authenticated' ? (auth.user.email ?? 'Usuario') : 'Usuario';
+  const initials = auth.status === 'authenticated' ? deriveInitials(auth.user.username) : '--';
+  const name = auth.status === 'authenticated' ? auth.user.username : 'Usuario';
   const department =
     auth.status === 'authenticated' ? ROLE_LABELS[auth.user.role] : '';
   const containerRef = useRef<HTMLDivElement | null>(null);

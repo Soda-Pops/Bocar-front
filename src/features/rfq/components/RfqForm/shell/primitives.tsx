@@ -136,8 +136,9 @@ export function TextField({
   span?: 1 | 2;
   type?: InputHTMLAttributes<HTMLInputElement>['type'];
 }) {
-  const { formState, getFieldState, register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
   const { error } = getFieldState(name, formState);
+  const { onBlur, onChange, ...rest } = register(name);
 
   return (
     <FieldShell error={error?.message} hint={hint} label={label} required={required} span={span}>
@@ -146,7 +147,15 @@ export function TextField({
         className={inputBaseClasses(Boolean(error))}
         placeholder={placeholder}
         type={type}
-        {...register(name)}
+        {...rest}
+        onChange={async (e) => {
+          await onChange(e);
+          if (error) void trigger(name);
+        }}
+        onBlur={async (e) => {
+          await onBlur(e);
+          if (error) void trigger(name);
+        }}
       />
     </FieldShell>
   );
@@ -167,8 +176,9 @@ export function TextAreaField({
   rows?: TextareaHTMLAttributes<HTMLTextAreaElement>['rows'];
   span?: 1 | 2;
 }) {
-  const { formState, getFieldState, register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
   const { error } = getFieldState(name, formState);
+  const { onChange, ...rest } = register(name);
 
   return (
     <FieldShell error={error?.message} hint={hint} label={label} span={span}>
@@ -177,7 +187,11 @@ export function TextAreaField({
         className={`${inputBaseClasses(Boolean(error))} min-h-[112px] resize-y`}
         placeholder={placeholder}
         rows={rows}
-        {...register(name)}
+        {...rest}
+        onChange={async (e) => {
+          await onChange(e);
+          if (error) void trigger(name);
+        }}
       />
     </FieldShell>
   );
@@ -198,7 +212,13 @@ export function YesNoToggle({ name }: { name: string }) {
             : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
         ].join(' ')}
         type="button"
-        onClick={() => setValue(name, value === 'yes' ? '' : 'yes', { shouldDirty: true })}
+        onClick={() =>
+          setValue(name, value === 'yes' ? '' : 'yes', {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+        }
       >
         YES
       </button>
@@ -210,7 +230,13 @@ export function YesNoToggle({ name }: { name: string }) {
             : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
         ].join(' ')}
         type="button"
-        onClick={() => setValue(name, value === 'no' ? '' : 'no', { shouldDirty: true })}
+        onClick={() =>
+          setValue(name, value === 'no' ? '' : 'no', {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+        }
       >
         NO
       </button>
@@ -248,20 +274,36 @@ export function YesNoDateRow({
   name: string;
   notesName: string;
 }) {
-  const { control, register } = useFormContext();
+  const { control, formState, getFieldState, register, trigger } = useFormContext();
   const rawChecked = useWatch({ control, name });
   const isYes = typeof rawChecked === 'string' && rawChecked === 'yes';
+  const checkedError = getFieldState(name, formState).error?.message;
+  const notesError = getFieldState(notesName, formState).error?.message;
+  const error = checkedError ?? notesError;
+  const { onChange, ...notesRegister } = register(notesName);
 
   return (
-    <div className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
-      <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{label}</div>
-      <YesNoToggle name={name} />
-      <input
-        className={inputBaseClasses(false)}
-        disabled={!isYes}
-        type="date"
-        {...register(notesName)}
-      />
+    <div className="py-4">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
+        <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{label}</div>
+        <YesNoToggle name={name} />
+        <input
+          aria-invalid={Boolean(notesError)}
+          className={inputBaseClasses(Boolean(notesError))}
+          disabled={!isYes}
+          type="date"
+          {...notesRegister}
+          onChange={async (e) => {
+            await onChange(e);
+            if (notesError) void trigger(notesName);
+          }}
+        />
+      </div>
+      {error ? (
+        <p className="m-0 mt-2 text-[12px] leading-[1.45] text-[var(--bocar-error)]" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -269,7 +311,7 @@ export function YesNoDateRow({
 // ─── ConsiderationTogglePage ──────────────────────────────────────────────────
 
 export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupConfig }) {
-  const { register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
 
   const col1 = group.col1Header ?? 'Entregable / requisito';
   const col2 = group.col2Header ?? 'Aplica';
@@ -298,30 +340,53 @@ export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupCo
               name={`considerations.${item.id}.checked`}
               notesName={`considerations.${item.id}.notes`}
             />
-          ) : (
-            <div
-              key={item.id}
-              className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5"
-            >
-              <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
-                {item.label}
+          ) : (() => {
+            const checkedName = `considerations.${item.id}.checked`;
+            const notesName = `considerations.${item.id}.notes`;
+            const checkedError = getFieldState(checkedName, formState).error?.message;
+            const notesError = getFieldState(notesName, formState).error?.message;
+            const error = checkedError ?? notesError;
+            const { onChange, ...notesRegister } = register(notesName);
+
+            return (
+              <div key={item.id} className="py-4">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
+                  <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
+                    {item.label}
+                  </div>
+                  <YesNoToggle name={checkedName} />
+                  {item.notesAs === 'textarea' ? (
+                    <textarea
+                      aria-invalid={Boolean(notesError)}
+                      className={`${inputBaseClasses(Boolean(notesError))} resize-y`}
+                      rows={2}
+                      {...notesRegister}
+                      onChange={async (e) => {
+                        await onChange(e);
+                        if (notesError) void trigger(notesName);
+                      }}
+                    />
+                  ) : (
+                    <input
+                      aria-invalid={Boolean(notesError)}
+                      className={inputBaseClasses(Boolean(notesError))}
+                      placeholder={item.noteExample ?? ''}
+                      {...notesRegister}
+                      onChange={async (e) => {
+                        await onChange(e);
+                        if (notesError) void trigger(notesName);
+                      }}
+                    />
+                  )}
+                </div>
+                {error ? (
+                  <p className="m-0 mt-2 text-[12px] leading-[1.45] text-[var(--bocar-error)]" role="alert">
+                    {error}
+                  </p>
+                ) : null}
               </div>
-              <YesNoToggle name={`considerations.${item.id}.checked`} />
-              {item.notesAs === 'textarea' ? (
-                <textarea
-                  className={`${inputBaseClasses(false)} resize-y`}
-                  rows={2}
-                  {...register(`considerations.${item.id}.notes`)}
-                />
-              ) : (
-                <input
-                  className={inputBaseClasses(false)}
-                  placeholder={item.noteExample ?? ''}
-                  {...register(`considerations.${item.id}.notes`)}
-                />
-              )}
-            </div>
-          )
+            );
+          })()
         )}
       </div>
     </SectionCard>

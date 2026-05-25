@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FormProvider,
   type DefaultValues,
   type FieldValues,
   type SubmitErrorHandler,
   useForm,
-  useWatch,
 } from 'react-hook-form';
 
 import type { RfqTipo } from '@/features/analytics/types';
@@ -18,13 +17,11 @@ import type { FeedbackTone, NavGroup, RfqWorkspaceDefinition } from './types';
 // ─── Sidebar components ───────────────────────────────────────────────────────
 
 function WorkspaceSidebar({
-  completed,
   current,
   navGroups,
   onSelect,
   pageErrors,
 }: {
-  completed: Partial<Record<string, boolean>>;
   current: string;
   navGroups: readonly NavGroup[];
   onSelect: (page: string) => void;
@@ -59,7 +56,6 @@ function WorkspaceSidebar({
                   {group.items.map((item) => {
                     const isActive = current === item.key;
                     const hasError = Boolean(pageErrors[item.key]);
-                    const isDone = Boolean(completed[item.key]);
 
                     return (
                       <button
@@ -76,8 +72,6 @@ function WorkspaceSidebar({
                         <span>{item.label}</span>
                         {hasError ? (
                           <span className="h-2 w-2 rounded-full bg-[var(--bocar-error)]" />
-                        ) : isDone ? (
-                          <span className="text-[12px] font-semibold text-[var(--bocar-done)]">●</span>
                         ) : null}
                       </button>
                     );
@@ -152,7 +146,9 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     getInitialFeedback(mode, rfqId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
   const currentPageRef = useRef<string>(definition.pages[0] ?? 'basic');
+  const skipNextEmptyPageErrorSyncRef = useRef(false);
 
   const defaults =
     mode === 'edit' ? definition.getEditDefaultValues(rfqId) : definition.getCreateDefaultValues();
@@ -165,15 +161,12 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   });
 
   const {
-    control,
     formState: { errors, isSubmitting },
     handleSubmit,
     reset,
     setFocus,
     trigger,
   } = form;
-
-  const values = useWatch({ control });
 
   useEffect(() => {
     reset(
@@ -184,16 +177,38 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     setCurrentPage(definition.pages[0] ?? 'basic');
     setFeedback(getInitialFeedback(mode, rfqId));
     setAttemptedSubmit(false);
+    setVisiblePageErrors({});
   }, [mode, reset, rfqId, tipo, definition]);
 
   currentPageRef.current = currentPage;
 
   const currentIndex = definition.pages.indexOf(currentPage);
-  const completed = useMemo(
-    () => definition.getCompletedMap(values as TValues),
-    [values, definition]
-  );
-  const pageErrors = useMemo(() => definition.getPageErrorMap(errors), [errors, definition]);
+  const pageErrors = definition.getPageErrorMap(errors);
+  const pageErrorSignature = definition.pages.map((page) => (pageErrors[page] ? '1' : '0')).join('|');
+
+  useEffect(() => {
+    if (!attemptedSubmit) return;
+
+    const hasLivePageErrors = definition.pages.some((page) => pageErrors[page]);
+    if (hasLivePageErrors) {
+      skipNextEmptyPageErrorSyncRef.current = false;
+      setVisiblePageErrors(pageErrors);
+      return;
+    }
+
+    if (skipNextEmptyPageErrorSyncRef.current) {
+      skipNextEmptyPageErrorSyncRef.current = false;
+      return;
+    }
+
+    setVisiblePageErrors(pageErrors);
+    if (Object.keys(errors).length === 0) {
+      setAttemptedSubmit(false);
+      setVisiblePageErrors({});
+      setFeedback(getInitialFeedback(mode, rfqId));
+    }
+  }, [errors, attemptedSubmit, mode, rfqId, pageErrorSignature]);
+
   const meta = definition.pageMeta[currentPage];
   const headerTitle = mode === 'edit' ? 'EDITAR RFQ' : 'CREAR RFQ';
 
@@ -211,8 +226,9 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
       if (!isValid) {
         setAttemptedSubmit(true);
+        setVisiblePageErrors((prev) => ({ ...prev, [pageAtCallTime]: true }));
         setFeedback({
-          text: 'Corrige los campos obligatorios marcados antes de avanzar al siguiente bloque.',
+          text: 'Esta sección tiene campos obligatorios sin completar.',
           tone: 'error',
         });
         return;
@@ -242,7 +258,8 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   }
 
   async function handleValidSubmit() {
-    setAttemptedSubmit(true);
+    setAttemptedSubmit(false);
+    setVisiblePageErrors({});
     setFeedback({
       text:
         mode === 'edit'
@@ -255,14 +272,20 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   const handleInvalidSubmit: SubmitErrorHandler<TValues> = (fieldErrors) => {
     setAttemptedSubmit(true);
     setFeedback({
-      text: 'Revisa los campos marcados. El sidebar te indica en que bloque sigue habiendo informacion obligatoria pendiente.',
+      text: 'Esta sección tiene campos obligatorios sin completar.',
       tone: 'error',
     });
+    const errorMap = definition.getPageErrorMap(fieldErrors);
+    skipNextEmptyPageErrorSyncRef.current = true;
+    setVisiblePageErrors(errorMap);
+    const firstErrorPage = definition.pages.find((p) => errorMap[p]);
+    if (firstErrorPage) setCurrentPage(firstErrorPage);
     definition.onInvalidSubmit?.(fieldErrors, { setCurrentPage, setFocus });
   };
 
   const progressPercent = ((currentIndex + 1) / definition.pages.length) * 100;
-  const showFeedback = feedback.tone !== 'neutral' || attemptedSubmit;
+  const currentPageHasError = attemptedSubmit && Boolean(visiblePageErrors[currentPage]);
+  const showFeedback = feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
 
   return (
     <FormProvider {...form}>
@@ -271,11 +294,10 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
         <div className="flex min-h-0 flex-1">
           <WorkspaceSidebar
-            completed={completed}
             current={currentPage}
             navGroups={definition.navGroups}
             onSelect={setCurrentPage}
-            pageErrors={attemptedSubmit ? pageErrors : {}}
+            pageErrors={attemptedSubmit ? visiblePageErrors : {}}
           />
 
           <div className="flex min-w-0 flex-1 flex-col">
