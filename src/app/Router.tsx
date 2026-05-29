@@ -19,6 +19,7 @@ import PurchasingRfqListPage from '@/pages/purchasing/RfqListPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
 import PurchasingUnlockRequestsPage from '@/pages/purchasing/UnlockRequestsPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
+import QuotationFormPage from '@/pages/proveedor/QuotationFormPage';
 
 function LoginRoute() {
   const auth = useAuth();
@@ -158,6 +159,14 @@ const appRouter = createBrowserRouter([
     element: (
       <Protected allowedRoles={['proveedor']}>
         <RfqDetailPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.SUPPLIER.QUOTATION_CREATE,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <QuotationFormPage />
       </Protected>
     ),
   },
