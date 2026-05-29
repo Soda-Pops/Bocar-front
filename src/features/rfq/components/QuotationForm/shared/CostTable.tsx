@@ -3,7 +3,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { inputBaseClasses } from '../../RfqForm/shell/primitives';
 import { formatNum, mul, parseNum } from './formulas';
 
-export type CostColumnKey = 'h' | 'unit' | 'price' | 'price_unit' | 'total' | 'weeks';
+export type CostColumnKey = 'h' | 'unit' | 'q' | 'price' | 'price_unit' | 'price_q' | 'total' | 'weeks';
 
 export type CostTableColumns = readonly [CostColumnKey, CostColumnKey, CostColumnKey, CostColumnKey];
 
@@ -25,19 +25,24 @@ export type CostTableProps = {
 const COLUMN_LABELS: Record<CostColumnKey, string> = {
   h: 'h',
   unit: 'Unit',
+  q: 'Q',
   price: 'Price/h',
   price_unit: 'Price/u',
+  price_q: 'Price/Q',
   total: 'Total',
   weeks: 'Weeks',
 };
 
-// First column key (h or unit) for the editable left value
-function leftKey(cols: CostTableColumns): 'h' | 'unit' {
-  return cols[0] === 'unit' ? 'unit' : 'h';
+function leftKey(cols: CostTableColumns): 'h' | 'unit' | 'q' {
+  if (cols[0] === 'unit') return 'unit';
+  if (cols[0] === 'q') return 'q';
+  return 'h';
 }
 
-function priceKey(cols: CostTableColumns): 'price' | 'price_unit' {
-  return cols[1] === 'price_unit' ? 'price_unit' : 'price';
+function priceKey(cols: CostTableColumns): 'price' | 'price_unit' | 'price_q' {
+  if (cols[1] === 'price_unit') return 'price_unit';
+  if (cols[1] === 'price_q') return 'price_q';
+  return 'price';
 }
 
 const GRID_CLASS =
@@ -211,8 +216,8 @@ export function CostTable({
 // Exposed helper: sum subtotals across multiple `CostTable` branches (for Manufacturing grand total).
 export function computeBranchSubtotal(
   branch: Record<string, Record<string, unknown> | undefined> | undefined,
-  leftCol: 'h' | 'unit',
-  priceCol: 'price' | 'price_unit'
+  leftCol: 'h' | 'unit' | 'q',
+  priceCol: 'price' | 'price_unit' | 'price_q'
 ): { left: number; price: number; total: number; weeks: number } {
   if (!branch) return { left: 0, price: 0, total: 0, weeks: 0 };
   let left = 0;

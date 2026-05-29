@@ -1,10 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
-import type { FieldPath, Resolver } from 'react-hook-form';
 import { z } from 'zod';
-
-import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 
 import {
   ConsiderationTogglePage,
@@ -27,46 +24,45 @@ const TOGGLE_REQUIRED_CONSIDERATIONS = new Set([
 
 const moldSchema = z
   .object({
-    alloy: z.string(), // opcional · string libre (ej. "AlSi10MnMg")
-    buhler: z.string(), // opcional · número como string (input type number, en toneladas)
-    comments: z.string(), // opcional · texto libre (textarea, sin límite de longitud)
+    alloy: z.string(),
+    buhler: z.string(),
+    comments: z.string(),
     considerations: z.record(
       z.string(),
       z.object({ checked: z.string().optional(), notes: z.string() })
-    ), // claves libres → { checked?: string, notes: string }; superRefine: las 25 claves de TOGGLE_REQUIRED_CONSIDERATIONS requieren checked no vacío
-    cust: z.string(), // opcional · nombre del cliente, string libre
-    dtq: z.string(), // opcional · semana de entrega de cotización, string libre (ej. "WEEK")
-    elab: z.string(), // opcional · nombre del elaborador, string libre
-    gates: z.string(), // opcional · número de gates por pieza, número como string
-    hydr_slides: z.string(), // opcional · número de slides hidráulicos, número como string
-    mech_slides: z.string(), // opcional · número de slides mecánicos, número como string
-    num_cav: z.string(), // opcional · número de cavidades, número como string
-    num_tools: z.string(), // opcional · número de herramientas, número como string
-    part_dim: z.string(), // opcional · dimensiones en string libre (ej. "L x W x H" en mm)
-    part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'), // requerido · trim · mínimo 1 carácter
-    part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'), // requerido · trim · mínimo 1 carácter
-    part_tech: z.string(), // opcional · tecnología de la pieza, string libre (ej. "POWERTRAIN")
-    parts_stroke: z.string(), // opcional · piezas por golpe, número como string
-    pnum: z.string(), // opcional · número de parte legacy / folio interno, string libre
-    ppy: z.string(), // opcional · partes por año, número como string
-    prlf: z.string(), // opcional · vida del proyecto en años, número como string
-    projected: z.coerce.number().optional(), // opcional · decimal (cm²); coerciona el string del input a number en validación
-    rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'), // requerido · trim · mínimo 1 carácter
-    sk_part: z.string(), // opcional · lista de spare parts, texto libre (textarea)
-    surface: z.string(), // opcional · superficie en cm², número como string
-    three_plate: z.string(), // opcional · three plate mold, número como string
-    tt: z.string(), // opcional · tool type, string libre (ej. "PRODUCTION")
-    volume: z.string(), // opcional · volumen en cm³, número como string
-    wall_max: z.string(), // opcional · espesor máximo de pared en mm, número como string
-    wall_min: z.string(), // opcional · espesor mínimo de pared en mm, número como string
-    weight: z.coerce.number().optional(), // opcional · decimal (g); coerciona el string del input a number en validación
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // opcional · archivos adjuntos: PPT, STP, PDF; máx. 25 MB por archivo
+    ),
+    cust: z.string(),
+    dtq: z.string(),
+    elab: z.string(),
+    gates: z.string(),
+    hydr_slides: z.string(),
+    mech_slides: z.string(),
+    num_cav: z.string(),
+    num_tools: z.string(),
+    part_dim: z.string(),
+    part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
+    part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
+    part_tech: z.string(),
+    parts_stroke: z.string(),
+    pnum: z.string(),
+    ppy: z.string(),
+    prlf: z.string(),
+    projected: z.string(),
+    rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
+    sk_part: z.string(),
+    surface: z.string(),
+    three_plate: z.string(),
+    tt: z.string(),
+    volume: z.string(),
+    wall_max: z.string(),
+    wall_min: z.string(),
+    weight: z.string(),
   })
   .superRefine((values, ctx) => {
-    TOGGLE_REQUIRED_CONSIDERATIONS.forEach((key) => {
-      if (!values.considerations[key]?.checked?.trim()) {
+    Object.entries(values.considerations).forEach(([key, value]) => {
+      if (TOGGLE_REQUIRED_CONSIDERATIONS.has(key) && !value.checked?.trim()) {
         ctx.addIssue({
-          code: "custom",
+          code: z.ZodIssueCode.custom,
           message: 'Selecciona si aplica.',
           path: ['considerations', key, 'checked'],
         });
@@ -88,12 +84,11 @@ type MoldPageKey =
   | 'spareparts'
   | 'geometry'
   | 'tool_spec'
-  | 'comments'
-  | 'files';
+  | 'comments';
 
 const PAGES: readonly MoldPageKey[] = [
   'basic', 'tool_eng', 'dcm', 'diritpotd', 'other_cons', 'ot_inf', 'spareparts',
-  'geometry', 'tool_spec', 'comments', 'files',
+  'geometry', 'tool_spec', 'comments',
 ];
 
 const PAGE_META: Record<MoldPageKey, PageMeta> = {
@@ -107,7 +102,6 @@ const PAGE_META: Record<MoldPageKey, PageMeta> = {
   spareparts: { navLabel: 'SK PART', subtitle: 'Refacciones criticas a cotizar individualmente.', title: '7. SK PART' },
   tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Configuracion y parametros del herramental.', title: '2. Tool Engineering' },
   tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Dimensiones y configuracion detallada del herramental.', title: '9. Tool Specification' },
-  files: { navLabel: 'UPLOAD FILES', subtitle: 'Attach blueprints, quotations and part specifications.', title: '11. Upload Files' },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -133,48 +127,10 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'comments', label: 'COMMENTS' },
     ],
   },
-  {
-    key: 'FILES',
-    label: 'FILES',
-    items: [
-      { key: 'files', label: 'UPLOAD FILES' },
-    ],
-  },
 ];
 
-const REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly FieldPath<MoldFormValues>[]>> = {
+const REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly (keyof MoldFormValues)[]>> = {
   basic: ['rfq_name'],
-  diritpotd: [
-    'considerations.d_3d.checked',
-    'considerations.flan.checked',
-    'considerations.run_des.checked',
-    'considerations.run_over.checked',
-    'considerations.man_prop.checked',
-    'considerations.ldi.checked',
-    'considerations.add_mach.checked',
-    'considerations.sketch.checked',
-    'considerations.drw_2d.checked',
-    'considerations.drw_3d.checked',
-  ],
-  other_cons: [
-    'considerations.eyeb.checked',
-    'considerations.ow_conn.checked',
-    'considerations.stm.checked',
-    'considerations.cmm_rep.checked',
-    'considerations.gom_rep.checked',
-    'considerations.h_val.checked',
-    'considerations.dim_corr.checked',
-    'considerations.sp_pt.checked',
-  ],
-  ot_inf: [
-    'considerations.comp_d.checked',
-    'considerations.subseq_d.checked',
-    'considerations.repl_h13.checked',
-    'considerations.sp_ei.checked',
-    'considerations.ficf.checked',
-    'considerations.hcls.checked',
-    'considerations.fr_refur.checked',
-  ],
   geometry: ['part_name', 'part_number'],
 };
 
@@ -269,9 +225,9 @@ function getCreateDefaultValues(): MoldFormValues {
   return {
     alloy: '', buhler: '', comments: '', considerations: {}, cust: '', dtq: '', elab: '', gates: '',
     hydr_slides: '', mech_slides: '', num_cav: '', num_tools: '', part_dim: '', part_name: '',
-    part_number: '', part_tech: '', parts_stroke: '', pnum: '', ppy: '', prlf: '',
+    part_number: '', part_tech: '', parts_stroke: '', pnum: '', ppy: '', prlf: '', projected: '',
     rfq_name: '', sk_part: '', surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
-    wall_min: '', files: [],
+    wall_min: '', weight: '',
   };
 }
 
@@ -304,7 +260,7 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     pnum: 'MAT-2024-001',
     ppy: '240000',
     prlf: '5',
-    projected: 336,
+    projected: '336',
     rfq_name: 'Proyecto soporte puerta',
     sk_part: 'Inserto lateral H13 (Set de seguridad) - 2 pzas.\nCavidad principal de reemplazo (H13 forjado) - 1 pza.',
     surface: '522',
@@ -313,8 +269,7 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     volume: '418',
     wall_max: '4.2',
     wall_min: '2.6',
-    weight: 1280,
-    files: [],
+    weight: '1280',
   };
 }
 
@@ -330,20 +285,8 @@ function getCompletedMap(values: MoldFormValues): Partial<Record<string, boolean
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<MoldFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
-  const cons = errors.considerations as Record<string, unknown> | undefined;
-
-  function pageHasConsidErrors(page: MoldPageKey): boolean {
-    if (!cons) return false;
-    const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
-    if (!group) return false;
-    return group.items.some((item) => TOGGLE_REQUIRED_CONSIDERATIONS.has(item.id) && Boolean(cons[item.id]));
-  }
-
   return {
     basic: Boolean(errors.rfq_name),
-    diritpotd: pageHasConsidErrors('diritpotd'),
-    other_cons: pageHasConsidErrors('other_cons'),
-    ot_inf: pageHasConsidErrors('ot_inf'),
     geometry: Boolean(errors.part_name || errors.part_number),
   };
 }
@@ -481,19 +424,6 @@ function CommentsPage() {
   );
 }
 
-function FilesPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
-      <MultiFileUploadField
-        accept=".ppt,.pptx,.stp,.pdf"
-        acceptLabel="PPT, STP, PDF"
-        maxSizeMb={25}
-        name="files"
-      />
-    </SectionCard>
-  );
-}
-
 function renderPage(page: string): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'tool_eng') return <ToolEngineeringPage />;
@@ -501,7 +431,6 @@ function renderPage(page: string): ReactNode {
   if (page === 'geometry') return <GeometryPage />;
   if (page === 'tool_spec') return <ToolSpecificationPage />;
   if (page === 'comments') return <CommentsPage />;
-  if (page === 'files') return <FilesPage />;
 
   if (page === 'dcm') {
     const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
@@ -519,7 +448,7 @@ function renderPage(page: string): ReactNode {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export const moldDefinition: RfqWorkspaceDefinition<MoldFormValues> = {
-  resolver: zodResolver(moldSchema) as Resolver<MoldFormValues>,
+  resolver: zodResolver(moldSchema),
   getCreateDefaultValues,
   getEditDefaultValues,
   pages: PAGES,
@@ -529,9 +458,14 @@ export const moldDefinition: RfqWorkspaceDefinition<MoldFormValues> = {
   renderPage,
   getCompletedMap,
   getPageErrorMap,
-  onInvalidSubmit: (fieldErrors, { setFocus }) => {
-    if (fieldErrors.rfq_name) { setFocus('rfq_name'); return; }
+  onInvalidSubmit: (fieldErrors, { setCurrentPage, setFocus }) => {
+    if (fieldErrors.rfq_name) {
+      setCurrentPage('basic');
+      setFocus('rfq_name');
+      return;
+    }
     if (fieldErrors.part_name || fieldErrors.part_number) {
+      setCurrentPage('geometry');
       setFocus(fieldErrors.part_name ? 'part_name' : 'part_number');
     }
   },
