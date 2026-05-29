@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
 import type { FieldErrors, FieldPath, FieldValues, Resolver, UseFormSetFocus } from 'react-hook-form';
 
+export type SectionType = 'readonly' | 'hybrid' | 'supplier';
 export type NavItem = { key: string; label: string };
 export type NavGroup = { key: string; label: string; items: readonly NavItem[] };
-export type PageMeta = { navLabel: string; subtitle: string; title: string };
+export type PageMeta = {
+  navLabel: string;
+  subtitle: string;
+  title: string;
+  sectionType?: SectionType;
+};
 export type FeedbackTone = 'neutral' | 'success' | 'error';
 
 export type RfqWorkspaceDefinition<TValues extends FieldValues> = {

@@ -12,6 +12,7 @@ import DashboardPage from '@/pages/industrializacion/DashboardPage';
 import SuperUserDashboardPage from '@/pages/industrializacion/SuperUserDashboardPage';
 import RfqFormPage from '@/pages/industrializacion/RfqFormPage';
 import SupplierDashboardPage from '@/pages/proveedor/DashboardPage';
+import QuotationFormPage from '@/pages/proveedor/QuotationFormPage';
 import PurchasingBenchmarkPage from '@/pages/purchasing/BenchmarkPage';
 import PurchasingAdminDashboardPage from '@/pages/purchasing/AdminDashboardPage';
 import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
@@ -158,6 +159,14 @@ const appRouter = createBrowserRouter([
     element: (
       <Protected allowedRoles={['proveedor']}>
         <RfqDetailPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.SUPPLIER.QUOTATION_CREATE,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <QuotationFormPage />
       </Protected>
     ),
   },

@@ -5,6 +5,7 @@ import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
 import { FileUploadField } from '@shared/components/ui/FileUploadField';
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 
 import {
   ConsiderationTogglePage,
@@ -79,6 +80,8 @@ const trimmingSchema = z
     ts_num_tools: z.string(), // opcional · string libre
     // Sección 8 — Comments
     comments: z.string(), // opcional · texto libre (textarea, sin límite de longitud)
+    // Sección 9 — Files
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // opcional · archivos adjuntos: PPT, STP, PDF; máx. 25 MB por archivo
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
@@ -114,11 +117,12 @@ type TrimmingPageKey =
   | 'shot_sketch'
   | 'part_geometry'
   | 'tool_spec'
-  | 'comments';
+  | 'comments'
+  | 'files';
 
 const PAGES: readonly TrimmingPageKey[] = [
   'basic', 'trim_die', 'data_info', 'other_info', 'shot_sketch',
-  'part_geometry', 'tool_spec', 'comments',
+  'part_geometry', 'tool_spec', 'comments', 'files',
 ];
 
 const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
@@ -162,6 +166,11 @@ const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
     subtitle: 'Comentarios adicionales para el proveedor.',
     title: '8. Comments',
   },
+  files: {
+    navLabel: 'UPLOAD FILES',
+    subtitle: 'Attach blueprints, quotations and part specifications.',
+    title: '9. Upload Files',
+  },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -183,6 +192,13 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'part_geometry', label: 'PART GEOMETRY' },
       { key: 'tool_spec', label: 'TOOL SPECIFICATION' },
       { key: 'comments', label: 'COMMENTS' },
+    ],
+  },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [
+      { key: 'files', label: 'UPLOAD FILES' },
     ],
   },
 ];
@@ -294,6 +310,7 @@ function getCreateDefaultValues(): TrimmingFormValues {
     ts_num_parts_per_stroke: '',
     ts_num_tools: '',
     comments: '',
+    files: [],
   };
 }
 
@@ -355,6 +372,7 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     ts_num_parts_per_stroke: '2',
     ts_num_tools: '1',
     comments: '',
+    files: [],
   };
 }
 
@@ -721,6 +739,19 @@ function CommentsPage() {
   );
 }
 
+function FilesPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+      <MultiFileUploadField
+        accept=".ppt,.pptx,.stp,.pdf"
+        acceptLabel="PPT, STP, PDF"
+        maxSizeMb={25}
+        name="files"
+      />
+    </SectionCard>
+  );
+}
+
 function renderPage(page: string): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'trim_die') return <TrimDiePage />;
@@ -730,6 +761,7 @@ function renderPage(page: string): ReactNode {
   if (page === 'part_geometry') return <PartGeometryPage />;
   if (page === 'tool_spec') return <ToolSpecPage />;
   if (page === 'comments') return <CommentsPage />;
+  if (page === 'files') return <FilesPage />;
   return null;
 }
 

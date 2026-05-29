@@ -4,6 +4,8 @@ import { useFormContext } from 'react-hook-form';
 import type { FieldPath, Resolver } from 'react-hook-form';
 import { z } from 'zod';
 
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
+
 import {
   ConsiderationTogglePage,
   FormGrid,
@@ -58,6 +60,7 @@ const moldSchema = z
     wall_max: z.string(), // opcional · espesor máximo de pared en mm, número como string
     wall_min: z.string(), // opcional · espesor mínimo de pared en mm, número como string
     weight: z.coerce.number().optional(), // opcional · decimal (g); coerciona el string del input a number en validación
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // opcional · archivos adjuntos: PPT, STP, PDF; máx. 25 MB por archivo
   })
   .superRefine((values, ctx) => {
     TOGGLE_REQUIRED_CONSIDERATIONS.forEach((key) => {
@@ -85,11 +88,12 @@ type MoldPageKey =
   | 'spareparts'
   | 'geometry'
   | 'tool_spec'
-  | 'comments';
+  | 'comments'
+  | 'files';
 
 const PAGES: readonly MoldPageKey[] = [
   'basic', 'tool_eng', 'dcm', 'diritpotd', 'other_cons', 'ot_inf', 'spareparts',
-  'geometry', 'tool_spec', 'comments',
+  'geometry', 'tool_spec', 'comments', 'files',
 ];
 
 const PAGE_META: Record<MoldPageKey, PageMeta> = {
@@ -103,6 +107,7 @@ const PAGE_META: Record<MoldPageKey, PageMeta> = {
   spareparts: { navLabel: 'SK PART', subtitle: 'Refacciones criticas a cotizar individualmente.', title: '7. SK PART' },
   tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Configuracion y parametros del herramental.', title: '2. Tool Engineering' },
   tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Dimensiones y configuracion detallada del herramental.', title: '9. Tool Specification' },
+  files: { navLabel: 'UPLOAD FILES', subtitle: 'Attach blueprints, quotations and part specifications.', title: '11. Upload Files' },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -126,6 +131,13 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'geometry', label: 'PART GEOMETRY' },
       { key: 'tool_spec', label: 'TOOL SPECIFICATION' },
       { key: 'comments', label: 'COMMENTS' },
+    ],
+  },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [
+      { key: 'files', label: 'UPLOAD FILES' },
     ],
   },
 ];
@@ -259,7 +271,7 @@ function getCreateDefaultValues(): MoldFormValues {
     hydr_slides: '', mech_slides: '', num_cav: '', num_tools: '', part_dim: '', part_name: '',
     part_number: '', part_tech: '', parts_stroke: '', pnum: '', ppy: '', prlf: '',
     rfq_name: '', sk_part: '', surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
-    wall_min: '',
+    wall_min: '', files: [],
   };
 }
 
@@ -302,6 +314,7 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     wall_max: '4.2',
     wall_min: '2.6',
     weight: 1280,
+    files: [],
   };
 }
 
@@ -468,6 +481,19 @@ function CommentsPage() {
   );
 }
 
+function FilesPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+      <MultiFileUploadField
+        accept=".ppt,.pptx,.stp,.pdf"
+        acceptLabel="PPT, STP, PDF"
+        maxSizeMb={25}
+        name="files"
+      />
+    </SectionCard>
+  );
+}
+
 function renderPage(page: string): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'tool_eng') return <ToolEngineeringPage />;
@@ -475,6 +501,7 @@ function renderPage(page: string): ReactNode {
   if (page === 'geometry') return <GeometryPage />;
   if (page === 'tool_spec') return <ToolSpecificationPage />;
   if (page === 'comments') return <CommentsPage />;
+  if (page === 'files') return <FilesPage />;
 
   if (page === 'dcm') {
     const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
