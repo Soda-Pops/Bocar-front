@@ -1,40 +1,25 @@
-import { decodeJwt } from '@/features/auth/services/jwt';
+import type { BackendRole, UserDto } from '@/features/auth/services/authDtos';
 import type { AppRole, AuthenticatedUser } from '@/features/auth/types';
-import { APP_ROLES } from '@/features/auth/types';
 
-const ROLE_ALIASES: Record<string, AppRole> = {
-  ind: 'industrializacion',
-  industrialization: 'industrializacion',
-  com: 'compras',
-  comercializacion: 'compras',
-  purchasing: 'compras',
-  pro: 'proveedor',
-  supplier: 'proveedor',
+const ROLE_BY_BACKEND: Record<Exclude<BackendRole, 'SinRol'>, AppRole> = {
+  Ind: 'industrializacion',
+  Com: 'compras',
+  Pro: 'proveedor',
 };
 
-function normalize(value: string): string {
-  return value.trim().toLowerCase();
+function pickRole(value: BackendRole): AppRole {
+  if (value === 'SinRol') {
+    throw new Error('Cuenta sin rol asignado');
+  }
+  return ROLE_BY_BACKEND[value];
 }
 
-function pickRole(value: string | undefined): AppRole {
-  if (!value) {
-    throw new Error('El token JWT no contiene el claim "role"');
-  }
-  const key = normalize(value);
-  const role = APP_ROLES.find((r) => r === key) ?? ROLE_ALIASES[key];
-  if (!role) {
-    throw new Error(`El claim "role" tiene un valor desconocido: "${value}"`);
-  }
-  return role;
-}
-
-export function mapAccessTokenToUser(accessToken: string): AuthenticatedUser {
-  const payload = decodeJwt(accessToken);
-  const id = payload?.user_id != null ? String(payload.user_id) : null;
+export function mapUserDtoToAuthenticatedUser(dto: UserDto): AuthenticatedUser {
   return {
-    id,
-    email: payload?.email ?? null,
-    role: pickRole(payload?.role),
-    isAdmin: payload?.is_admin ?? false,
+    id: dto.id,
+    email: dto.email,
+    username: dto.username,
+    role: pickRole(dto.role),
+    isAdmin: dto.is_admin,
   };
 }

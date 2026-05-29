@@ -1,7 +1,8 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import type { RfqTipo } from '@/features/analytics/types';
-import { RfqWorkspace } from '@/features/rfq/components/RfqForm/RfqWorkspace';
+import { ROUTES } from '@/app/config/routes';
+import { QuotationWorkspace } from '@/features/rfq/components/QuotationForm/QuotationWorkspace';
 
 const VALID_TIPOS: RfqTipo[] = ['Mold', 'Trimming'];
 
@@ -18,6 +19,9 @@ function QuotationFormPage() {
   const [searchParams] = useSearchParams();
   const tipo = parseRfqTipo(searchParams.get('tipo'));
 
+  const handleBack = () =>
+    navigate(ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', rfqId ?? ''));
+
   if (!tipo) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -27,11 +31,11 @@ function QuotationFormPage() {
   }
 
   return (
-    <RfqWorkspace
+    <QuotationWorkspace
       mode="create"
+      rfqId={rfqId ?? 'RFQ-001'}
       tipo={tipo}
-      rfqId={rfqId}
-      onBack={() => navigate(-1)}
+      onBack={handleBack}
     />
   );
 }

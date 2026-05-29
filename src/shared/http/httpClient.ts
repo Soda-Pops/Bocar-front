@@ -2,15 +2,14 @@ import type { ZodType } from 'zod';
 
 import { env } from '@/app/config/env';
 import { HttpError, NetworkError, ResponseParseError, UnauthorizedError } from '@/shared/http/errors';
-import { tokenStorage } from '@/shared/http/tokenStorage';
 
 type HttpHandlers = {
-  refresh?: () => Promise<string | null>;
+  refresh?: () => Promise<boolean>;
   onUnauthorized?: () => void;
 };
 
 let handlers: HttpHandlers = {};
-let inFlightRefresh: Promise<string | null> | null = null;
+let inFlightRefresh: Promise<boolean> | null = null;
 
 export function configureHttpClient(next: HttpHandlers): void {
   handlers = next;
@@ -33,14 +32,14 @@ function buildUrl(path: string): string {
   return `${env.apiBaseUrl}${suffix}`;
 }
 
-async function runRefresh(): Promise<string | null> {
+async function runRefresh(): Promise<boolean> {
   if (!handlers.refresh) {
-    return null;
+    return false;
   }
   if (!inFlightRefresh) {
     inFlightRefresh = handlers
       .refresh()
-      .catch(() => null)
+      .catch(() => false)
       .finally(() => {
         inFlightRefresh = null;
       });
@@ -68,18 +67,8 @@ async function readBody(response: Response): Promise<unknown> {
   }
 }
 
-async function executeRequest(
-  url: string,
-  init: RequestInit,
-  options: { auth: boolean },
-): Promise<Response> {
+async function executeRequest(url: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers ?? {});
-  if (options.auth) {
-    const access = tokenStorage.getAccess();
-    if (access) {
-      headers.set('Authorization', `Bearer ${access}`);
-    }
-  }
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -88,7 +77,7 @@ async function executeRequest(
   }
 
   try {
-    return await fetch(url, { ...init, headers });
+    return await fetch(url, { ...init, headers, credentials: 'include' });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') {
       throw cause;
@@ -112,12 +101,12 @@ export async function request<T = unknown>(
     init.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
 
-  let response = await executeRequest(url, init, { auth });
+  let response = await executeRequest(url, init);
 
   if (response.status === 401 && auth) {
-    const newAccess = await runRefresh();
-    if (newAccess) {
-      response = await executeRequest(url, init, { auth: true });
+    const refreshed = await runRefresh();
+    if (refreshed) {
+      response = await executeRequest(url, init);
     }
     if (response.status === 401) {
       handlers.onUnauthorized?.();

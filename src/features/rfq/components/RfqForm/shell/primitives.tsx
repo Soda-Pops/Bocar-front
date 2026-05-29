@@ -1,6 +1,8 @@
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import type { SectionType } from './types';
+
 // ─── Style helpers ────────────────────────────────────────────────────────────
 
 export function inputBaseClasses(hasError: boolean) {
@@ -93,20 +95,27 @@ export function FieldShell({
 
 export function SectionCard({
   children,
+  sectionType,
   subtitle,
   title,
 }: {
   children: ReactNode;
+  sectionType?: SectionType;
   subtitle?: string;
   title: string;
 }) {
   return (
     <section className="rounded-[18px] border border-[rgba(217,222,229,0.92)] bg-white shadow-[0_16px_36px_rgba(0,46,93,0.05)]">
       <div className="border-b border-[rgba(217,222,229,0.86)] px-5 py-5 sm:px-6">
-        <h2 className="m-0 text-[16px] font-semibold tracking-[0.01em] text-[var(--bocar-text)]">{title}</h2>
-        {subtitle ? (
-          <p className="mt-2 m-0 text-[13px] leading-[1.55] text-[var(--bocar-blue-50)]">{subtitle}</p>
-        ) : null}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <h2 className="m-0 text-[16px] font-semibold tracking-[0.01em] text-[var(--bocar-text)]">{title}</h2>
+            {subtitle ? (
+              <p className="mt-2 m-0 text-[13px] leading-[1.55] text-[var(--bocar-blue-50)]">{subtitle}</p>
+            ) : null}
+          </div>
+          {sectionType ? <SectionTypeBadge type={sectionType} /> : null}
+        </div>
       </div>
       <div className="px-5 py-5 sm:px-6">{children}</div>
     </section>
@@ -136,8 +145,9 @@ export function TextField({
   span?: 1 | 2;
   type?: InputHTMLAttributes<HTMLInputElement>['type'];
 }) {
-  const { formState, getFieldState, register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
   const { error } = getFieldState(name, formState);
+  const { onBlur, onChange, ...rest } = register(name);
 
   return (
     <FieldShell error={error?.message} hint={hint} label={label} required={required} span={span}>
@@ -146,7 +156,15 @@ export function TextField({
         className={inputBaseClasses(Boolean(error))}
         placeholder={placeholder}
         type={type}
-        {...register(name)}
+        {...rest}
+        onChange={async (e) => {
+          await onChange(e);
+          if (error) void trigger(name);
+        }}
+        onBlur={async (e) => {
+          await onBlur(e);
+          if (error) void trigger(name);
+        }}
       />
     </FieldShell>
   );
@@ -167,8 +185,9 @@ export function TextAreaField({
   rows?: TextareaHTMLAttributes<HTMLTextAreaElement>['rows'];
   span?: 1 | 2;
 }) {
-  const { formState, getFieldState, register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
   const { error } = getFieldState(name, formState);
+  const { onChange, ...rest } = register(name);
 
   return (
     <FieldShell error={error?.message} hint={hint} label={label} span={span}>
@@ -177,7 +196,11 @@ export function TextAreaField({
         className={`${inputBaseClasses(Boolean(error))} min-h-[112px] resize-y`}
         placeholder={placeholder}
         rows={rows}
-        {...register(name)}
+        {...rest}
+        onChange={async (e) => {
+          await onChange(e);
+          if (error) void trigger(name);
+        }}
       />
     </FieldShell>
   );
@@ -198,7 +221,13 @@ export function YesNoToggle({ name }: { name: string }) {
             : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
         ].join(' ')}
         type="button"
-        onClick={() => setValue(name, value === 'yes' ? '' : 'yes', { shouldDirty: true })}
+        onClick={() =>
+          setValue(name, value === 'yes' ? '' : 'yes', {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+        }
       >
         YES
       </button>
@@ -210,7 +239,13 @@ export function YesNoToggle({ name }: { name: string }) {
             : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
         ].join(' ')}
         type="button"
-        onClick={() => setValue(name, value === 'no' ? '' : 'no', { shouldDirty: true })}
+        onClick={() =>
+          setValue(name, value === 'no' ? '' : 'no', {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+        }
       >
         NO
       </button>
@@ -248,28 +283,225 @@ export function YesNoDateRow({
   name: string;
   notesName: string;
 }) {
-  const { control, register } = useFormContext();
+  const { control, formState, getFieldState, register, trigger } = useFormContext();
   const rawChecked = useWatch({ control, name });
   const isYes = typeof rawChecked === 'string' && rawChecked === 'yes';
+  const checkedError = getFieldState(name, formState).error?.message;
+  const notesError = getFieldState(notesName, formState).error?.message;
+  const error = checkedError ?? notesError;
+  const { onChange, ...notesRegister } = register(notesName);
 
   return (
-    <div className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
-      <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{label}</div>
-      <YesNoToggle name={name} />
-      <input
-        className={inputBaseClasses(false)}
-        disabled={!isYes}
-        type="date"
-        {...register(notesName)}
-      />
+    <div className="py-4">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
+        <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">{label}</div>
+        <YesNoToggle name={name} />
+        <input
+          aria-invalid={Boolean(notesError)}
+          className={inputBaseClasses(Boolean(notesError))}
+          disabled={!isYes}
+          type="date"
+          {...notesRegister}
+          onChange={async (e) => {
+            await onChange(e);
+            if (notesError) void trigger(notesName);
+          }}
+        />
+      </div>
+      {error ? (
+        <p className="m-0 mt-2 text-[12px] leading-[1.45] text-[var(--bocar-error)]" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 // ─── ConsiderationTogglePage ──────────────────────────────────────────────────
 
+// ─── Section type badge ───────────────────────────────────────────────────────
+
+const SECTION_TYPE_META: Record<
+  SectionType,
+  { label: string; classes: string; dotClass: string }
+> = {
+  readonly: {
+    label: 'Del RFQ · Solo lectura',
+    classes:
+      'border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] text-[var(--bocar-blue-70)]',
+    dotClass: 'bg-[var(--bocar-blue-30)]',
+  },
+  hybrid: {
+    label: 'Mixta · Tú + RFQ',
+    classes:
+      'border-[rgba(176,135,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[#7A6300]',
+    dotClass: 'bg-[#C49B00]',
+  },
+  supplier: {
+    label: 'Por completar',
+    classes:
+      'border-[rgba(0,46,93,0.18)] bg-[rgba(0,46,93,0.08)] text-[var(--bocar-blue-100)]',
+    dotClass: 'bg-[var(--bocar-blue-100)]',
+  },
+};
+
+export function SectionTypeBadge({ type }: { type: SectionType }) {
+  const meta = SECTION_TYPE_META[type];
+  return (
+    <span
+      className={[
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]',
+        meta.classes,
+      ].join(' ')}
+    >
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`} />
+      {meta.label}
+    </span>
+  );
+}
+
+export function SidebarSectionDot({ type }: { type: SectionType }) {
+  const meta = SECTION_TYPE_META[type];
+  const title =
+    type === 'readonly'
+      ? 'Solo lectura'
+      : type === 'hybrid'
+        ? 'Mixta'
+        : 'Por completar';
+  return (
+    <span
+      aria-label={title}
+      className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`}
+      title={title}
+    />
+  );
+}
+
+// ─── Read-only field display ──────────────────────────────────────────────────
+
+function LockIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-3 w-3 shrink-0 text-[var(--bocar-blue-50)]"
+      fill="none"
+      viewBox="0 0 12 12"
+    >
+      <path
+        d="M3 5.5V4a3 3 0 016 0v1.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.2"
+      />
+      <rect
+        height="5"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        width="7"
+        x="2.5"
+        y="5.5"
+      />
+    </svg>
+  );
+}
+
+export function ReadOnlyField({
+  hint,
+  label,
+  span = 1,
+  value,
+}: {
+  hint?: string;
+  label: string;
+  span?: 1 | 2;
+  value: ReactNode;
+}) {
+  const isEmpty =
+    value === '' || value === null || value === undefined;
+  const displayValue = isEmpty ? '—' : value;
+
+  return (
+    <div className={span === 2 ? 'md:col-span-2' : undefined}>
+      <div className="mb-2 flex items-center gap-1.5">
+        <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
+          {label}
+        </label>
+        <LockIcon />
+      </div>
+      <div className="flex min-h-[42px] items-center rounded-[10px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-3.5 py-2.5 text-[14px] font-medium text-[var(--bocar-text)]">
+        <span className={isEmpty ? 'text-[var(--bocar-blue-30)]' : ''}>{displayValue}</span>
+      </div>
+      {hint ? (
+        <p className="mt-2 m-0 text-[12px] leading-[1.45] text-[var(--bocar-blue-50)]">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Subgroup separator (for hybrid sections) ─────────────────────────────────
+
+export function HybridSubgroup({
+  children,
+  hint,
+  title,
+  tone = 'readonly',
+}: {
+  children: ReactNode;
+  hint?: string;
+  title: string;
+  tone?: SectionType;
+}) {
+  const accent =
+    tone === 'supplier'
+      ? 'border-[var(--bocar-blue-100)]'
+      : tone === 'hybrid'
+        ? 'border-[#C49B00]'
+        : 'border-[var(--bocar-blue-30)]';
+
+  return (
+    <div className="space-y-4">
+      <div className={`flex items-baseline justify-between gap-3 border-l-[3px] ${accent} pl-3`}>
+        <h3 className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-90)]">
+          {title}
+        </h3>
+        {hint ? (
+          <span className="text-[11px] font-medium text-[var(--bocar-blue-50)]">{hint}</span>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Section type info banner ─────────────────────────────────────────────────
+
+export function SectionTypeLegend() {
+  return (
+    <div className="rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-white p-4 shadow-[0_8px_24px_rgba(0,46,93,0.04)]">
+      <p className="m-0 mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
+        Tipos de sección
+      </p>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {(['readonly', 'hybrid', 'supplier'] as const).map((t) => (
+          <div key={t} className="flex items-start gap-3">
+            <SectionTypeBadge type={t} />
+            <p className="m-0 text-[12px] leading-[1.5] text-[var(--bocar-blue-70)]">
+              {t === 'readonly'
+                ? 'Datos cargados por Industrialización. No los puedes editar.'
+                : t === 'hybrid'
+                  ? 'Combina datos heredados del RFQ con campos que tú debes completar.'
+                  : 'Información que debes capturar como proveedor para tu cotización.'}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupConfig }) {
-  const { register } = useFormContext();
+  const { formState, getFieldState, register, trigger } = useFormContext();
 
   const col1 = group.col1Header ?? 'Entregable / requisito';
   const col2 = group.col2Header ?? 'Aplica';
@@ -298,30 +530,53 @@ export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupCo
               name={`considerations.${item.id}.checked`}
               notesName={`considerations.${item.id}.notes`}
             />
-          ) : (
-            <div
-              key={item.id}
-              className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5"
-            >
-              <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
-                {item.label}
+          ) : (() => {
+            const checkedName = `considerations.${item.id}.checked`;
+            const notesName = `considerations.${item.id}.notes`;
+            const checkedError = getFieldState(checkedName, formState).error?.message;
+            const notesError = getFieldState(notesName, formState).error?.message;
+            const error = checkedError ?? notesError;
+            const { onChange, ...notesRegister } = register(notesName);
+
+            return (
+              <div key={item.id} className="py-4">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] md:items-center md:gap-5">
+                  <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
+                    {item.label}
+                  </div>
+                  <YesNoToggle name={checkedName} />
+                  {item.notesAs === 'textarea' ? (
+                    <textarea
+                      aria-invalid={Boolean(notesError)}
+                      className={`${inputBaseClasses(Boolean(notesError))} resize-y`}
+                      rows={2}
+                      {...notesRegister}
+                      onChange={async (e) => {
+                        await onChange(e);
+                        if (notesError) void trigger(notesName);
+                      }}
+                    />
+                  ) : (
+                    <input
+                      aria-invalid={Boolean(notesError)}
+                      className={inputBaseClasses(Boolean(notesError))}
+                      placeholder={item.noteExample ?? ''}
+                      {...notesRegister}
+                      onChange={async (e) => {
+                        await onChange(e);
+                        if (notesError) void trigger(notesName);
+                      }}
+                    />
+                  )}
+                </div>
+                {error ? (
+                  <p className="m-0 mt-2 text-[12px] leading-[1.45] text-[var(--bocar-error)]" role="alert">
+                    {error}
+                  </p>
+                ) : null}
               </div>
-              <YesNoToggle name={`considerations.${item.id}.checked`} />
-              {item.notesAs === 'textarea' ? (
-                <textarea
-                  className={`${inputBaseClasses(false)} resize-y`}
-                  rows={2}
-                  {...register(`considerations.${item.id}.notes`)}
-                />
-              ) : (
-                <input
-                  className={inputBaseClasses(false)}
-                  placeholder={item.noteExample ?? ''}
-                  {...register(`considerations.${item.id}.notes`)}
-                />
-              )}
-            </div>
-          )
+            );
+          })()
         )}
       </div>
     </SectionCard>

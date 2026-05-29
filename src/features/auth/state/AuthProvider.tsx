@@ -1,43 +1,32 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 
 import * as authService from '@/features/auth/services/authService';
-import { isJwtExpired } from '@/features/auth/services/jwt';
-import { mapAccessTokenToUser } from '@/features/auth/services/userMapper';
+import { mapUserDtoToAuthenticatedUser } from '@/features/auth/services/userMapper';
 import { AuthContext, type AuthContextValue, type AuthStatus } from '@/features/auth/state/authContext';
 import type { AuthenticatedUser } from '@/features/auth/types';
 import { configureHttpClient } from '@/shared/http/httpClient';
-import { tokenStorage } from '@/shared/http/tokenStorage';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthStatus>({ status: 'initializing' });
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   const setAuthenticated = useCallback((user: AuthenticatedUser) => {
     setState({ status: 'authenticated', user });
   }, []);
 
   const setAnonymous = useCallback(() => {
-    tokenStorage.clear();
     setState({ status: 'anonymous' });
   }, []);
 
-  const refresh = useCallback(async (): Promise<string | null> => {
-    const refreshToken = tokenStorage.getRefresh();
-    if (!refreshToken) {
-      return null;
-    }
+  const refresh = useCallback(async (): Promise<boolean> => {
     try {
-      const pair = await authService.refreshAccessToken(refreshToken);
-      tokenStorage.setPair(pair);
-      setAuthenticated(mapAccessTokenToUser(pair.access));
-      return pair.access;
+      await authService.refreshSession();
+      return true;
     } catch {
       setAnonymous();
-      return null;
+      return false;
     }
-  }, [setAnonymous, setAuthenticated]);
+  }, [setAnonymous]);
 
   useEffect(() => {
     configureHttpClient({
@@ -50,30 +39,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let cancelled = false;
     async function bootstrap() {
-      const pair = tokenStorage.getPair();
-      if (!pair) {
-        if (!cancelled) {
-          setState({ status: 'anonymous' });
-        }
-        return;
-      }
       try {
-        if (!isJwtExpired(pair.access)) {
-          if (!cancelled) {
-            setAuthenticated(mapAccessTokenToUser(pair.access));
-          }
-          return;
-        }
-        const newAccess = await refresh();
-        if (cancelled) {
-          return;
-        }
-        if (!newAccess) {
-          setState({ status: 'anonymous' });
+        const dto = await authService.fetchCurrentUser();
+        if (!cancelled) {
+          setAuthenticated(mapUserDtoToAuthenticatedUser(dto));
         }
       } catch {
         if (!cancelled) {
-          setAnonymous();
+          setState({ status: 'anonymous' });
         }
       }
     }
@@ -81,13 +54,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [refresh, setAuthenticated]);
+  }, [setAuthenticated]);
 
   const login = useCallback<AuthContextValue['login']>(
     async (credentials) => {
-      const pair = await authService.login(credentials);
-      tokenStorage.setPair(pair);
-      const user = mapAccessTokenToUser(pair.access);
+      const response = await authService.login(credentials);
+      const user = mapUserDtoToAuthenticatedUser(response.user);
       setAuthenticated(user);
       return user;
     },
@@ -95,13 +67,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const logout = useCallback<AuthContextValue['logout']>(async () => {
-    const refreshToken = tokenStorage.getRefresh();
-    if (refreshToken) {
-      try {
-        await authService.logout(refreshToken);
-      } catch {
-        // si falla el blacklist remoto igual cerramos sesion local
-      }
+    try {
+      await authService.logout();
+    } catch {
+      // si la red falla, igual cerramos sesion local — las cookies expiraran solas
     }
     setAnonymous();
   }, [setAnonymous]);

@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
+import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
 import { FileUploadField } from '@shared/components/ui/FileUploadField';
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 
 import {
   ConsiderationTogglePage,
@@ -27,63 +29,65 @@ const TRIMMING_TOGGLE_REQUIRED = new Set([
 const trimmingSchema = z
   .object({
     // Sección 1 — RFQ
-    description: z.string().trim().min(1, 'Ingresa la descripcion.'),
-    part_number: z.string().trim().min(1, 'Ingresa el numero de parte.'),
-    parts_per_year: z.string(),
-    project_life: z.string(),
-    customer: z.string(),
-    previous_job: z.string(),
-    supplier: z.string(),
-    deliver_by: z.string(),
+    description: z.string().trim().min(1, 'Ingresa la descripcion.'), // requerido · trim · mínimo 1 carácter
+    part_number: z.string().trim().min(1, 'Ingresa el numero de parte.'), // requerido · trim · mínimo 1 carácter
+    parts_per_year: z.string(), // opcional · número como string (input type number)
+    project_life: z.string(), // opcional · string libre (ej. "5 años")
+    customer: z.string(), // opcional · string libre
+    previous_job: z.string(), // opcional · string libre (referencia a job anterior)
+    supplier: z.string(), // opcional · string libre
+    deliver_by: z.string(), // opcional · formato date YYYY-MM-DD desde el input, no validado por Zod
     // Sección 2 — Trim Die
-    press: z.string(),
-    num_cavities: z.string(),
-    num_hydraulic_slides: z.string(),
-    fully_automatic: z.string(),
-    presence_detectors: z.string(),
-    trimming_condition: z.string(),
-    punch_pins_required: z.string(),
-    residual_burr_mm: z.string(),
-    castings_by_auma: z.string(),
-    adjustments_toolmaker: z.string(),
-    gas_springs: z.string(),
+    press: z.string(), // opcional · string libre (modelo de prensa)
+    num_cavities: z.string(), // opcional · string libre (ej. "2x")
+    num_hydraulic_slides: z.string(), // opcional · número como string
+    fully_automatic: z.string(), // opcional · valores esperados: 'yes' | 'no' (YesNoToggle), no restringido por Zod
+    presence_detectors: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
+    trimming_condition: z.string(), // opcional · valores esperados: '' | 'cold' | 'hot' (select), no restringido por Zod
+    punch_pins_required: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
+    residual_burr_mm: z.string(), // opcional · número como string (input step 0.1)
+    castings_by_auma: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
+    adjustments_toolmaker: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
+    gas_springs: z.string(), // opcional · string libre (ej. "Nitrogen, 4 pcs.")
     // Secciones 3 y 4 — consideraciones YES/NO
     considerations: z.record(
       z.string(),
       z.object({ checked: z.string().optional(), notes: z.string() })
-    ),
+    ), // claves libres → { checked?: string, notes: string }; superRefine: las 15 claves de TRIMMING_TOGGLE_REQUIRED requieren checked no vacío; si others.checked === 'yes', notes también es requerido
     // Sección 5 — Shot Sketch
     shot_sketch_file: z
       .object({ name: z.string(), size: z.number(), type: z.string() })
-      .nullable(),
+      .nullable(), // null = sin archivo adjunto; si existe: name (string), size (number en bytes), type (MIME string)
     // Sección 6 — Part Geometry
-    pg_part_name: z.string(),
-    pg_alloy: z.string(),
-    pg_part_number_geom: z.string(),
-    pg_part_dimension: z.string(),
-    pg_min_wall_thickness: z.string(),
-    pg_max_wall_thickness: z.string(),
-    pg_projected_area: z.string(),
-    pg_surface: z.string(),
-    pg_volume: z.string(),
-    pg_gross_weight: z.string(),
+    pg_part_name: z.string(), // opcional · string libre
+    pg_alloy: z.string(), // opcional · string libre (ej. "AlSi10MgMn")
+    pg_part_number_geom: z.string(), // opcional · número como string (input step 0.01)
+    pg_part_dimension: z.string(), // opcional · string libre (ej. "320x180x75" en mm)
+    pg_min_wall_thickness: z.string(), // opcional · número como string (input step 0.01, en mm)
+    pg_max_wall_thickness: z.string(), // opcional · número como string (input step 0.01, en mm)
+    pg_projected_area: z.string(), // opcional · número como string (input step 0.01, en cm²)
+    pg_surface: z.string(), // opcional · número como string (input step 0.01, en cm²)
+    pg_volume: z.string(), // opcional · número como string (input step 0.01, en cm³)
+    pg_gross_weight: z.string(), // opcional · número como string (input step 0.01, en g)
     // Sección 7 — Tool Specification
-    ts_buhler_machine_ton: z.string(),
-    ts_num_cavities_sets: z.string(),
-    ts_three_plate_mold: z.string(),
-    ts_num_gates_per_part: z.string(),
-    ts_num_mech_slides: z.string(),
-    ts_num_hydr_slides: z.string(),
-    ts_num_parts_per_stroke: z.string(),
-    ts_num_tools: z.string(),
+    ts_buhler_machine_ton: z.string(), // opcional · número como string (input step 0.01, en toneladas)
+    ts_num_cavities_sets: z.string(), // opcional · número como string (input step 0.01)
+    ts_three_plate_mold: z.string(), // opcional · número como string (input step 0.01)
+    ts_num_gates_per_part: z.string(), // opcional · string libre
+    ts_num_mech_slides: z.string(), // opcional · número como string (input step 0.01)
+    ts_num_hydr_slides: z.string(), // opcional · número como string (input step 0.01)
+    ts_num_parts_per_stroke: z.string(), // opcional · string libre
+    ts_num_tools: z.string(), // opcional · string libre
     // Sección 8 — Comments
-    comments: z.string(),
+    comments: z.string(), // opcional · texto libre (textarea, sin límite de longitud)
+    // Sección 9 — Files
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // opcional · archivos adjuntos: PPT, STP, PDF; máx. 25 MB por archivo
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
       if (!values.considerations[key]?.checked?.trim()) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: 'Selecciona si aplica.',
           path: ['considerations', key, 'checked'],
         });
@@ -94,7 +98,7 @@ const trimmingSchema = z
       !values.considerations['others']?.notes?.trim()
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: 'Especifica el concepto.',
         path: ['considerations', 'others', 'notes'],
       });
@@ -113,11 +117,12 @@ type TrimmingPageKey =
   | 'shot_sketch'
   | 'part_geometry'
   | 'tool_spec'
-  | 'comments';
+  | 'comments'
+  | 'files';
 
 const PAGES: readonly TrimmingPageKey[] = [
   'basic', 'trim_die', 'data_info', 'other_info', 'shot_sketch',
-  'part_geometry', 'tool_spec', 'comments',
+  'part_geometry', 'tool_spec', 'comments', 'files',
 ];
 
 const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
@@ -161,6 +166,11 @@ const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
     subtitle: 'Comentarios adicionales para el proveedor.',
     title: '8. Comments',
   },
+  files: {
+    navLabel: 'UPLOAD FILES',
+    subtitle: 'Attach blueprints, quotations and part specifications.',
+    title: '9. Upload Files',
+  },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -184,10 +194,37 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'comments', label: 'COMMENTS' },
     ],
   },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [
+      { key: 'files', label: 'UPLOAD FILES' },
+    ],
+  },
 ];
 
-const REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly (keyof TrimmingFormValues)[]>> = {
+const REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly FieldPath<TrimmingFormValues>[]>> = {
   basic: ['description', 'part_number'],
+  data_info: [
+    'considerations.design_3d.checked',
+    'considerations.design_2d.checked',
+    'considerations.punch_pins.checked',
+    'considerations.manuf_proposals.checked',
+    'considerations.latest_improvements.checked',
+    'considerations.sketch_concept.checked',
+  ],
+  other_info: [
+    'considerations.frame_refur.checked',
+    'considerations.elec_wires.checked',
+    'considerations.others.checked',
+    'considerations.others.notes',
+    'considerations.delivery_date.checked',
+    'considerations.ejector_fixed.checked',
+    'considerations.trim_die_1.checked',
+    'considerations.trim_die_2.checked',
+    'considerations.spare_parts_set.checked',
+    'considerations.hydraulic_cyl.checked',
+  ],
 };
 
 // ─── Consideration group configs ──────────────────────────────────────────────
@@ -273,6 +310,7 @@ function getCreateDefaultValues(): TrimmingFormValues {
     ts_num_parts_per_stroke: '',
     ts_num_tools: '',
     comments: '',
+    files: [],
   };
 }
 
@@ -334,6 +372,7 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     ts_num_parts_per_stroke: '2',
     ts_num_tools: '1',
     comments: '',
+    files: [],
   };
 }
 
@@ -349,8 +388,17 @@ function getCompletedMap(values: TrimmingFormValues): Partial<Record<string, boo
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<TrimmingFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
+  const cons = errors.considerations as Record<string, unknown> | undefined;
+
+  function groupHasErrors(group: ConsiderationGroupConfig): boolean {
+    if (!cons) return false;
+    return group.items.some((item) => TRIMMING_TOGGLE_REQUIRED.has(item.id) && Boolean(cons[item.id]));
+  }
+
   return {
     basic: Boolean(errors.description || errors.part_number),
+    data_info: groupHasErrors(DATA_INFO_GROUP),
+    other_info: groupHasErrors(OTHER_INFO_GROUP),
   };
 }
 
@@ -691,6 +739,19 @@ function CommentsPage() {
   );
 }
 
+function FilesPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+      <MultiFileUploadField
+        accept=".ppt,.pptx,.stp,.pdf"
+        acceptLabel="PPT, STP, PDF"
+        maxSizeMb={25}
+        name="files"
+      />
+    </SectionCard>
+  );
+}
+
 function renderPage(page: string): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'trim_die') return <TrimDiePage />;
@@ -700,6 +761,7 @@ function renderPage(page: string): ReactNode {
   if (page === 'part_geometry') return <PartGeometryPage />;
   if (page === 'tool_spec') return <ToolSpecPage />;
   if (page === 'comments') return <CommentsPage />;
+  if (page === 'files') return <FilesPage />;
   return null;
 }
 

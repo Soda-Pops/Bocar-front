@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FormProvider,
   type DefaultValues,
@@ -11,12 +11,20 @@ import type { RfqTipo } from '@/features/analytics/types';
 import { Header } from '@/layouts/components/Header';
 import { Button } from '@/shared/components/ui/Button';
 
-import { BackArrowIcon, ChevronDownIcon, getFeedbackClasses } from './primitives';
-import type { FeedbackTone, NavGroup, RfqWorkspaceDefinition } from './types';
+import {
+  BackArrowIcon,
+  ChevronDownIcon,
+  getFeedbackClasses,
+} from '../../RfqForm/shell/primitives';
+import type {
+  FeedbackTone,
+  NavGroup,
+  RfqWorkspaceDefinition,
+} from '../../RfqForm/shell/types';
 
-// ─── Sidebar components ───────────────────────────────────────────────────────
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
 
-function WorkspaceSidebar({
+function QuotationSidebar({
   current,
   navGroups,
   onSelect,
@@ -86,7 +94,7 @@ function WorkspaceSidebar({
   );
 }
 
-function WorkspaceSidebarMobile({
+function QuotationSidebarMobile({
   current,
   navGroups,
   onSelect,
@@ -126,32 +134,39 @@ function WorkspaceSidebarMobile({
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
-type RfqWorkspaceShellProps<TValues extends FieldValues> = {
+type QuotationWorkspaceShellProps<TValues extends FieldValues> = {
   definition: RfqWorkspaceDefinition<TValues>;
   mode: 'create' | 'edit';
   onBack: () => void;
-  rfqId?: string;
+  quotationId?: string;
+  rfqId: string;
   tipo: RfqTipo;
 };
 
-export function RfqWorkspaceShell<TValues extends FieldValues>({
+export function QuotationWorkspaceShell<TValues extends FieldValues>({
   definition,
   mode,
   onBack,
+  quotationId,
   rfqId,
   tipo,
-}: RfqWorkspaceShellProps<TValues>) {
+}: QuotationWorkspaceShellProps<TValues>) {
   const [currentPage, setCurrentPage] = useState<string>(definition.pages[0] ?? 'basic');
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() =>
-    getInitialFeedback(mode, rfqId)
+    getInitialFeedback(mode, rfqId, quotationId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
   const currentPageRef = useRef<string>(definition.pages[0] ?? 'basic');
   const skipNextEmptyPageErrorSyncRef = useRef(false);
 
-  const defaults =
-    mode === 'edit' ? definition.getEditDefaultValues(rfqId) : definition.getCreateDefaultValues();
+  const defaults = useMemo(
+    () =>
+      mode === 'edit'
+        ? definition.getEditDefaultValues(quotationId ?? rfqId)
+        : definition.getCreateDefaultValues(),
+    [mode, definition, quotationId, rfqId]
+  );
 
   const form = useForm<TValues>({
     defaultValues: defaults as DefaultValues<TValues>,
@@ -171,14 +186,14 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   useEffect(() => {
     reset(
       (mode === 'edit'
-        ? definition.getEditDefaultValues(rfqId)
+        ? definition.getEditDefaultValues(quotationId ?? rfqId)
         : definition.getCreateDefaultValues()) as DefaultValues<TValues>
     );
     setCurrentPage(definition.pages[0] ?? 'basic');
-    setFeedback(getInitialFeedback(mode, rfqId));
+    setFeedback(getInitialFeedback(mode, rfqId, quotationId));
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
-  }, [mode, reset, rfqId, tipo, definition]);
+  }, [mode, reset, rfqId, quotationId, tipo, definition]);
 
   currentPageRef.current = currentPage;
 
@@ -205,12 +220,12 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     if (Object.keys(errors).length === 0) {
       setAttemptedSubmit(false);
       setVisiblePageErrors({});
-      setFeedback(getInitialFeedback(mode, rfqId));
+      setFeedback(getInitialFeedback(mode, rfqId, quotationId));
     }
-  }, [errors, attemptedSubmit, mode, rfqId, pageErrorSignature]);
+  }, [errors, attemptedSubmit, mode, rfqId, quotationId, pageErrorSignature]);
 
   const meta = definition.pageMeta[currentPage];
-  const headerTitle = mode === 'edit' ? 'EDITAR RFQ' : 'CREAR RFQ';
+  const headerTitle = mode === 'edit' ? 'EDITAR COTIZACIÓN' : 'CREAR COTIZACIÓN';
 
   async function goNext() {
     const nextPage = definition.pages[currentIndex + 1];
@@ -237,7 +252,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
     setCurrentPage(nextPage);
     setFeedback({
-      text: `Continua con ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Tu progreso queda guardado como borrador local.`,
+      text: `Continúa con ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Tu progreso queda guardado como borrador local.`,
       tone: 'neutral',
     });
   }
@@ -251,20 +266,20 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} quedo guardada como borrador editable.`
-          : 'Borrador guardado.',
+          ? `${(quotationId ?? 'COT-001').toUpperCase()} quedó guardada como borrador editable.`
+          : `Borrador de cotización guardado para ${rfqId.toUpperCase()}.`,
       tone: 'success',
     });
   }
 
-  async function handleValidSubmit() {
+  function handleValidSubmit() {
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} quedo actualizada y lista para continuar el flujo.`
-          : 'La RFQ quedo capturada en el nuevo flujo y esta lista para revision interna.',
+          ? `${(quotationId ?? 'COT-001').toUpperCase()} quedó actualizada y enviada a Compras.`
+          : `Tu cotización para ${rfqId.toUpperCase()} fue enviada a Compras para revisión.`,
       tone: 'success',
     });
   }
@@ -290,10 +305,10 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   return (
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-        <Header areaLabel={`Industrializacion · ${headerTitle} · ${tipo}`} />
+        <Header areaLabel={`Proveedor · ${headerTitle} · ${tipo}`} />
 
         <div className="flex min-h-0 flex-1">
-          <WorkspaceSidebar
+          <QuotationSidebar
             current={currentPage}
             navGroups={definition.navGroups}
             onSelect={setCurrentPage}
@@ -301,7 +316,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
           />
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <WorkspaceSidebarMobile
+            <QuotationSidebarMobile
               current={currentPage}
               navGroups={definition.navGroups}
               onSelect={setCurrentPage}
@@ -310,8 +325,16 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
             <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-12 lg:py-10">
               <div className="mx-auto w-full max-w-[960px]">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="m-0 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[30px]">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+                      <span>RFQ asignada</span>
+                      <span
+                        aria-hidden="true"
+                        className="inline-block h-1 w-1 rounded-full bg-[var(--bocar-blue-30)]"
+                      />
+                      <span className="text-[var(--bocar-blue-100)]">{rfqId.toUpperCase()}</span>
+                    </div>
+                    <h1 className="m-0 mt-2 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[30px]">
                       {headerTitle}
                     </h1>
                     <p className="mt-2 mb-0 text-[13px] font-medium text-[var(--bocar-blue-50)]">
@@ -377,11 +400,15 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
                       {currentIndex === definition.pages.length - 1 ? (
                         <Button
-                          className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
+                          className="h-11 min-w-[200px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
                           disabled={isSubmitting}
                           type="submit"
                         >
-                          {isSubmitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar RFQ' : 'Enviar RFQ'}
+                          {isSubmitting
+                            ? 'Enviando...'
+                            : mode === 'edit'
+                              ? 'Actualizar Cotización'
+                              : 'Enviar Cotización'}
                         </Button>
                       ) : (
                         <Button
@@ -406,15 +433,15 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   );
 }
 
-function getInitialFeedback(mode: 'create' | 'edit', rfqId?: string) {
+function getInitialFeedback(mode: 'create' | 'edit', rfqId: string, quotationId?: string) {
   if (mode === 'edit') {
     return {
-      text: `Estas ajustando ${(rfqId ?? 'RFQ-021').toUpperCase()} con el nuevo workspace multipantalla.`,
+      text: `Estás ajustando ${(quotationId ?? 'COT-001').toUpperCase()} para la RFQ ${rfqId.toUpperCase()}.`,
       tone: 'neutral' as const,
     };
   }
   return {
-    text: 'Completa las secciones del sidebar y envia la RFQ cuando ya no tengas campos obligatorios pendientes.',
+    text: `Completa las secciones marcadas como "Por completar" y "Mixta". Los campos heredados del RFQ ${rfqId.toUpperCase()} no son editables.`,
     tone: 'neutral' as const,
   };
 }
