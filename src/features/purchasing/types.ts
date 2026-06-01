@@ -13,14 +13,14 @@ export type PurchasingRfqStatus =
 
 export type PurchasingDashboardMetricKey = 'pending' | 'quoting' | 'benchmark_ready' | 'expired' | 'eliminated';
 
-export type PurchasingPriority = 'Alta' | 'Media' | 'Baja';
+export type PurchasingPriority = 'High' | 'Medium' | 'Low';
 
 export type PurchasingMachineType =
-  | 'Inyeccion'
-  | 'Estampado'
-  | 'Fundicion'
-  | 'Maquinado'
-  | 'Ensamble'
+  | 'Injection'
+  | 'Stamping'
+  | 'Die Casting'
+  | 'Machining'
+  | 'Assembly'
   | 'Mold'
   | 'Trimming';
 

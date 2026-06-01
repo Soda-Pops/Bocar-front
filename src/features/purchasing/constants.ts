@@ -13,39 +13,39 @@ export const purchasingStatusMeta: Record<
   }
 > = {
   DRAFT: {
-    label: 'Borrador',
+    label: 'Draft',
     className: 'border-[rgba(174,179,184,0.3)] bg-[rgba(174,179,184,0.14)] text-[var(--bocar-blue-90)]',
   },
   PENDING: {
-    label: 'Pendiente asignacion',
+    label: 'Pending assignment',
     className: 'border-[rgba(255,242,0,0.34)] bg-[rgba(255,242,0,0.2)] text-[var(--bocar-blue-100)]',
   },
   PENDING_EDIT_REQUEST: {
-    label: 'Solicitud de edicion',
+    label: 'Edit request',
     className: 'border-[rgba(127,143,163,0.3)] bg-[rgba(127,143,163,0.12)] text-[var(--bocar-blue-90)]',
   },
   QUOTING: {
-    label: 'En cotizacion',
+    label: 'In quotation',
     className: 'border-[rgba(31,58,97,0.16)] bg-[rgba(31,58,97,0.08)] text-[var(--bocar-blue-100)]',
   },
   PARTIALLY_QUOTED: {
-    label: 'Cotizada parcial',
+    label: 'Partially quoted',
     className: 'border-[rgba(255,242,0,0.24)] bg-[rgba(255,242,0,0.16)] text-[var(--bocar-blue-100)]',
   },
   BENCHMARK_READY: {
-    label: 'Benchmark listo',
+    label: 'Benchmark ready',
     className: 'border-[rgba(141,198,63,0.28)] bg-[rgba(141,198,63,0.18)] text-[var(--bocar-blue-100)]',
   },
   EXPIRED: {
-    label: 'Vencida',
+    label: 'Expired',
     className: 'border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]',
   },
   CLOSED: {
-    label: 'Cerrada',
+    label: 'Closed',
     className: 'border-[rgba(174,179,184,0.24)] bg-[rgba(174,179,184,0.12)] text-[var(--bocar-blue-90)]',
   },
   CANCELLED: {
-    label: 'Cancelada',
+    label: 'Cancelled',
     className: 'border-[rgba(170,0,15,0.18)] bg-[rgba(170,0,15,0.05)] text-[var(--bocar-error)]',
   },
 };
@@ -64,38 +64,38 @@ export const purchasingPriorityMeta: Record<
     rank: number;
   }
 > = {
-  Alta: {
+  High: {
     className: 'border-[rgba(170,0,15,0.18)] bg-[rgba(170,0,15,0.06)] text-[var(--bocar-error)]',
     rank: 0,
   },
-  Media: {
+  Medium: {
     className: 'border-[rgba(255,242,0,0.28)] bg-[rgba(255,242,0,0.18)] text-[var(--bocar-blue-100)]',
     rank: 1,
   },
-  Baja: {
+  Low: {
     className: 'border-[rgba(174,179,184,0.28)] bg-[rgba(174,179,184,0.14)] text-[var(--bocar-blue-90)]',
     rank: 2,
   },
 };
 
-export const purchasingPriorityOptions: PurchasingPriority[] = ['Alta', 'Media', 'Baja'];
+export const purchasingPriorityOptions: PurchasingPriority[] = ['High', 'Medium', 'Low'];
 
 export const purchasingMachineTypeOptions: PurchasingMachineType[] = [
-  'Inyeccion',
-  'Estampado',
-  'Fundicion',
-  'Maquinado',
-  'Ensamble',
+  'Injection',
+  'Stamping',
+  'Die Casting',
+  'Machining',
+  'Assembly',
 ];
 
 export const purchasingDeadlineRangeOptions: Array<{
   label: string;
   value: PurchasingDeadlineRange;
 }> = [
-  { label: 'Vence hoy', value: 'TODAY' },
-  { label: '<= 48 horas', value: 'WITHIN_48H' },
-  { label: 'Esta semana', value: 'THIS_WEEK' },
-  { label: 'Despues', value: 'LATER' },
+  { label: 'Due today', value: 'TODAY' },
+  { label: '<= 48 hours', value: 'WITHIN_48H' },
+  { label: 'This week', value: 'THIS_WEEK' },
+  { label: 'Later', value: 'LATER' },
 ];
 
 export function getPurchasingStatusLabel(status: PurchasingRfqStatus) {
@@ -136,7 +136,7 @@ export function getDeadlineRange(hoursToDeadline: number): PurchasingDeadlineRan
 
 export function formatDeadlineLabel(hoursToDeadline: number) {
   if (hoursToDeadline <= 24) {
-    return `Hoy · ${hoursToDeadline} h`;
+    return `Today · ${hoursToDeadline} h`;
   }
 
   const days = Math.ceil(hoursToDeadline / 24);

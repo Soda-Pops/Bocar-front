@@ -19,12 +19,12 @@ const PAGE_SIZE = 4;
 
 const statusMeta: Record<SupplierRfqStatus, { label: string; className: string }> = {
   PENDING: {
-    label: 'Pendiente',
+    label: 'Pending',
     className:
       'border-[rgba(255,210,0,0.4)] bg-[rgba(255,210,0,0.18)] text-[#8a6400]',
   },
   QUOTED: {
-    label: 'Cotizada',
+    label: 'Quoted',
     className:
       'border-[rgba(141,198,63,0.35)] bg-[rgba(141,198,63,0.18)] text-[#4a7a10]',
   },
@@ -49,14 +49,14 @@ function StatusBadge({ status }: { status: SupplierRfqStatus }) {
   );
 }
 
-function VerButton({ onClick }: { onClick?: () => void }) {
+function ViewButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex h-8 items-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[12px] font-medium text-white transition hover:bg-[#0b3b6b] focus:outline-none"
     >
-      Ver
+      View
     </button>
   );
 }
@@ -71,14 +71,14 @@ function RfqTable({
   tab: SupplierTab;
   onView: (row: SupplierRfqRow) => void;
 }) {
-  const dateHeader = tab === 'assigned' ? 'FECHA LIMITE' : 'FECHA';
+  const dateHeader = tab === 'assigned' ? 'DEADLINE' : 'DATE';
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-separate border-spacing-0">
         <thead>
           <tr className="bg-[#eef1f5]">
-            {['ID', 'STATUS', 'TIPO', dateHeader, 'ACCIÓN'].map((h) => (
+            {['ID', 'STATUS', 'TYPE', dateHeader, 'ACTION'].map((h) => (
               <th
                 key={h}
                 className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
@@ -92,7 +92,7 @@ function RfqTable({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={5} className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
-                No hay RFQs que coincidan con los filtros.
+                No RFQs match the filters.
               </td>
             </tr>
           ) : (
@@ -111,7 +111,7 @@ function RfqTable({
                   {row.deadline}
                 </td>
                 <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5">
-                  <VerButton onClick={() => onView(row)} />
+                  <ViewButton onClick={() => onView(row)} />
                 </td>
               </tr>
             ))
@@ -194,7 +194,7 @@ function SupplierDashboardPage() {
           : 'assigned';
 
   return (
-    <MainLayout header={<Header areaLabel="Proveedores" />}>
+    <MainLayout header={<Header areaLabel="Suppliers" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-10 lg:pt-8 xl:px-14">
 
         <h1 className="m-0 text-[20px] font-bold uppercase tracking-[0.04em] text-[var(--bocar-blue-100)]">
@@ -229,7 +229,7 @@ function SupplierDashboardPage() {
                 : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
             ].join(' ')}
           >
-            Asignadas
+            Assigned
           </button>
           <button
             type="button"
@@ -241,7 +241,7 @@ function SupplierDashboardPage() {
                 : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
             ].join(' ')}
           >
-            Historicas
+            Historical
           </button>
         </div>
 
@@ -249,7 +249,7 @@ function SupplierDashboardPage() {
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <SearchField value={searchValue} onChange={handleFilterChange(setSearchValue)} />
           <FilterSelect
-            label="Fecha límite"
+            label="Deadline"
             options={[
               { label: '20/06/2024', value: '20/06/2024' },
               { label: '25/06/2024', value: '25/06/2024' },
@@ -259,7 +259,7 @@ function SupplierDashboardPage() {
             onChange={handleFilterChange(setDeadlineValue)}
           />
           <FilterSelect
-            label="Tipo"
+            label="Type"
             options={[
               { label: 'Trimming', value: 'Trimming' },
               { label: 'Mold', value: 'Mold' },
@@ -288,7 +288,7 @@ function SupplierDashboardPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between px-5 py-4 text-[13px] text-[var(--bocar-blue-50)]">
             <p className="m-0">
-              Mostrando {visibleRows.length} de {filteredRows.length} resultados
+              Showing {visibleRows.length} of {filteredRows.length} results
             </p>
             {totalPages > 1 ? (
               <div className="flex items-center gap-3">

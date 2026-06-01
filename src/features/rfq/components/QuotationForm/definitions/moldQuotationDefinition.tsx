@@ -85,11 +85,11 @@ type InheritedMoldRfq = {
 
 function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
   return {
-    description: 'Carcasa frontal de transmisión',
+    description: 'Front transmission housing',
     parts_per_year: '240,000',
     customer: 'Mercedes-Benz AG',
     part_number: `${rfqId.toUpperCase()}-MO`,
-    project_life: '7 años',
+    project_life: '7 years',
     deliver_by: '2026-10-30',
     te_machine: 'Bühler 900T',
     te_num_cavities: '1x',
@@ -108,8 +108,8 @@ function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
     diritpotd: [
       { label: 'Design 3D model', checked: 'yes', notes: 'Native CATIA V5 format.' },
       { label: 'Design 2D data', checked: 'yes', notes: 'PDF + DXF.' },
-      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'Ver propuesta M1.' },
-      { label: 'Latest mold improvements', checked: 'yes', notes: 'Revisión de insertos.' },
+      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'View M1 proposal.' },
+      { label: 'Latest mold improvements', checked: 'yes', notes: 'Insert review.' },
       { label: 'Sketch of mold concept including steel dimensions', checked: 'yes', notes: '' },
       { label: 'Cooling circuit layout', checked: 'yes', notes: 'Circuit diagram v2.' },
     ],
@@ -137,7 +137,7 @@ function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
       { label: 'Sensor integration', checked: 'no', notes: '' },
       { label: 'Others', checked: 'no', notes: '' },
     ],
-    pg_part_name: 'Carcasa frontal de transmisión',
+    pg_part_name: 'Front transmission housing',
     pg_alloy: 'AlSi9Cu3(Fe)',
     pg_part_number_geom: '0',
     pg_part_dimension: '410 × 260 × 95 mm',
@@ -292,8 +292,8 @@ const socSparePartsSchema = z.object({
 });
 
 const moldQuotationSchema = z.object({
-  supplier: z.string().trim().min(1, 'Ingresa el nombre del proveedor.'),
-  ts_max_weight_mold: z.string().trim().min(1, 'Ingresa el peso máximo del molde.'),
+  supplier: z.string().trim().min(1, 'Enter the supplier name.'),
+  ts_max_weight_mold: z.string().trim().min(1, 'Enter the maximum mold weight.'),
   comments: z.string(),
   basic_data: moldBasicDataSchema,
   accessories_costs: moldAccessoriesCostsSchema,
@@ -376,97 +376,97 @@ const PAGES: readonly PageKey[] = [
 const PAGE_META: Record<PageKey, PageMeta> = {
   rfq: {
     navLabel: 'RFQ',
-    subtitle: 'Datos heredados del RFQ. Captura el nombre del proveedor.',
+    subtitle: 'Inherited RFQ data. Enter the supplier name.',
     title: '1. RFQ',
   },
   tool_eng: {
     navLabel: 'TOOL ENG.',
-    subtitle: 'Especificaciones de ingeniería del molde capturadas por Industrialización.',
+    subtitle: 'Mold engineering specifications captured by Industrialization.',
     title: '2. Tool Engineering',
   },
   dcm: {
     navLabel: 'DCM',
-    subtitle: 'Datos de la máquina de fundición a presión asignada a este molde.',
+    subtitle: 'Die casting machine data assigned to this mold.',
     title: '3. Die Casting Machine',
   },
   diritpotd: {
     navLabel: 'DIRITPOTD',
-    subtitle: 'Entregables técnicos requeridos en el precio del molde, definidos por Industrialización.',
+    subtitle: 'Technical deliverables required in the mold price, as defined by Industrialization.',
     title: '4. Data Information Required in the Price of the Die',
   },
   other: {
     navLabel: 'OTHER',
-    subtitle: 'Otros entregables y servicios requeridos, definidos por Industrialización.',
+    subtitle: 'Other required deliverables and services, as defined by Industrialization.',
     title: '5. Other',
   },
   ot_inf: {
     navLabel: 'OT INF',
-    subtitle: 'Información adicional sobre el molde.',
+    subtitle: 'Additional mold information.',
     title: '6. Other Information',
   },
   sk_part: {
     navLabel: 'SK PART',
-    subtitle: 'Sketch de la pieza adjunto por Industrialización como referencia técnica.',
+    subtitle: 'Part sketch attached by Industrialization as a technical reference.',
     title: '7. Complete Part Sketch',
   },
   ctbd: {
     navLabel: 'CTBD',
-    subtitle: 'Costos y conceptos a determinar en la cotización del molde.',
+    subtitle: 'Costs and concepts to determine in the mold quotation.',
     title: '8. Costs to Be Determined',
   },
   basic_data: {
     navLabel: 'BASIC DATA',
-    subtitle: 'Datos generales de tu organización para esta cotización.',
+    subtitle: 'General information about your organization for this quotation.',
     title: '1. Basic Data',
   },
   part_geometry: {
     navLabel: 'PART GEOMETRY',
-    subtitle: 'Geometría y propiedades de la pieza, capturadas por Industrialización.',
+    subtitle: 'Part geometry and properties captured by Industrialization.',
     title: '2. Part Geometry',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
-    subtitle: 'Especificaciones del herramental. Agrega el peso máximo del molde.',
+    subtitle: 'Tooling specifications. Add the maximum mold weight.',
     title: '3. Tool Specification',
   },
   comments: {
     navLabel: 'COMMENTS',
-    subtitle: 'Notas adicionales para el equipo de Compras.',
+    subtitle: 'Additional notes for the Purchasing team.',
     title: '4. Comments',
   },
   accessories_costs: {
     navLabel: 'ACCESORIES COSTS',
-    subtitle: 'Costos de accesorios estándar del molde.',
+    subtitle: 'Standard mold accessory costs.',
     title: '5. Accesories Costs',
   },
   material_costs: {
     navLabel: 'MATERIAL COSTS',
-    subtitle: 'Costos de partes compradas y materia prima.',
+    subtitle: 'Purchased parts and raw material costs.',
     title: '6. Material Costs (Purchased Parts and Raw Materials)',
   },
   manufacturing_costs: {
     navLabel: 'MANUFACTURING COSTS',
-    subtitle: 'Tiempos y costos de proceso por categoría.',
+    subtitle: 'Process times and costs by category.',
     title: '7. Manufacturing Costs (Process Times and Costs)',
   },
   corrections_optimizations: {
     navLabel: 'CORRECTIONS AND OPTIMIZATIONS',
-    subtitle: 'Horas y costos de correcciones y optimizaciones del molde.',
+    subtitle: 'Hours and costs for mold corrections and optimizations.',
     title: '8. Corrections and Optimizations',
   },
   logistics: {
     navLabel: 'LOGISTICS',
-    subtitle: 'Costos de logística asociados al molde.',
+    subtitle: 'Logistics costs associated with the mold.',
     title: '9. Logistics',
   },
   tool_replacement: {
     navLabel: 'TOOL REPLACEMENT',
-    subtitle: 'Costos de reemplazo de herramental, si aplica.',
+    subtitle: 'Tooling replacement costs, if applicable.',
     title: '10. Tool Replacement',
   },
   sampling: {
     navLabel: 'SAMPLING',
-    subtitle: 'Costos de muestreo y pruebas del molde.',
+    subtitle: 'Mold sampling and testing costs.',
     title: '11. Sampling',
   },
   spare_parts: {
@@ -725,14 +725,14 @@ function getEditDefaultValues(quotationId?: string): MoldQuotationValues {
     ...base,
     supplier: 'Moldeo Industrial SA',
     ts_max_weight_mold: '3,200 kg',
-    comments: `Cotización vinculada a ${(quotationId ?? 'COT-001').toUpperCase()}.`,
+    comments: `Quotation linked to ${(quotationId ?? 'COT-001').toUpperCase()}.`,
     basic_data: {
       company: 'Moldeo Industrial SA',
-      elaborated_by: 'Ing. Patricia Ríos',
-      country: 'México',
+      elaborated_by: 'Patricia Rios',
+      country: 'Mexico',
       base_currency: 'EUR',
       exchange_rate_to: 'MXN',
-      last_edited_by: 'Ing. Patricia Ríos',
+      last_edited_by: 'Patricia Rios',
       last_change: '2026-05-20',
     },
     material_costs: {
@@ -802,7 +802,7 @@ function YesNoBadge({ value }: { value: 'yes' | 'no' | '' }) {
   return <span className="text-[13px] text-[var(--bocar-blue-30)]">—</span>;
 }
 
-function SectionTableHeader({ col1 = 'Description', col2 = 'Del RFQ' }: { col1?: string; col2?: string }) {
+function SectionTableHeader({ col1 = 'Description', col2 = 'From RFQ' }: { col1?: string; col2?: string }) {
   return (
     <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,1.65fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
       <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
@@ -819,7 +819,7 @@ function ConsiderationTableReadonly({ items }: { items: ConsiderationItem[] }) {
   return (
     <>
       <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
-        {(['Description', 'Aplica', 'Notes'] as const).map((h) => (
+        {(['Description', 'Applies', 'Notes'] as const).map((h) => (
           <div key={h} className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
             {h}
           </div>
@@ -859,7 +859,7 @@ function MoldRfqPage({ inherited }: { inherited: InheritedMoldRfq }) {
         <ReadOnlyField label="CUSTOMER" value={inherited.customer} />
         <ReadOnlyField label="DELIVER THIS QUOTE BY" value={inherited.deliver_by} />
         <TextField
-          hint="Razón social o nombre comercial bajo el que cotizas."
+          hint="Legal name or trade name under which you quote."
           label="SUPPLIER"
           name="supplier"
           required
@@ -885,7 +885,7 @@ function ToolEngPage({ inherited }: { inherited: InheritedMoldRfq }) {
 
   return (
     <SectionCard subtitle={PAGE_META.tool_eng.subtitle} title={PAGE_META.tool_eng.title}>
-      <SectionTableHeader col2="Del RFQ" />
+      <SectionTableHeader col2="From RFQ" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {rows.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
@@ -909,7 +909,7 @@ function DcmPage({ inherited }: { inherited: InheritedMoldRfq }) {
 
   return (
     <SectionCard subtitle={PAGE_META.dcm.subtitle} title={PAGE_META.dcm.title}>
-      <SectionTableHeader col2="Del RFQ" />
+      <SectionTableHeader col2="From RFQ" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {rows.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
@@ -974,19 +974,19 @@ function SkPartPage({ inherited }: { inherited: InheritedMoldRfq }) {
               {file.name}
             </p>
             <p className="m-0 mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">
-              {formatFileSize(file.size)} · Subido por Industrialización
+              {formatFileSize(file.size)} · Uploaded by Industrialization
             </p>
           </div>
           <button
             className="shrink-0 rounded-[8px] border border-[#d9dee5] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)]"
             type="button"
           >
-            Ver archivo
+            View file
           </button>
         </div>
       ) : (
         <div className="flex min-h-[100px] items-center justify-center rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-6 text-[13px] text-[var(--bocar-blue-30)]">
-          No se adjuntó sketch de la pieza en esta RFQ.
+          No part sketch was attached to this RFQ.
         </div>
       )}
     </SectionCard>
@@ -1007,27 +1007,27 @@ function MoldBasicDataPage() {
   return (
     <SectionCard subtitle={PAGE_META.basic_data.subtitle} title={PAGE_META.basic_data.title}>
       <FormGrid>
-        <TextField label="COMPANY" name="basic_data.company" placeholder="Razón social" />
+        <TextField label="COMPANY" name="basic_data.company" placeholder="Legal name" />
         <TextField
           label="ELABORATED BY"
           name="basic_data.elaborated_by"
-          placeholder="Nombre del responsable"
+          placeholder="Responsible person name"
         />
-        <TextField label="COUNTRY" name="basic_data.country" placeholder="País" />
+        <TextField label="COUNTRY" name="basic_data.country" placeholder="Country" />
         <TextField
           label="BASE CURRENCY"
           name="basic_data.base_currency"
-          placeholder="ej. EUR"
+          placeholder="e.g. EUR"
         />
         <TextField
           label="EXCHANGE RATE TO"
           name="basic_data.exchange_rate_to"
-          placeholder="ej. MXN"
+          placeholder="e.g. MXN"
         />
         <TextField
           label="LAST EDITED BY"
           name="basic_data.last_edited_by"
-          placeholder="Quién editó por última vez"
+          placeholder="Last editor"
         />
         <TextField label="LAST CHANGE" name="basic_data.last_change" type="date" />
       </FormGrid>
@@ -1051,7 +1051,7 @@ function MoldPartGeometryPage({ inherited }: { inherited: InheritedMoldRfq }) {
 
   return (
     <SectionCard subtitle={PAGE_META.part_geometry.subtitle} title={PAGE_META.part_geometry.title}>
-      <SectionTableHeader col2="Del RFQ" />
+      <SectionTableHeader col2="From RFQ" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {rows.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
@@ -1077,10 +1077,10 @@ function MoldToolSpecPage({ inherited }: { inherited: InheritedMoldRfq }) {
         <ReadOnlyField label="Number of parts per stroke" value={inherited.ts_num_parts_per_stroke} />
         <ReadOnlyField label="Number of tools" value={inherited.ts_num_tools} />
         <TextField
-          hint="Capacidad máxima de peso que soporta el molde propuesto."
+          hint="Maximum weight capacity supported by the proposed mold."
           label="MAXIMUM WEIGHT FOR THE MOLD"
           name="ts_max_weight_mold"
-          placeholder="ej. 3,200 kg"
+          placeholder="e.g. 3,200 kg"
           required
           span={2}
         />
@@ -1095,7 +1095,7 @@ function MoldCommentsPage() {
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
       <textarea
         className={`${inputBaseClasses(false)} resize-y`}
-        placeholder="Comentarios adicionales para Compras..."
+        placeholder="Additional comments for Purchasing..."
         rows={8}
         {...register('comments')}
       />
@@ -1302,7 +1302,7 @@ function MoldToolReplacementPage() {
       <CostTable
         basePath="tool_replacement"
         columns={['unit', 'price_unit', 'total', 'weeks']}
-        hint="Si es la primera cotización del proyecto, deja esta sección en blanco. Si es un Tool Replacement, llena según los Design Costs del ppt 'Die improvements for Tool Replacement Molds'."
+        hint="If this is the first quotation for the project, leave this section blank. If it is a Tool Replacement, complete it according to the Design Costs in the 'Die improvements for Tool Replacement Molds' deck."
         rows={[
           { key: 'die_improvements', label: '1. Die improvements design' },
           { key: 'others', label: '2. Others' },

@@ -15,21 +15,21 @@ type LocationState = { from?: { pathname: string } };
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof UnauthorizedError) {
-    return 'Correo o contraseña incorrectos.';
+    return 'Incorrect email or password.';
   }
   if (error instanceof HttpError) {
     if (error.status === 400) {
-      return 'Los datos enviados no son validos.';
+      return 'The submitted data is not valid.';
     }
     if (error.status >= 500) {
-      return 'El servidor no esta disponible. Intenta de nuevo en unos minutos.';
+      return 'The server is unavailable. Please try again in a few minutes.';
     }
-    return 'No pudimos iniciar sesion. Intenta de nuevo.';
+    return 'We could not sign you in. Please try again.';
   }
   if (error instanceof NetworkError) {
-    return 'No se pudo conectar con el servidor. Revisa tu conexion.';
+    return 'Could not connect to the server. Check your internet connection.';
   }
-  return 'Ocurrio un error inesperado. Intenta de nuevo.';
+  return 'An unexpected error occurred. Please try again.';
 }
 
 export function useLoginForm() {

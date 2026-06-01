@@ -50,21 +50,21 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
   function handleSend() {
     setShowValidation(true);
     if (selectedNames.length === 0) {
-      setFeedback({ tone: 'error', text: 'Selecciona al menos un proveedor antes de enviar.' });
+      setFeedback({ tone: 'error', text: 'Select at least one supplier before submitting.' });
       return;
     }
     const missingDeadline = selectedNames.some((n) => !deadlines[n]);
     if (missingDeadline) {
-      setFeedback({ tone: 'error', text: 'Cada proveedor seleccionado necesita una fecha límite.' });
+      setFeedback({ tone: 'error', text: 'Each selected supplier requires a deadline.' });
       return;
     }
-    setFeedback({ tone: 'success', text: 'Proveedores listos para enviarse al siguiente paso del flujo.' });
+    setFeedback({ tone: 'success', text: 'Suppliers selected successfully.' });
   }
 
   return (
     <section>
       <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
-        <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Seleccionar Proveedores</h2>
+        <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Select Suppliers</h2>
 
         {feedback ? (
           <div
@@ -114,11 +114,11 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
                   </div>
                 </div>
                 <div className="mt-3 grid gap-2">
-                  <p className="m-0 text-[12px] text-[var(--bocar-text)]">Contacto: {supplier.contact}</p>
+                  <p className="m-0 text-[12px] text-[var(--bocar-text)]">Contact: {supplier.contact}</p>
                   <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                    Fecha límite
+                    Deadline
                     <input
-                      aria-label={`Fecha límite ${supplier.name}`}
+                      aria-label={`Deadline ${supplier.name}`}
                       className="h-10 rounded-[6px] border border-[var(--bocar-border)] px-3 text-[12px] font-normal tracking-normal text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]"
                       disabled={!selected}
                       onChange={(e) => handleDeadline(supplier.name, e.target.value)}
@@ -137,7 +137,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
           <table className="w-full max-w-[1040px] border-separate border-spacing-0 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] text-left">
             <thead>
               <tr className="bg-[var(--bocar-bg)]">
-                {['Proveedor', 'Categoría', 'Contacto', 'Fecha límite', 'Score'].map((h) => (
+                {['Supplier', 'Category', 'Contact', 'Deadline', 'Score'].map((h) => (
                   <th key={h} className="px-6 py-3 text-[12px] font-semibold text-[var(--bocar-text)]">
                     {h}
                   </th>
@@ -165,7 +165,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
                     <td className="px-6 py-3.5 text-[12px] text-[var(--bocar-text)]">{supplier.contact}</td>
                     <td className="px-6 py-3.5">
                       <input
-                        aria-label={`Fecha límite ${supplier.name}`}
+                        aria-label={`Deadline ${supplier.name}`}
                         className={[
                           'h-8 w-[150px] rounded-[6px] border bg-white px-3 text-[12px] text-[var(--bocar-text)] outline-none transition disabled:bg-[var(--bocar-bg)] disabled:text-[var(--bocar-blue-30)]',
                           isInvalid
@@ -197,14 +197,14 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
             className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-30)] px-8 text-[13px] font-semibold text-white transition hover:bg-[var(--bocar-blue-50)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(167,177,194,0.28)]"
             type="button"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             onClick={handleSend}
             className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-100)] px-8 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.14)]"
             type="button"
           >
-            Enviar Proveedores
+            Submit Suppliers
           </button>
         </div>
       </div>

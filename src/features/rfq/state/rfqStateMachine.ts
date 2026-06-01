@@ -24,6 +24,7 @@ export type RfqActionKey =
   | 'submit_draft'
   | 'delete_draft'
   | 'request_edit'
+  | 'view_full_detail'
   | 'assign_suppliers'
   | 'approve_edit_request'
   | 'reject_edit_request'
@@ -54,7 +55,7 @@ export type RfqBannerConfig = {
 const A: Record<RfqActionKey, RfqActionDescriptor> = {
   edit_draft: {
     key: 'edit_draft',
-    label: 'Editar RFQ',
+    label: 'Edit RFQ',
     tone: 'primary',
     icon: 'edit',
     requiresConfirmation: false,
@@ -62,7 +63,7 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
   },
   submit_draft: {
     key: 'submit_draft',
-    label: 'Enviar RFQ',
+    label: 'Submit RFQ',
     tone: 'secondary',
     icon: 'send',
     requiresConfirmation: true,
@@ -70,7 +71,7 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
   },
   delete_draft: {
     key: 'delete_draft',
-    label: 'Eliminar borrador',
+    label: 'Delete draft',
     tone: 'destructive',
     icon: 'trash',
     requiresConfirmation: true,
@@ -78,69 +79,76 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
   },
   request_edit: {
     key: 'request_edit',
-    label: 'Solicitar edición',
+    label: 'Request edit',
     tone: 'secondary',
     icon: 'edit',
     requiresConfirmation: true,
     onlyCreator: true,
   },
+  view_full_detail: {
+    key: 'view_full_detail',
+    label: 'View full details',
+    tone: 'secondary',
+    icon: 'arrow-right',
+    requiresConfirmation: false,
+  },
   assign_suppliers: {
     key: 'assign_suppliers',
-    label: 'Asignar proveedores',
+    label: 'Assign suppliers',
     tone: 'primary',
     requiresConfirmation: false,
   },
   approve_edit_request: {
     key: 'approve_edit_request',
-    label: 'Aprobar solicitud',
+    label: 'Approve request',
     tone: 'primary',
     icon: 'check',
     requiresConfirmation: true,
   },
   reject_edit_request: {
     key: 'reject_edit_request',
-    label: 'Rechazar solicitud',
+    label: 'Reject request',
     tone: 'secondary',
     icon: 'x',
     requiresConfirmation: true,
   },
   view_benchmark: {
     key: 'view_benchmark',
-    label: 'Ver benchmark',
+    label: 'View benchmark',
     tone: 'primary',
     icon: 'arrow-right',
     requiresConfirmation: false,
   },
   close_rfq: {
     key: 'close_rfq',
-    label: 'Cerrar RFQ',
+    label: 'Close RFQ',
     tone: 'secondary',
     requiresConfirmation: true,
   },
   extend_deadline: {
     key: 'extend_deadline',
-    label: 'Extender plazo',
+    label: 'Extend deadline',
     tone: 'secondary',
     icon: 'clock',
     requiresConfirmation: true,
   },
   cancel_early: {
     key: 'cancel_early',
-    label: 'Cancelar',
+    label: 'Cancel',
     tone: 'destructive',
     icon: 'trash',
     requiresConfirmation: true,
   },
   cancel_late: {
     key: 'cancel_late',
-    label: 'Cancelar (protocolo especial)',
+    label: 'Cancel (special protocol)',
     tone: 'destructive',
     icon: 'trash',
     requiresConfirmation: true,
   },
   create_quotation: {
     key: 'create_quotation',
-    label: 'Crear cotización',
+    label: 'Create quotation',
     tone: 'primary',
     requiresConfirmation: false,
   },
@@ -152,21 +160,21 @@ export function resolveIsAccessible(
   isCreator: boolean,
 ): boolean {
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';
-  const isProveedor = role === 'proveedor';
+  const isSupplier = role === 'proveedor';
 
   switch (status) {
     case 'DRAFT':
       return isCreator;
     case 'PENDING':
     case 'PENDING_EDIT_REQUEST':
-      return !isProveedor;
+      return !isSupplier;
     case 'QUOTING':
     case 'PARTIALLY_QUOTED':
     case 'BENCHMARK_READY':
     case 'EXPIRED':
       return true;
     case 'CLOSED':
-      return isSuperUser || isProveedor;
+      return isSuperUser || isSupplier;
     case 'CANCELLED':
       return isSuperUser;
     default:
@@ -182,11 +190,11 @@ export function resolveAllowedActions(input: {
 }): RfqActionDescriptor[] {
   const { status, role, isCreator, isAssignedSupplier = false } = input;
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';
-  const isCompras = role === 'compras' || role === 'compras_admin';
-  const isComprasAdmin = role === 'compras_admin';
-  const isIndustrializacion = role === 'industrializacion' || role === 'industrializacion_admin';
-  const isIndustrializacionAdmin = role === 'industrializacion_admin';
-  const isProveedor = role === 'proveedor';
+  const isPurchasing = role === 'compras' || role === 'compras_admin';
+  const isPurchasingAdmin = role === 'compras_admin';
+  const isIndustrialization = role === 'industrializacion' || role === 'industrializacion_admin';
+  const isIndustrializationAdmin = role === 'industrializacion_admin';
+  const isSupplier = role === 'proveedor';
 
   const actions: RfqActionDescriptor[] = [];
 
@@ -197,18 +205,19 @@ export function resolveAllowedActions(input: {
       actions.push({ ...A.submit_draft });
       actions.push({ ...A.delete_draft });
       // Creator who is also admin can cancel their own draft
-      if (isIndustrializacionAdmin || isComprasAdmin) {
+      if (isIndustrializationAdmin || isPurchasingAdmin) {
         actions.push({ ...A.cancel_early });
       }
       break;
     }
 
     case 'PENDING': {
-      if (isCompras) {
+      if (isPurchasing) {
+        actions.push({ ...A.view_full_detail });
         actions.push({ ...A.assign_suppliers });
       }
-      // Only the original creator (Industrializacion side) can request edit
-      if (isCreator && isIndustrializacion) {
+      // Only the original creator (Industrialization side) can request edit
+      if (isCreator && isIndustrialization) {
         actions.push({ ...A.request_edit });
       }
       if (isSuperUser) {
@@ -218,25 +227,25 @@ export function resolveAllowedActions(input: {
     }
 
     case 'PENDING_EDIT_REQUEST': {
-      if (isCompras) {
+      if (isPurchasing) {
         actions.push({ ...A.approve_edit_request });
         actions.push({ ...A.reject_edit_request });
         // assign_suppliers is blocked while edit request is pending
         actions.push({
           ...A.assign_suppliers,
           disabled: true,
-          disabledReason: 'Hay una solicitud de edición pendiente de resolución.',
+          disabledReason: 'There is a pending edit request awaiting resolution.',
         });
       }
       if (isSuperUser) {
         actions.push({ ...A.cancel_early });
       }
-      // Industrializacion creator: no CTAs (banner explains status)
+      // Industrialization creator: no CTAs (banner explains status)
       break;
     }
 
     case 'QUOTING': {
-      if (isProveedor && isAssignedSupplier) {
+      if (isSupplier && isAssignedSupplier) {
         actions.push({ ...A.create_quotation });
       }
       if (isSuperUser) {
@@ -246,7 +255,7 @@ export function resolveAllowedActions(input: {
     }
 
     case 'PARTIALLY_QUOTED': {
-      if (isProveedor && isAssignedSupplier) {
+      if (isSupplier && isAssignedSupplier) {
         actions.push({ ...A.create_quotation });
       }
       if (isSuperUser) {
@@ -256,7 +265,7 @@ export function resolveAllowedActions(input: {
     }
 
     case 'BENCHMARK_READY': {
-      if (!isProveedor) {
+      if (!isSupplier) {
         actions.push({ ...A.view_benchmark });
       }
       if (isSuperUser) {
@@ -270,7 +279,7 @@ export function resolveAllowedActions(input: {
       if (isSuperUser) {
         // close_rfq is the primary CTA in EXPIRED (no competing primary action)
         actions.push({ ...A.close_rfq, tone: 'primary' });
-        if (isComprasAdmin) {
+        if (isPurchasingAdmin) {
           actions.push({ ...A.extend_deadline });
         }
         actions.push({ ...A.cancel_late });

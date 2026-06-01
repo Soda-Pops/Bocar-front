@@ -70,7 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       await authService.logout();
     } catch {
-      // si la red falla, igual cerramos sesion local — las cookies expiraran solas
+      // If the network fails, we still clear the local session; cookies will expire on their own.
     }
     setAnonymous();
   }, [setAnonymous]);

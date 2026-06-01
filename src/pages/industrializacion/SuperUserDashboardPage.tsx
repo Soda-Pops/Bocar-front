@@ -23,15 +23,15 @@ const PAGE_SIZE = 4;
 
 function getSortLabel(sortValue: SortOption) {
   if (sortValue === 'material') return 'Material';
-  if (sortValue === 'creator') return 'Creador';
-  if (sortValue === 'recent') return 'Mas reciente';
+  if (sortValue === 'creator') return 'Creator';
+  if (sortValue === 'recent') return 'Most recent';
   return '';
 }
 
 function getNextSortOption(value: string): SortOption {
   if (value === 'Material') return 'material';
-  if (value === 'Creador') return 'creator';
-  if (value === 'Mas reciente') return 'recent';
+  if (value === 'Creator') return 'creator';
+  if (value === 'Most recent') return 'recent';
   return '';
 }
 
@@ -58,7 +58,7 @@ function SuperUserDashboardPage() {
 
   return (
     <MainLayout
-      header={<Header areaLabel="Industrialización . Superusuario" variant="dark" />}
+      header={<Header areaLabel="Industrialization . Super User" variant="dark" />}
     >
       <div
         className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-8 lg:pt-8 xl:px-14"
@@ -110,14 +110,14 @@ function SuperUserDashboardPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:min-w-0 lg:flex-1">
               <FilterSelect
-                label="Proveedores"
+                label="Suppliers"
                 options={supplierOptions}
                 value={supplierValue}
                 onChange={setSupplierValue}
               />
               <FilterSelect
-                label="Ordenar por"
-                options={['Mas reciente', 'Material', 'Creador']}
+                label="Sort by"
+                options={['Most recent', 'Material', 'Creator']}
                 value={getSortLabel(sortValue)}
                 onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
               />
@@ -145,20 +145,20 @@ function SuperUserDashboardPage() {
                       className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                       onClick={() => handleViewRfq(row.id)}
                     >
-                      Ver
+                      View
                     </button>
                   </div>
 
                   <dl className="mt-4 grid gap-3 text-[13px]">
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Creado por
+                        Created by
                       </dt>
                       <dd className="m-0">{row.createdBy}</dd>
                     </div>
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Fecha
+                        Date
                       </dt>
                       <dd className="m-0">{row.date}</dd>
                     </div>
@@ -167,7 +167,7 @@ function SuperUserDashboardPage() {
               ))
             ) : (
               <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center text-[14px] text-[var(--bocar-blue-70)]">
-                No hay RFQs que coincidan con los filtros actuales.
+                No RFQs match the current filters.
               </div>
             )}
           </div>
@@ -176,7 +176,7 @@ function SuperUserDashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {['ID', 'MATERIAL', 'CREADO POR', 'FECHA', 'ACCION'].map((header) => (
+                  {['ID', 'MATERIAL', 'CREATED BY', 'DATE', 'ACTION'].map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-4 text-left text-[13px] font-medium text-[var(--bocar-text)] lg:px-4 lg:py-4"
@@ -208,7 +208,7 @@ function SuperUserDashboardPage() {
                           className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] lg:h-9 lg:min-w-[58px] lg:px-4 lg:text-[13px]"
                           onClick={() => handleViewRfq(row.id)}
                         >
-                          Ver
+                          View
                         </button>
                       </td>
                     </tr>
@@ -219,7 +219,7 @@ function SuperUserDashboardPage() {
                       colSpan={5}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
-                      No hay RFQs que coincidan con los filtros actuales.
+                      No RFQs match the current filters.
                     </td>
                   </tr>
                 )}
@@ -229,7 +229,7 @@ function SuperUserDashboardPage() {
 
           <div className="flex flex-col gap-4 px-4 py-4 text-[13px] text-[var(--bocar-blue-30)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-4 lg:py-2 lg:text-[12px]">
             <p className="m-0">
-              Mostrando {visibleRows.length} de {filteredRows.length} resultados
+              Showing {visibleRows.length} of {filteredRows.length} results
             </p>
             <div className="flex items-center gap-4">
               <span className="text-[var(--bocar-blue-70)]">1</span>
@@ -237,7 +237,7 @@ function SuperUserDashboardPage() {
               <span>...</span>
               <span aria-hidden="true">›</span>
               <span aria-hidden="true">»</span>
-              <span className="sr-only">Total de paginas {totalPages}</span>
+              <span className="sr-only">Total pages {totalPages}</span>
             </div>
           </div>
         </section>

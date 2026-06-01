@@ -40,6 +40,8 @@ export const ROUTES = {
     RFQ_LIST: '/compras/rfq',
     // Programada: detalle de RFQ con pantalla compartida.
     RFQ_DETAIL: '/compras/rfq/:id',
+    // Programada: detalle completo en el workspace del formulario (solo lectura).
+    RFQ_DETAIL_FULL: '/compras/rfq/:id/completo',
     // Programada: seleccion/asignacion de proveedores.
     RFQ_ASSIGN_SUPPLIERS: '/compras/rfq/:id/asignar',
     // Falta por programar: benchmark interno de cotizaciones por RFQ.

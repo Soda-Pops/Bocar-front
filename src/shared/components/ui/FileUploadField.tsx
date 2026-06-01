@@ -34,11 +34,11 @@ export function FileUploadField({ accept, maxSizeMb = 10, name }: FileUploadFiel
 
   function handleFile(file: File) {
     if (!validateAccept(file, accept)) {
-      setValidationError('Formato no permitido. Usa .png, .jpg, .jpeg, .pdf o .dwg.');
+      setValidationError('Format not allowed. Use .png, .jpg, .jpeg, .pdf or .dwg.');
       return;
     }
     if (file.size > maxSizeMb * 1024 * 1024) {
-      setValidationError(`El archivo excede el tamaño máximo de ${maxSizeMb} MB.`);
+      setValidationError(`The file exceeds the maximum size of ${maxSizeMb} MB.`);
       return;
     }
     setValidationError(null);
@@ -115,14 +115,14 @@ export function FileUploadField({ accept, maxSizeMb = 10, name }: FileUploadFiel
             type="button"
             onClick={openPicker}
           >
-            Reemplazar
+            Replace
           </button>
           <button
             className="inline-flex h-9 items-center justify-center rounded-[8px] border border-[rgba(170,0,15,0.22)] bg-white px-4 text-[12px] font-semibold text-[var(--bocar-error)] transition hover:bg-[rgba(170,0,15,0.04)]"
             type="button"
             onClick={handleRemove}
           >
-            Quitar
+            Remove
           </button>
         </div>
         {hiddenInput}
@@ -161,11 +161,11 @@ export function FileUploadField({ accept, maxSizeMb = 10, name }: FileUploadFiel
 
       <div>
         <p className="m-0 text-[14px] font-medium text-[var(--bocar-blue-70)]">
-          Arrastra un archivo o selecciona desde tu equipo
+          Drag a file here or select one from your device
         </p>
         {accept ? (
           <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-30)]">
-            Formatos: {accept} · Máx. {maxSizeMb} MB
+            Formats: {accept} · Max. {maxSizeMb} MB
           </p>
         ) : null}
       </div>
@@ -175,7 +175,7 @@ export function FileUploadField({ accept, maxSizeMb = 10, name }: FileUploadFiel
         type="button"
         onClick={openPicker}
       >
-        Subir archivo
+        Upload file
       </button>
 
       {validationError ? (

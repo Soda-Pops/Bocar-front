@@ -28,67 +28,67 @@ const TRIMMING_TOGGLE_REQUIRED = new Set([
 
 const trimmingSchema = z
   .object({
-    // Sección 1 — RFQ
-    description: z.string().trim().min(1, 'Ingresa la descripcion.'), // requerido · trim · mínimo 1 carácter
-    part_number: z.string().trim().min(1, 'Ingresa el numero de parte.'), // requerido · trim · mínimo 1 carácter
-    parts_per_year: z.string(), // opcional · número como string (input type number)
-    project_life: z.string(), // opcional · string libre (ej. "5 años")
-    customer: z.string(), // opcional · string libre
-    previous_job: z.string(), // opcional · string libre (referencia a job anterior)
-    supplier: z.string(), // opcional · string libre
-    deliver_by: z.string(), // opcional · formato date YYYY-MM-DD desde el input, no validado por Zod
-    // Sección 2 — Trim Die
-    press: z.string(), // opcional · string libre (modelo de prensa)
-    num_cavities: z.string(), // opcional · string libre (ej. "2x")
-    num_hydraulic_slides: z.string(), // opcional · número como string
-    fully_automatic: z.string(), // opcional · valores esperados: 'yes' | 'no' (YesNoToggle), no restringido por Zod
-    presence_detectors: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
-    trimming_condition: z.string(), // opcional · valores esperados: '' | 'cold' | 'hot' (select), no restringido por Zod
-    punch_pins_required: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
-    residual_burr_mm: z.string(), // opcional · número como string (input step 0.1)
-    castings_by_auma: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
-    adjustments_toolmaker: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido por Zod
-    gas_springs: z.string(), // opcional · string libre (ej. "Nitrogen, 4 pcs.")
+    // Section 1 — RFQ
+    description: z.string().trim().min(1, 'Enter the description.'), // required · trim · minimum 1 character
+    part_number: z.string().trim().min(1, 'Enter the part number.'), // required · trim · minimum 1 character
+    parts_per_year: z.string(), // optional · number as string (input type number)
+    project_life: z.string(), // optional · free-form string (ej. "5 years")
+    customer: z.string(), // optional · free-form string
+    previous_job: z.string(), // optional · free-form string (referencia a job anterior)
+    supplier: z.string(), // optional · free-form string
+    deliver_by: z.string(), // opcional · formato date YYYY-MM-DD desde el input, no validado by Zod
+    // Section 2 — Trim Die
+    press: z.string(), // optional · free-form string (modelo de prensa)
+    num_cavities: z.string(), // optional · free-form string (ej. "2x")
+    num_hydraulic_slides: z.string(), // optional · number as string
+    fully_automatic: z.string(), // opcional · valores esperados: 'yes' | 'no' (YesNoToggle), no restringido by Zod
+    presence_detectors: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido by Zod
+    trimming_condition: z.string(), // opcional · valores esperados: '' | 'cold' | 'hot' (select), no restringido by Zod
+    punch_pins_required: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido by Zod
+    residual_burr_mm: z.string(), // optional · number as string (input step 0.1)
+    castings_by_auma: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido by Zod
+    adjustments_toolmaker: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido by Zod
+    gas_springs: z.string(), // optional · free-form string (ej. "Nitrogen, 4 pcs.")
     // Secciones 3 y 4 — consideraciones YES/NO
     considerations: z.record(
       z.string(),
       z.object({ checked: z.string().optional(), notes: z.string() })
-    ), // claves libres → { checked?: string, notes: string }; superRefine: las 15 claves de TRIMMING_TOGGLE_REQUIRED requieren checked no vacío; si others.checked === 'yes', notes también es requerido
-    // Sección 5 — Shot Sketch
+    ), // free-form keys -> { checked?: string, notes: string }; superRefine: las 15 claves de TRIMMING_TOGGLE_REQUIRED require a non-empty checked value; if others.checked === 'yes', notes is also required
+    // Section 5 — Shot Sketch
     shot_sketch_file: z
       .object({ name: z.string(), size: z.number(), type: z.string() })
-      .nullable(), // null = sin archivo adjunto; si existe: name (string), size (number en bytes), type (MIME string)
-    // Sección 6 — Part Geometry
-    pg_part_name: z.string(), // opcional · string libre
-    pg_alloy: z.string(), // opcional · string libre (ej. "AlSi10MgMn")
-    pg_part_number_geom: z.string(), // opcional · número como string (input step 0.01)
-    pg_part_dimension: z.string(), // opcional · string libre (ej. "320x180x75" en mm)
-    pg_min_wall_thickness: z.string(), // opcional · número como string (input step 0.01, en mm)
-    pg_max_wall_thickness: z.string(), // opcional · número como string (input step 0.01, en mm)
-    pg_projected_area: z.string(), // opcional · número como string (input step 0.01, en cm²)
-    pg_surface: z.string(), // opcional · número como string (input step 0.01, en cm²)
-    pg_volume: z.string(), // opcional · número como string (input step 0.01, en cm³)
-    pg_gross_weight: z.string(), // opcional · número como string (input step 0.01, en g)
-    // Sección 7 — Tool Specification
-    ts_buhler_machine_ton: z.string(), // opcional · número como string (input step 0.01, en toneladas)
-    ts_num_cavities_sets: z.string(), // opcional · número como string (input step 0.01)
-    ts_three_plate_mold: z.string(), // opcional · número como string (input step 0.01)
-    ts_num_gates_per_part: z.string(), // opcional · string libre
-    ts_num_mech_slides: z.string(), // opcional · número como string (input step 0.01)
-    ts_num_hydr_slides: z.string(), // opcional · número como string (input step 0.01)
-    ts_num_parts_per_stroke: z.string(), // opcional · string libre
-    ts_num_tools: z.string(), // opcional · string libre
-    // Sección 8 — Comments
-    comments: z.string(), // opcional · texto libre (textarea, sin límite de longitud)
-    // Sección 9 — Files
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // opcional · archivos adjuntos: PPT, STP, PDF; máx. 25 MB por archivo
+      .nullable(), // null = no attached file; if present: name (string), size (number in bytes), type (MIME string)
+    // Section 6 — Part Geometry
+    pg_part_name: z.string(), // optional · free-form string
+    pg_alloy: z.string(), // optional · free-form string (ej. "AlSi10MgMn")
+    pg_part_number_geom: z.string(), // optional · number as string (input step 0.01)
+    pg_part_dimension: z.string(), // optional · free-form string (ej. "320x180x75" in mm)
+    pg_min_wall_thickness: z.string(), // optional · number as string (input step 0.01, in mm)
+    pg_max_wall_thickness: z.string(), // optional · number as string (input step 0.01, in mm)
+    pg_projected_area: z.string(), // optional · number as string (input step 0.01, en cm²)
+    pg_surface: z.string(), // optional · number as string (input step 0.01, en cm²)
+    pg_volume: z.string(), // optional · number as string (input step 0.01, en cm³)
+    pg_gross_weight: z.string(), // optional · number as string (input step 0.01, en g)
+    // Section 7 — Tool Specification
+    ts_buhler_machine_ton: z.string(), // optional · number as string (input step 0.01, in tons)
+    ts_num_cavities_sets: z.string(), // optional · number as string (input step 0.01)
+    ts_three_plate_mold: z.string(), // optional · number as string (input step 0.01)
+    ts_num_gates_per_part: z.string(), // optional · free-form string
+    ts_num_mech_slides: z.string(), // optional · number as string (input step 0.01)
+    ts_num_hydr_slides: z.string(), // optional · number as string (input step 0.01)
+    ts_num_parts_per_stroke: z.string(), // optional · free-form string
+    ts_num_tools: z.string(), // optional · free-form string
+    // Section 8 — Comments
+    comments: z.string(), // optional · free-form text (textarea, no length limit)
+    // Section 9 — Files
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
       if (!values.considerations[key]?.checked?.trim()) {
         ctx.addIssue({
           code: "custom",
-          message: 'Selecciona si aplica.',
+          message: 'Select whether it applies.',
           path: ['considerations', key, 'checked'],
         });
       }
@@ -99,7 +99,7 @@ const trimmingSchema = z
     ) {
       ctx.addIssue({
         code: "custom",
-        message: 'Especifica el concepto.',
+        message: 'Specify the concept.',
         path: ['considerations', 'others', 'notes'],
       });
     }
@@ -128,42 +128,42 @@ const PAGES: readonly TrimmingPageKey[] = [
 const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
   basic: {
     navLabel: 'RFQ',
-    subtitle: 'Datos principales del requerimiento que disparan el flujo.',
+    subtitle: 'Main requirement data that initiates the workflow.',
     title: '1. RFQ',
   },
   trim_die: {
     navLabel: 'TRIM DIE',
-    subtitle: 'Configuracion y especificaciones del herramental de trimming.',
+    subtitle: 'Trim die configuration and specifications.',
     title: '2. Trim Die',
   },
   data_info: {
     navLabel: 'DATA INFORMATION',
-    subtitle: 'Entregables tecnicos solicitados al toolmaker.',
+    subtitle: 'Technical deliverables requested from the toolmaker.',
     title: '3. Data Information Required in the Price of the Trim Die',
   },
   other_info: {
     navLabel: 'OTHER INFORMATION',
-    subtitle: 'Otros entregables y servicios incluidos.',
+    subtitle: 'Other deliverables and included services.',
     title: '4. Other Information',
   },
   shot_sketch: {
     navLabel: 'SHOT SKETCH',
-    subtitle: 'Adjunta el shot sketch completo del componente.',
+    subtitle: 'Attach the complete shot sketch of the component.',
     title: '5. Complete Shot Sketch',
   },
   part_geometry: {
     navLabel: 'PART GEOMETRY',
-    subtitle: 'Geometria y propiedades fisicas de la pieza.',
+    subtitle: 'Part geometry and physical properties.',
     title: '6. Part Geometry',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
-    subtitle: 'Especificaciones tecnicas del herramental y maquina.',
+    subtitle: 'Technical specifications of the tooling and machine.',
     title: '7. Tool Specification',
   },
   comments: {
     navLabel: 'COMMENTS',
-    subtitle: 'Comentarios adicionales para el proveedor.',
+    subtitle: 'Additional comments for the supplier.',
     title: '8. Comments',
   },
   files: {
@@ -231,7 +231,7 @@ const REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly FieldPat
 
 const DATA_INFO_GROUP: ConsiderationGroupConfig = {
   title: '3. Data Information Required in the Price of the Trim Die',
-  subtitle: 'Entregables tecnicos solicitados al toolmaker.',
+  subtitle: 'Technical deliverables requested from the toolmaker.',
   col1Header: 'Description',
   col3Header: 'Notes',
   items: [
@@ -246,7 +246,7 @@ const DATA_INFO_GROUP: ConsiderationGroupConfig = {
 
 const OTHER_INFO_GROUP: ConsiderationGroupConfig = {
   title: '4. Other Information',
-  subtitle: 'Otros entregables y servicios incluidos.',
+  subtitle: 'Other deliverables and included services.',
   col1Header: 'Description',
   col3Header: 'Notes',
   items: [
@@ -316,10 +316,10 @@ function getCreateDefaultValues(): TrimmingFormValues {
 
 function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
   return {
-    description: 'Soporte lateral de puerta',
+    description: 'Lateral door support',
     part_number: `${(rfqId ?? 'TRM-001').toUpperCase()}-TR`,
     parts_per_year: '180000',
-    project_life: '5 años',
+    project_life: '5 years',
     customer: 'BMW AG',
     previous_job: 'TRM-0098',
     supplier: 'Herramental Precision SA',
@@ -339,9 +339,9 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
       design_3d: { checked: 'yes', notes: 'Native CATIA V5 format.' },
       design_2d: { checked: 'yes', notes: 'PDF + DXF.' },
       punch_pins: { checked: 'yes', notes: '' },
-      manuf_proposals: { checked: 'yes', notes: 'Ver propuesta M1.' },
-      latest_improvements: { checked: 'yes', notes: 'Revision de insertos de acero en impresion anterior.' },
-      sketch_concept: { checked: 'yes', notes: 'Incluir dimensiones de acero.' },
+      manuf_proposals: { checked: 'yes', notes: 'View M1 proposal.' },
+      latest_improvements: { checked: 'yes', notes: 'Review of steel inserts from the previous print.' },
+      sketch_concept: { checked: 'yes', notes: 'Include steel dimensions.' },
       frame_refur: { checked: 'yes', notes: '' },
       elec_wires: { checked: 'no', notes: '' },
       others: { checked: 'no', notes: '' },
@@ -349,11 +349,11 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
       ejector_fixed: { checked: 'yes', notes: '' },
       trim_die_1: { checked: 'yes', notes: '' },
       trim_die_2: { checked: 'no', notes: '' },
-      spare_parts_set: { checked: 'yes', notes: 'Ver lista adjunta.' },
+      spare_parts_set: { checked: 'yes', notes: 'See attached list.' },
       hydraulic_cyl: { checked: 'yes', notes: 'Bosch Rexroth.' },
     },
     shot_sketch_file: null,
-    pg_part_name: 'Soporte lateral de puerta',
+    pg_part_name: 'Lateral door support',
     pg_alloy: 'AlSi10MgMn',
     pg_part_number_geom: '0',
     pg_part_dimension: '320x180x75',
@@ -731,7 +731,7 @@ function CommentsPage() {
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
       <textarea
         className={`${inputBaseClasses(false)} resize-y`}
-        placeholder="Ingresa un comentario adicional"
+        placeholder="Enter an additional comment"
         rows={6}
         {...register('comments')}
       />

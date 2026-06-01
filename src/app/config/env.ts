@@ -10,7 +10,7 @@ const parsed = envSchema.safeParse(import.meta.env);
 
 if (!parsed.success) {
   const issues = parsed.error.issues.map((issue) => `- ${issue.path.join('.')}: ${issue.message}`).join('\n');
-  throw new Error(`Variables de entorno invalidas:\n${issues}\n\nRevisa tu archivo .env.local.`);
+  throw new Error(`Invalid environment variables:\n${issues}\n\nReview your .env.local file.`);
 }
 
 const apiBaseUrl = parsed.data.VITE_API_BASE_URL.replace(/\/+$/, '');

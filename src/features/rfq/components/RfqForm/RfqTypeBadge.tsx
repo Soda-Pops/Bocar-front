@@ -5,7 +5,7 @@ type RfqTypeBadgeProps = {
   className?: string;
 };
 
-const TIPO_STYLES: Record<RfqTipo, { container: string; dot: string }> = {
+const TYPE_STYLES: Record<RfqTipo, { container: string; dot: string }> = {
   Trimming: {
     container: 'bg-[rgba(0,46,93,0.08)] text-[var(--bocar-blue-100)]',
     dot: 'bg-[var(--bocar-blue-100)]',
@@ -17,7 +17,7 @@ const TIPO_STYLES: Record<RfqTipo, { container: string; dot: string }> = {
 };
 
 export function RfqTypeBadge({ tipo, className = '' }: RfqTypeBadgeProps) {
-  const styles = TIPO_STYLES[tipo];
+  const styles = TYPE_STYLES[tipo];
 
   return (
     <span

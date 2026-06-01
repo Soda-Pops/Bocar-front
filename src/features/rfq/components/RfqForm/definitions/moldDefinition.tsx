@@ -40,15 +40,15 @@ const moldSchema = z
     num_cav: z.string(),
     num_tools: z.string(),
     part_dim: z.string(),
-    part_name: z.string().trim().min(1, 'Ingresa el nombre de la pieza antes de continuar.'),
-    part_number: z.string().trim().min(1, 'Ingresa el numero de parte antes de enviar la RFQ.'),
+    part_name: z.string().trim().min(1, 'Enter the part name before continuing.'),
+    part_number: z.string().trim().min(1, 'Enter the part number before submitting the RFQ.'),
     part_tech: z.string(),
     parts_stroke: z.string(),
     pnum: z.string(),
     ppy: z.string(),
     prlf: z.string(),
     projected: z.string(),
-    rfq_name: z.string().trim().min(1, 'Ingresa el nombre del RFQ para continuar.'),
+    rfq_name: z.string().trim().min(1, 'Enter the RFQ name to continue.'),
     sk_part: z.string(),
     surface: z.string(),
     three_plate: z.string(),
@@ -63,7 +63,7 @@ const moldSchema = z
       if (TOGGLE_REQUIRED_CONSIDERATIONS.has(key) && !value.checked?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Selecciona si aplica.',
+          message: 'Select whether it applies.',
           path: ['considerations', key, 'checked'],
         });
       }
@@ -92,16 +92,16 @@ const PAGES: readonly MoldPageKey[] = [
 ];
 
 const PAGE_META: Record<MoldPageKey, PageMeta> = {
-  basic: { navLabel: 'RFQ', subtitle: 'Datos principales del requerimiento que disparan el flujo.', title: '1. RFQ' },
-  comments: { navLabel: 'COMMENTS', subtitle: 'Notas finales y contexto adicional para el proveedor.', title: '10. Comments' },
-  dcm: { navLabel: 'DCM', subtitle: 'Entregables y requisitos del concepto de molde.', title: '3. DCM' },
-  diritpotd: { navLabel: 'DIRITPOTD', subtitle: 'Diseno, ingenieria y documentacion tecnica.', title: '4. DIRITPOTD' },
-  geometry: { navLabel: 'PART GEOMETRY', subtitle: 'Dimensiones y propiedades del componente.', title: '8. Part Geometry' },
-  other_cons: { navLabel: 'OTHER', subtitle: 'Otros entregables de la cotizacion.', title: '5. Other' },
-  ot_inf: { navLabel: 'OT INF', subtitle: 'Documentacion adicional requerida al proveedor.', title: '6. OT INF' },
-  spareparts: { navLabel: 'SK PART', subtitle: 'Refacciones criticas a cotizar individualmente.', title: '7. SK PART' },
-  tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Configuracion y parametros del herramental.', title: '2. Tool Engineering' },
-  tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Dimensiones y configuracion detallada del herramental.', title: '9. Tool Specification' },
+  basic: { navLabel: 'RFQ', subtitle: 'Main requirement data that initiates the workflow.', title: '1. RFQ' },
+  comments: { navLabel: 'COMMENTS', subtitle: 'Final notes and additional supplier context.', title: '10. Comments' },
+  dcm: { navLabel: 'DCM', subtitle: 'Mold concept deliverables and requirements.', title: '3. DCM' },
+  diritpotd: { navLabel: 'DIRITPOTD', subtitle: 'Design, engineering, and technical documentation.', title: '4. DIRITPOTD' },
+  geometry: { navLabel: 'PART GEOMETRY', subtitle: 'Component dimensions and properties.', title: '8. Part Geometry' },
+  other_cons: { navLabel: 'OTHER', subtitle: 'Other quotation deliverables.', title: '5. Other' },
+  ot_inf: { navLabel: 'OT INF', subtitle: 'Additional documentation required from the supplier.', title: '6. OT INF' },
+  spareparts: { navLabel: 'SK PART', subtitle: 'Critical spare parts to quote individually.', title: '7. SK PART' },
+  tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Tooling configuration and parameters.', title: '2. Tool Engineering' },
+  tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Detailed tooling dimensions and configuration.', title: '9. Tool Specification' },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -152,7 +152,7 @@ const CONSIDERATION_GROUPS: readonly MoldConsiderationGroup[] = [
       { id: 'no_cav', label: 'No.CAV' },
       { id: 'no_hs', label: 'No.ofHS' },
       { id: 'no_ms', label: 'No.ofMS' },
-      { id: 'third_p_supp', label: '3thPSupp', noteExample: 'Para partes estructurales con aleacion AlSi10, considerar acero 3D forjado.' },
+      { id: 'third_p_supp', label: '3thPSupp', noteExample: 'For structural parts with AlSi10 alloy, consider 3D forged steel.' },
       { id: 'no_subc', label: 'No.subc' },
       { id: 'jco', label: 'Jco' },
       { id: 'qc_sys', label: 'QcSys' },
@@ -178,11 +178,11 @@ const CONSIDERATION_GROUPS: readonly MoldConsiderationGroup[] = [
       { id: 'flan', label: 'FiAn' },
       { id: 'run_des', label: 'Run des' },
       { id: 'run_over', label: 'Run and over mod' },
-      { id: 'man_prop', label: 'ManProp', noteExample: 'Para partes estructurales con aleacion AlSi10, acero 3D forjado requerido.' },
+      { id: 'man_prop', label: 'ManProp', noteExample: 'For structural parts with AlSi10 alloy, 3D forged steel required.' },
       { id: 'ldi', label: 'Ldi' },
       { id: 'add_mach', label: 'Add of mach st.' },
       { id: 'sketch', label: 'Sketch d conc, inc s dim' },
-      { id: 'drw_2d', label: '2D Dr DesPDF and CNFl', noteExample: 'Incluir componentes, cavidades, insertos, core pins, ejector pins y spare parts criticos.' },
+      { id: 'drw_2d', label: '2D Dr DesPDF and CNFl', noteExample: 'Include components, cavities, inserts, core pins, ejector pins and critical spare parts.' },
       { id: 'drw_3d', label: '3D D. Mod. solid. (Native Format)' },
     ],
   },
@@ -195,8 +195,8 @@ const CONSIDERATION_GROUPS: readonly MoldConsiderationGroup[] = [
       { id: 'eyeb', label: 'Eyeb' },
       { id: 'ow_conn', label: 'C&W Conn' },
       { id: 'stm', label: 'STM (1&2)' },
-      { id: 'cmm_rep', label: 'CMM dim rep cal', noteExample: 'Tolerancia de posicion 10% del producto.' },
-      { id: 'gom_rep', label: 'GOM rep. Ass cav, sl, in, cpln', noteExample: 'Tolerancia superficies de aluminio 10% del producto.' },
+      { id: 'cmm_rep', label: 'CMM dim rep cal', noteExample: 'Position tolerance 10% of the product.' },
+      { id: 'gom_rep', label: 'GOM rep. Ass cav, sl, in, cpln', noteExample: 'Aluminum surface tolerance 10% of the product.' },
       { id: 'h_val', label: 'H val subc& in', noteExample: '44 - 46 HRC (H11 - H13).' },
       { id: 'dim_corr', label: 'Dim con&opt' },
       { id: 'sp_pt', label: 'Sp Pl' },
@@ -210,7 +210,7 @@ const CONSIDERATION_GROUPS: readonly MoldConsiderationGroup[] = [
     items: [
       { id: 'comp_d', label: 'Comp. D.' },
       { id: 'subseq_d', label: 'Subseq. D.' },
-      { id: 'repl_h13', label: 'Set of repl. H-13', noteExample: 'Cavidades de reemplazo.' },
+      { id: 'repl_h13', label: 'Set of repl. H-13', noteExample: 'Replacement cavities.' },
       { id: 'sp_ei', label: 'Sp. set of E.I.' },
       { id: 'ficf', label: 'FICF' },
       { id: 'hcls', label: 'HCLS' },
@@ -235,14 +235,14 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
   return {
     alloy: 'AlSi10MnMg',
     buhler: '3400',
-    comments: 'Validar paquete dimensional con el proveedor antes del release final.',
+    comments: 'Validate the dimensional package with the supplier before final release.',
     considerations: {
-      cmm_rep: { checked: 'yes', notes: 'Tolerancia de posicion 10% del producto.' },
+      cmm_rep: { checked: 'yes', notes: 'Position tolerance 10% of the product.' },
       comp_d: { checked: 'yes', notes: '' },
-      d_3d: { checked: 'yes', notes: 'Modelo preliminar disponible en revision M1.' },
-      drw_2d: { checked: 'yes', notes: 'Se requiere PDF + CNF con componentes criticos.' },
-      man_prop: { checked: 'yes', notes: 'Cotizar propuesta con acero 3D forjado.' },
-      smach: { checked: '', notes: 'Buhler 3400T confirmada para la corrida.' },
+      d_3d: { checked: 'yes', notes: 'Preliminary model available in M1 review.' },
+      drw_2d: { checked: 'yes', notes: 'PDF + CNF with critical components required.' },
+      man_prop: { checked: 'yes', notes: 'Quote proposal with 3D forged steel.' },
+      smach: { checked: '', notes: 'Buhler 3400T confirmed for production run.' },
     },
     cust: 'Name XX',
     dtq: '12',
@@ -261,8 +261,8 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     ppy: '240000',
     prlf: '5',
     projected: '336',
-    rfq_name: 'Proyecto soporte puerta',
-    sk_part: 'Inserto lateral H13 (Set de seguridad) - 2 pzas.\nCavidad principal de reemplazo (H13 forjado) - 1 pza.',
+    rfq_name: 'Door support project',
+    sk_part: 'Lateral H13 insert (safety set) - 2 pcs.\nMain replacement cavity (H13 forged) - 1 pc.',
     surface: '522',
     three_plate: '0',
     tt: 'PRODUCTION',
@@ -300,10 +300,10 @@ function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
     <SectionCard subtitle={group.subtitle} title={group.title}>
       <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-          Entregable / requisito
+          Deliverable / requirement
         </div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-          Especificaciones
+          Specifications
         </div>
       </div>
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
@@ -317,7 +317,7 @@ function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
             </div>
             <input
               className={inputBaseClasses(false)}
-              placeholder={item.noteExample ?? 'Especificaciones / notas'}
+              placeholder={item.noteExample ?? 'Specifications / notes'}
               {...register(`considerations.${item.id}.notes`)}
             />
           </div>
@@ -332,7 +332,7 @@ function BasicPage() {
     <SectionCard subtitle={PAGE_META.basic.subtitle} title={PAGE_META.basic.title}>
       <FormGrid>
         <TextField
-          hint="Nombre visible para compras, industrializacion y seguimiento interno."
+          hint="Display name for Purchasing, Industrialization, and internal tracking."
           label="DESC"
           name="rfq_name"
           placeholder="Product / E-PCP Folio"
@@ -364,9 +364,9 @@ function SparePartsPage() {
   return (
     <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
       <TextAreaField
-        label="Descripcion"
+        label="Description"
         name="sk_part"
-        placeholder="Ingresa una descripcion adicional"
+        placeholder="Enter an additional description"
         rows={8}
         span={2}
       />
@@ -414,9 +414,9 @@ function CommentsPage() {
   return (
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
       <TextAreaField
-        label="Comentarios adicionales"
+        label="Additional comments"
         name="comments"
-        placeholder="Ingresa un comentario adicional"
+        placeholder="Enter an additional comment"
         rows={8}
         span={2}
       />

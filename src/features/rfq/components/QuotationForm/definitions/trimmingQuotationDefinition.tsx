@@ -28,14 +28,14 @@ type ConsiderationItem = {
 };
 
 type InheritedRfq = {
-  // Sección 1 — RFQ
+  // Section 1 — RFQ
   description: string;
   parts_per_year: string;
   customer: string;
   part_number: string;
   project_life: string;
   deliver_by: string;
-  // Sección 2 — Trim Die
+  // Section 2 — Trim Die
   press: string;
   num_cavities: string;
   num_hydraulic_slides: string;
@@ -47,13 +47,13 @@ type InheritedRfq = {
   castings_by_auma: 'yes' | 'no' | '';
   adjustments_toolmaker: 'yes' | 'no' | '';
   gas_springs: string;
-  // Sección 3 — Data Information
+  // Section 3 — Data Information
   data_info: ConsiderationItem[];
-  // Sección 4 — Other Information
+  // Section 4 — Other Information
   other_info: ConsiderationItem[];
-  // Sección 5 — Shot Sketch
+  // Section 5 — Shot Sketch
   shot_sketch_file: { name: string; size: number; type: string } | null;
-  // Sección 6 — Part Geometry
+  // Section 6 — Part Geometry
   pg_part_name: string;
   pg_alloy: string;
   pg_part_number_geom: string;
@@ -64,7 +64,7 @@ type InheritedRfq = {
   pg_surface: string;
   pg_volume: string;
   pg_gross_weight: string;
-  // Sección 7 — Tool Specification
+  // Section 7 — Tool Specification
   ts_buhler_machine_ton: string;
   ts_num_cavities_sets: string;
   ts_three_plate_mold: string;
@@ -77,11 +77,11 @@ type InheritedRfq = {
 
 function getInheritedRfqMock(rfqId: string): InheritedRfq {
   return {
-    description: 'Soporte lateral de puerta',
+    description: 'Lateral door support',
     parts_per_year: '180,000',
     customer: 'BMW AG',
     part_number: `${rfqId.toUpperCase()}-TR`,
-    project_life: '5 años',
+    project_life: '5 years',
     deliver_by: '2026-09-15',
     press: 'Müller Weingarten PE2500',
     num_cavities: '2x',
@@ -98,16 +98,16 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
       { label: 'Design 3D model', checked: 'yes', notes: 'Native CATIA V5 format.' },
       { label: 'Design 2D data', checked: 'yes', notes: 'PDF + DXF.' },
       { label: 'Punch pins Data', checked: 'yes', notes: '' },
-      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'Ver propuesta M1.' },
+      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'View M1 proposal.' },
       {
         label: 'Latest trim die improvements',
         checked: 'yes',
-        notes: 'Revisión de insertos de acero en impresión anterior.',
+        notes: 'Review of steel inserts from the previous print.',
       },
       {
         label: 'Sketch of trim die concept including steel dimensions',
         checked: 'yes',
-        notes: 'Incluir dimensiones de acero.',
+        notes: 'Include steel dimensions.',
       },
     ],
     other_info: [
@@ -118,11 +118,11 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
       { label: 'Ejector system in fixed side', checked: 'yes', notes: '' },
       { label: 'Trim die No. 1', checked: 'yes', notes: '' },
       { label: 'Trim die No. 2', checked: 'no', notes: '' },
-      { label: 'Set of spare parts (recommended by tool maker)', checked: 'yes', notes: 'Ver lista adjunta.' },
+      { label: 'Set of spare parts (recommended by tool maker)', checked: 'yes', notes: 'View attached list.' },
       { label: 'Hydraulic Cylinders and limit switches', checked: 'yes', notes: 'Bosch Rexroth.' },
     ],
     shot_sketch_file: { name: 'Shot_Sketch_SoporteLateral_v3.pdf', size: 2_340_000, type: 'application/pdf' },
-    pg_part_name: 'Soporte lateral de puerta',
+    pg_part_name: 'Lateral door support',
     pg_alloy: 'AlSi10MgMn',
     pg_part_number_geom: '0',
     pg_part_dimension: '320 × 180 × 75 mm',
@@ -235,8 +235,8 @@ const sparePartSchema = z.object({
 });
 
 const trimmingQuotationSchema = z.object({
-  supplier: z.string().trim().min(1, 'Ingresa el nombre del proveedor.'),
-  ts_max_weight_trim_die: z.string().trim().min(1, 'Ingresa el peso máximo del trim die.'),
+  supplier: z.string().trim().min(1, 'Enter the supplier name.'),
+  ts_max_weight_trim_die: z.string().trim().min(1, 'Enter the maximum trim die weight.'),
   comments: z.string(),
   basic_data: basicDataSchema,
   material_costs: materialCostsSchema,
@@ -292,82 +292,82 @@ const PAGES: readonly PageKey[] = [
 const PAGE_META: Record<PageKey, PageMeta> = {
   basic: {
     navLabel: 'RFQ',
-    subtitle: 'Datos heredados del RFQ. Captura el nombre del proveedor.',
+    subtitle: 'Inherited RFQ data. Enter the supplier name.',
     title: '1. RFQ',
   },
   trim_die: {
     navLabel: 'TRIM DIE',
-    subtitle: 'Configuración y especificaciones del herramental de trimming capturadas por Industrialización.',
+    subtitle: 'Trimming tooling configuration and specifications captured by Industrialization.',
     title: '2. Trim Die',
   },
   data_info: {
     navLabel: 'DATA INFORMATION',
-    subtitle: 'Entregables técnicos solicitados al toolmaker, definidos por Industrialización.',
+    subtitle: 'Technical deliverables requested from the toolmaker, as defined by Industrialization.',
     title: '3. Data Information Required in the Price of the Trim Die',
   },
   other_info: {
     navLabel: 'OTHER INFORMATION',
-    subtitle: 'Otros entregables y servicios requeridos, definidos por Industrialización.',
+    subtitle: 'Other required deliverables and services, as defined by Industrialization.',
     title: '4. Other Information',
   },
   shot_sketch: {
     navLabel: 'SHOT SKETCH',
-    subtitle: 'Shot sketch adjunto por Industrialización como referencia técnica.',
+    subtitle: 'Shot sketch attached by Industrialization as a technical reference.',
     title: '5. Complete Shot Sketch',
   },
   basic_data: {
     navLabel: 'BASIC DATA',
-    subtitle: 'Datos generales de tu organización para esta cotización.',
+    subtitle: 'General information about your organization for this quotation.',
     title: '1. Basic Data',
   },
   part_geometry: {
     navLabel: 'PART GEOMETRY',
-    subtitle: 'Geometría y propiedades de la pieza, capturadas por Industrialización.',
+    subtitle: 'Part geometry and properties captured by Industrialization.',
     title: '2. Part Geometry',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
-    subtitle: 'Especificaciones del herramental. Agrega el peso máximo del trim die.',
+    subtitle: 'Tooling specifications. Add the maximum trim die weight.',
     title: '3. Tool Specification',
   },
   comments: {
     navLabel: 'COMMENTS',
-    subtitle: 'Notas adicionales para el equipo de Compras.',
+    subtitle: 'Additional notes for the Purchasing team.',
     title: '4. Comments',
   },
   material_costs: {
     navLabel: 'MATERIAL COSTS',
-    subtitle: 'Costos de partes compradas y materia prima.',
+    subtitle: 'Purchased parts and raw material costs.',
     title: '5. Material Costs (Purchased Parts and Raw Materials)',
   },
   accessories_costs: {
     navLabel: 'ACCESORIES COSTS',
-    subtitle: 'Costos de accesorios estándar del trim die.',
+    subtitle: 'Standard trim die accessory costs.',
     title: '6. Accesories Costs',
   },
   manufacturing_costs: {
     navLabel: 'MANUFACTURING COSTS',
-    subtitle: 'Tiempos y costos de proceso por categoría.',
+    subtitle: 'Process times and costs by category.',
     title: '7. Manufacturing Costs (Process Times and Costs)',
   },
   trim_die_adjustment: {
     navLabel: 'TRIM DIE ADJUSTMENT',
-    subtitle: 'Horas y costos de ajuste final del trim die.',
+    subtitle: 'Hours and costs for the final trim die adjustment.',
     title: '8. Trim Die Adjustment',
   },
   logistics: {
     navLabel: 'LOGISTICS',
-    subtitle: 'Costos de logística asociados al trim die.',
+    subtitle: 'Logistics costs associated with the trim die.',
     title: '9. Logistics',
   },
   tool_replacement: {
     navLabel: 'TOOL REPLACEMENT',
-    subtitle: 'Costos de reemplazo de herramental, si aplica.',
+    subtitle: 'Tooling replacement costs, if applicable.',
     title: '10. Tool Replacement',
   },
   spare_parts: {
     navLabel: 'SPARE PARTS',
-    subtitle: 'Costos de refacciones requeridas para el trim die.',
+    subtitle: 'Required spare part costs for the trim die.',
     title: '11. Spare Parts',
   },
 };
@@ -498,13 +498,13 @@ function getEditDefaultValues(quotationId?: string): TrimmingQuotationValues {
     ...base,
     supplier: 'Herramental Precision SA',
     ts_max_weight_trim_die: '850 kg',
-    comments: `Cotización vinculada a ${(quotationId ?? 'COT-001').toUpperCase()}.`,
+    comments: `Quotation linked to ${(quotationId ?? 'COT-001').toUpperCase()}.`,
     basic_data: {
       company: 'Herramental Precision SA',
-      elaborated_by: 'Carlos Martínez',
-      country: 'México',
+      elaborated_by: 'Carlos Martinez',
+      country: 'Mexico',
       currency: 'USD',
-      last_edited_by: 'Carlos Martínez',
+      last_edited_by: 'Carlos Martinez',
       last_change: '2026-05-20',
     },
     material_costs: {
@@ -575,7 +575,7 @@ function YesNoBadge({ value }: { value: 'yes' | 'no' | '' }) {
 
 function SectionTableHeader({
   col1 = 'Description',
-  col2 = 'Del RFQ',
+  col2 = 'From RFQ',
 }: {
   col1?: string;
   col2?: string;
@@ -600,7 +600,7 @@ function ConsiderationTableReadonly({
   return (
     <>
       <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.55fr)_minmax(0,1.85fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
-        {(['Description', 'Aplica', 'Notes'] as const).map((h) => (
+        {(['Description', 'Applies', 'Notes'] as const).map((h) => (
           <div
             key={h}
             className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]"
@@ -644,7 +644,7 @@ function BasicPage({ inherited }: { inherited: InheritedRfq }) {
         <ReadOnlyField label="CUSTOMER" value={inherited.customer} />
         <ReadOnlyField label="DELIVER THIS QUOTE BY" value={inherited.deliver_by} />
         <TextField
-          hint="Razón social o nombre comercial bajo el que cotizas."
+          hint="Legal name or trade name under which you quote."
           label="SUPPLIER"
           name="supplier"
           required
@@ -698,7 +698,7 @@ function TrimDiePage({ inherited }: { inherited: InheritedRfq }) {
 
   return (
     <SectionCard subtitle={PAGE_META.trim_die.subtitle} title={PAGE_META.trim_die.title}>
-      <SectionTableHeader col2="Del RFQ" />
+      <SectionTableHeader col2="From RFQ" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {rows.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
@@ -755,19 +755,19 @@ function ShotSketchPage({ inherited }: { inherited: InheritedRfq }) {
               {file.name}
             </p>
             <p className="m-0 mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">
-              {formatFileSize(file.size)} · Subido por Industrialización
+              {formatFileSize(file.size)} · Uploaded by Industrialization
             </p>
           </div>
           <button
             className="shrink-0 rounded-[8px] border border-[#d9dee5] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)]"
             type="button"
           >
-            Ver archivo
+            View file
           </button>
         </div>
       ) : (
         <div className="flex min-h-[100px] items-center justify-center rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-6 text-[13px] text-[var(--bocar-blue-30)]">
-          No se adjuntó shot sketch en esta RFQ.
+          No shot sketch was attached to this RFQ.
         </div>
       )}
     </SectionCard>
@@ -779,13 +779,13 @@ function BasicDataPage() {
   return (
     <SectionCard subtitle={PAGE_META.basic_data.subtitle} title={PAGE_META.basic_data.title}>
       <FormGrid>
-        <TextField label="COMPANY" name="basic_data.company" placeholder="Razón social" />
+        <TextField label="COMPANY" name="basic_data.company" placeholder="Legal name" />
         <TextField
           label="ELABORATED BY"
           name="basic_data.elaborated_by"
-          placeholder="Nombre del responsable"
+          placeholder="Responsible person name"
         />
-        <TextField label="COUNTRY" name="basic_data.country" placeholder="País" />
+        <TextField label="COUNTRY" name="basic_data.country" placeholder="Country" />
         <div>
           <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
             BASE CURRENCY / EXCHANGE RATE TO
@@ -799,7 +799,7 @@ function BasicDataPage() {
         <TextField
           label="LAST EDITED BY"
           name="basic_data.last_edited_by"
-          placeholder="Quién editó por última vez"
+          placeholder="Last editor"
         />
         <TextField label="LAST CHANGE" name="basic_data.last_change" type="date" />
       </FormGrid>
@@ -823,7 +823,7 @@ function PartGeometryPage({ inherited }: { inherited: InheritedRfq }) {
 
   return (
     <SectionCard subtitle={PAGE_META.part_geometry.subtitle} title={PAGE_META.part_geometry.title}>
-      <SectionTableHeader col2="Del RFQ" />
+      <SectionTableHeader col2="From RFQ" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {rows.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
@@ -849,10 +849,10 @@ function ToolSpecPage({ inherited }: { inherited: InheritedRfq }) {
         <ReadOnlyField label="Number of parts per stroke" value={inherited.ts_num_parts_per_stroke} />
         <ReadOnlyField label="Number of tools" value={inherited.ts_num_tools} />
         <TextField
-          hint="Capacidad máxima de peso que soporta el trim die propuesto."
+          hint="Maximum weight capacity supported by the proposed trim die."
           label="MAXIMUM WEIGHT FOR THE TRIM DIE"
           name="ts_max_weight_trim_die"
-          placeholder="ej. 850 kg"
+          placeholder="e.g. 850 kg"
           required
           span={2}
         />
@@ -867,7 +867,7 @@ function CommentsPage() {
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
       <textarea
         className={`${inputBaseClasses(false)} resize-y`}
-        placeholder="Comentarios adicionales para Compras..."
+        placeholder="Additional comments for Purchasing..."
         rows={8}
         {...register('comments')}
       />
@@ -900,7 +900,7 @@ function AccessoriesCostsPage() {
         rows={[
           { key: 'merkle_cylinders', label: '1. Merkle Cylinders' },
           { key: 'telemecanique', label: '2. Telemecanique limit switches' },
-          { key: 'ifm_sensors', label: '3. Sensores IFM' },
+          { key: 'ifm_sensors', label: '3. IFM Sensors' },
           { key: 'air_devices', label: '4. Air Devices' },
           { key: 'others', label: '5. Others' },
         ]}
@@ -1103,7 +1103,7 @@ function ToolReplacementPage() {
       <CostTable
         basePath="tool_replacement"
         columns={['unit', 'price_unit', 'total', 'weeks']}
-        hint="Si es la primera cotización del proyecto, deja esta sección en blanco. Si es un Tool Replacement, llena según los Design Costs del ppt 'Die improvements for Tool Replacement Molds'."
+        hint="If this is the first quotation for the project, leave this section blank. If it is a Tool Replacement, complete it according to the Design Costs in the 'Die improvements for Tool Replacement Molds' deck."
         rows={[
           { key: 'die_improvements', label: '1. Die improvements design' },
           { key: 'others', label: '2. Others' },
@@ -1148,8 +1148,8 @@ function SparePartsPage() {
     <SectionCard subtitle={PAGE_META.spare_parts.subtitle} title={PAGE_META.spare_parts.title}>
       <div className="space-y-3">
         <p className="m-0 text-[12px] leading-[1.5] text-[var(--bocar-blue-50)]">
-          Cotiza individualmente cada spare part requerido por Bocar (según ppt 'Trim Die Concept' o
-          'Die Improvements'). Las dos primeras filas son fijas; agrega filas adicionales según
+          Quote each spare part required by Bocar individually (according to the 'Trim Die Concept' deck or
+          'Die Improvements'). The first two rows are fixed; add additional rows according to
           necesites.
         </p>
 
@@ -1182,7 +1182,7 @@ function SparePartsPage() {
                 ) : (
                   <input
                     className={inputBaseClasses(false)}
-                    placeholder="Nombre del spare part"
+                    placeholder="Spare part name"
                     {...register(`spare_parts.${index}.concept` as const)}
                   />
                 )}
@@ -1217,7 +1217,7 @@ function SparePartsPage() {
                   {...register(`spare_parts.${index}.weeks` as const)}
                 />
                 <button
-                  aria-label={`Eliminar fila ${index + 1}`}
+                  aria-label={`Delete row ${index + 1}`}
                   className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[#d9dee5] bg-white text-[var(--bocar-blue-50)] transition hover:border-[var(--bocar-error)] hover:text-[var(--bocar-error)] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={isFixed}
                   type="button"
@@ -1242,7 +1242,7 @@ function SparePartsPage() {
           type="button"
           onClick={() => append({ concept: '', unit: '', price_unit: '', weeks: '' })}
         >
-          + Agregar spare part
+          + Add spare part
         </button>
 
         <div className={`mt-2 rounded-[10px] bg-[rgba(0,46,93,0.04)] px-3 py-3 ${gridClass}`}>

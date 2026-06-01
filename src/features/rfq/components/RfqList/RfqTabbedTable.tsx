@@ -3,7 +3,7 @@ import type { Section, SectionKey, SummaryCard } from '@/features/rfq/types';
 import { getSectionSummary } from '@/shared/utils/dashboard';
 import { RfqTable } from '@/features/rfq/components/RfqList/RfqTable';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 type RfqTabbedTableProps = {
   sections: Section[];
@@ -70,7 +70,7 @@ export function RfqTabbedTable({
           </div>
           <div className={`rounded-[20px] px-4 py-4 ${sectionStyle.soft}`}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Registros visibles
+              Visible records
             </p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">{activeSection.rows.length}</p>
           </div>

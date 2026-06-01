@@ -19,12 +19,12 @@ const TYPE_OPTIONS: readonly TypeOption[] = [
   {
     tipo: 'Trimming',
     title: 'Trimming',
-    description: 'RFQ (Request for Quotation) para trimming.',
+    description: 'RFQ (Request for Quotation) for trimming.',
   },
   {
     tipo: 'Mold',
     title: 'Mold',
-    description: 'RFQ (Request for Quotation) para moldes.',
+    description: 'RFQ (Request for Quotation) for molds.',
   },
 ];
 
@@ -103,16 +103,16 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-      <Header areaLabel="Industrializacion · Crear RFQ" />
+      <Header areaLabel="Industrialization · Create RFQ" />
 
       <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-12 lg:py-14">
         <div className="mx-auto w-full max-w-[1180px]">
           <div className="flex flex-col gap-2">
             <h1 className="m-0 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[32px]">
-              Selecciona el tipo de RFQ
+              Select RFQ Type
             </h1>
             <p className="m-0 text-[14px] leading-[1.6] text-[var(--bocar-blue-50)]">
-              Paso 1 de 2
+              Step 1 of 2
             </p>
           </div>
 
@@ -137,7 +137,7 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
             onClick={onBack}
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </button>
 
           <Button
@@ -146,7 +146,7 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
             type="button"
             onClick={handleContinue}
           >
-            Continuar →
+            Continue →
           </Button>
         </div>
       </footer>

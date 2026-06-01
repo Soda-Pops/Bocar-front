@@ -1,21 +1,21 @@
 import type { Section, SectionKey, SectionStyle, SummaryCard } from '@/features/rfq/types';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 // Centralized dashboard content so future API wiring only replaces this module.
 export const menuItems = [
-  'CREAR RFQs',
-  'BORRADORES',
-  'ESPERA DE AUTORIZACIÓN',
-  'ACTIVAS',
-  'HISTÓRICAS',
+  'CREATE RFQs',
+  'DRAFTS',
+  'AWAITING AUTHORIZATION',
+  'ACTIVE',
+  'HISTORICAL',
 ] as const;
 
 export const sectionDescriptions: Record<SectionKey, string> = {
-  borradores: 'RFQs listas para edición y preparación antes de su envío.',
-  revision: 'Solicitudes pendientes de autorización con foco en decisión rápida.',
-  activas: 'Procesos abiertos con seguimiento operativo y fecha visible.',
-  historicas: 'Consultas cerradas para auditoría, referencia y trazabilidad.',
+  borradores: 'RFQs ready for editing and preparation before submission.',
+  revision: 'Requests pending authorization with a focus on rapid decisions.',
+  activas: 'Open processes with operational tracking and visible dates.',
+  historicas: 'Closed requests for audit, reference, and traceability.',
 };
 
 export const sectionStyles: Record<SectionKey, SectionStyle> = {
@@ -42,47 +42,47 @@ export const sectionStyles: Record<SectionKey, SectionStyle> = {
 };
 
 export const summaryCards: SummaryCard[] = [
-  { label: 'RFQs BORRADORES', value: '2', key: 'borradores' },
-  { label: 'RFQs EN REVISIÓN', value: '2', key: 'revision' },
-  { label: 'RFQs ACTIVAS', value: '3', key: 'activas' },
-  { label: 'RFQs PASADAS', value: '10', key: 'historicas' },
+  { label: 'DRAFT RFQs', value: '2', key: 'borradores' },
+  { label: 'RFQs UNDER REVIEW', value: '2', key: 'revision' },
+  { label: 'ACTIVE RFQs', value: '3', key: 'activas' },
+  { label: 'PAST RFQs', value: '10', key: 'historicas' },
 ];
 
 export const sections: Section[] = [
   {
-    title: 'BORRADORES',
+    title: 'DRAFTS',
     key: 'borradores',
-    headers: ['ID', 'MATERIAL', 'CREADO POR', 'ACCIÓN'],
+    headers: ['ID', 'MATERIAL', 'CREATED BY', 'ACTION'],
     rows: [
-      ['RFQ-004', 'Acero', 'Luis Gómez', 'Editar'],
-      ['RFQ-003', 'Aluminio', 'Valeria Perez', 'Editar'],
+      ['RFQ-004', 'Steel', 'Luis Gomez', 'Edit'],
+      ['RFQ-003', 'Aluminum', 'Valeria Perez', 'Edit'],
     ],
   },
   {
-    title: 'ESPERA DE AUTORIZACIÓN',
+    title: 'AWAITING AUTHORIZATION',
     key: 'revision',
-    headers: ['ID', 'SOLICITANTE', 'ESTADO', 'ACCIÓN'],
+    headers: ['ID', 'REQUESTER', 'STATUS', 'ACTION'],
     rows: [
-      ['RFQ-002', 'Ana Perez', 'Review', 'Ver'],
-      ['RFQ-001', 'Juan Ruiz', 'Review', 'Ver'],
+      ['RFQ-002', 'Ana Perez', 'Review', 'View'],
+      ['RFQ-001', 'Juan Ruiz', 'Review', 'View'],
     ],
   },
   {
-    title: 'ACTIVAS',
+    title: 'ACTIVE',
     key: 'activas',
-    headers: ['ID', 'MATERIAL', 'ESTADO', 'FECHA', 'ACCIÓN'],
+    headers: ['ID', 'MATERIAL', 'STATUS', 'DATE', 'ACTION'],
     rows: [
-      ['RFQ-004', 'Plastico', 'Pending', '16/04/2026', 'Ver'],
-      ['RFQ-003', 'Aluminio', 'Pending', '14/04/2026', 'Ver'],
+      ['RFQ-004', 'Plastic', 'Pending', '16/04/2026', 'View'],
+      ['RFQ-003', 'Aluminum', 'Pending', '14/04/2026', 'View'],
     ],
   },
   {
-    title: 'HISTÓRICAS',
+    title: 'HISTORICAL',
     key: 'historicas',
-    headers: ['ID', 'PROVEEDOR', 'ESTADO', 'FECHA', 'ACCIÓN'],
+    headers: ['ID', 'SUPPLIER', 'STATUS', 'DATE', 'ACTION'],
     rows: [
-      ['RFQ-002', 'Magna', 'Done', '15/03/2026', 'Ver'],
-      ['RFQ-001', 'Bosch', 'Done', '12/03/2026', 'Ver'],
+      ['RFQ-002', 'Magna', 'Done', '15/03/2026', 'View'],
+      ['RFQ-001', 'Bosch', 'Done', '12/03/2026', 'View'],
     ],
   },
 ];

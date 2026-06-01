@@ -326,19 +326,19 @@ const SECTION_TYPE_META: Record<
   { label: string; classes: string; dotClass: string }
 > = {
   readonly: {
-    label: 'Del RFQ · Solo lectura',
+    label: 'From RFQ · Read-only',
     classes:
       'border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] text-[var(--bocar-blue-70)]',
     dotClass: 'bg-[var(--bocar-blue-30)]',
   },
   hybrid: {
-    label: 'Mixta · Tú + RFQ',
+    label: 'Mixed · You + RFQ',
     classes:
       'border-[rgba(176,135,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[#7A6300]',
     dotClass: 'bg-[#C49B00]',
   },
   supplier: {
-    label: 'Por completar',
+    label: 'To complete',
     classes:
       'border-[rgba(0,46,93,0.18)] bg-[rgba(0,46,93,0.08)] text-[var(--bocar-blue-100)]',
     dotClass: 'bg-[var(--bocar-blue-100)]',
@@ -364,10 +364,10 @@ export function SidebarSectionDot({ type }: { type: SectionType }) {
   const meta = SECTION_TYPE_META[type];
   const title =
     type === 'readonly'
-      ? 'Solo lectura'
+      ? 'Read-only'
       : type === 'hybrid'
-        ? 'Mixta'
-        : 'Por completar';
+        ? 'Mixed'
+        : 'To complete';
   return (
     <span
       aria-label={title}
@@ -480,7 +480,7 @@ export function SectionTypeLegend() {
   return (
     <div className="rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-white p-4 shadow-[0_8px_24px_rgba(0,46,93,0.04)]">
       <p className="m-0 mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-70)]">
-        Tipos de sección
+        Section types
       </p>
       <div className="grid gap-4 lg:grid-cols-3">
         {(['readonly', 'hybrid', 'supplier'] as const).map((t) => (
@@ -488,10 +488,10 @@ export function SectionTypeLegend() {
             <SectionTypeBadge type={t} />
             <p className="m-0 text-[12px] leading-[1.5] text-[var(--bocar-blue-70)]">
               {t === 'readonly'
-                ? 'Datos cargados por Industrialización. No los puedes editar.'
+                ? 'Data loaded by Industrialization. You cannot edit it.'
                 : t === 'hybrid'
-                  ? 'Combina datos heredados del RFQ con campos que tú debes completar.'
-                  : 'Información que debes capturar como proveedor para tu cotización.'}
+                  ? 'Combines inherited RFQ data with fields you must complete.'
+                  : 'Information you must provide as the supplier for your quotation.'}
             </p>
           </div>
         ))}
@@ -503,9 +503,9 @@ export function SectionTypeLegend() {
 export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupConfig }) {
   const { formState, getFieldState, register, trigger } = useFormContext();
 
-  const col1 = group.col1Header ?? 'Entregable / requisito';
-  const col2 = group.col2Header ?? 'Aplica';
-  const col3 = group.col3Header ?? 'Especificaciones';
+  const col1 = group.col1Header ?? 'Deliverable / requirement';
+  const col2 = group.col2Header ?? 'Applies';
+  const col3 = group.col3Header ?? 'Specifications';
 
   return (
     <SectionCard subtitle={group.subtitle} title={group.title}>

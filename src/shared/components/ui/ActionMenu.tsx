@@ -12,6 +12,7 @@ type ActionMenuProps = {
   actions: ActionMenuItem[];
   buttonLabel?: string;
   dark?: boolean;
+  align?: 'left' | 'right';
 };
 
 function MenuIcon() {
@@ -24,7 +25,7 @@ function MenuIcon() {
   );
 }
 
-export function ActionMenu({ actions, buttonLabel = 'Abrir acciones', dark = false }: ActionMenuProps) {
+export function ActionMenu({ actions, buttonLabel = 'Abrir acciones', dark = false, align = 'right' }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,7 +74,7 @@ export function ActionMenu({ actions, buttonLabel = 'Abrir acciones', dark = fal
       {isOpen ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-30 mt-2 min-w-[184px] overflow-hidden rounded-[12px] border border-[rgba(217,222,229,0.9)] bg-white p-1.5 shadow-[0_14px_34px_rgba(0,46,93,0.14)]"
+          className={`absolute top-full z-30 mt-2 min-w-[184px] overflow-hidden rounded-[12px] border border-[rgba(217,222,229,0.9)] bg-white p-1.5 shadow-[0_14px_34px_rgba(0,46,93,0.14)] ${align === 'left' ? 'left-0' : 'right-0'}`}
         >
           {actions.map((action) => (
             <button

@@ -3,9 +3,9 @@ import { LoginForm } from '@/features/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 
 const benefits = [
-  'Plataforma central para RFQs',
-  'Seguimiento en tiempo real',
-  'Control de procesos y proveedores',
+  'Central RFQ platform',
+  'Real-time tracking',
+  'Process and supplier control',
 ];
 
 function TopRightRings() {
@@ -53,16 +53,16 @@ function LoginPage() {
 
           <div className="relative mt-[86px] max-w-[430px]">
             <h1 className="m-0 flex flex-col text-[58px] font-extrabold leading-[0.9] tracking-[-0.045em]">
-              <span>ACCESO AL</span>
-              <span className="text-[#7f95b2]">SISTEMA</span>
+              <span>SYSTEM</span>
+              <span className="text-[#7f95b2]">ACCESS</span>
             </h1>
             <p className="mt-[18px] max-w-[420px] text-[12px] leading-[1.45] text-[#7f95b2]">
-              Gestión centralizada de compras y proyectos de industrialización.
+              Centralized management for purchasing and industrialization projects.
             </p>
           </div>
 
           <ul
-            aria-label="Beneficios de la plataforma"
+            aria-label="Platform benefits"
             className="relative mt-[84px] grid gap-[28px] p-0 text-[13px] text-[#e8eef6]"
           >
             {benefits.map((benefit) => (

@@ -24,15 +24,15 @@ function UnlockRequestsPage() {
   const navigate = useNavigate();
 
   return (
-    <MainLayout header={<Header areaLabel="Compras Admin" />}>
+    <MainLayout header={<Header areaLabel="Purchasing Admin" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 xl:px-14">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="m-0 text-[30px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)] lg:text-[26px]">
-              Desbloqueos pendientes
+              Pending unlock requests
             </h1>
             <p className="m-0 mt-2 text-[14px] text-[var(--bocar-blue-70)]">
-              Solicitudes de proveedores para reabrir cotizaciones enviadas.
+              Supplier requests to reopen submitted quotations.
             </p>
           </div>
 
@@ -42,7 +42,7 @@ function UnlockRequestsPage() {
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)] focus:outline-none"
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </button>
         </section>
 
@@ -64,7 +64,7 @@ function UnlockRequestsPage() {
                     onClick={() => navigate(ROUTES.PURCHASING.RFQ_LIST)}
                     className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                   >
-                    Revisar RFQ
+                    Review RFQ
                   </button>
                 </div>
               </article>

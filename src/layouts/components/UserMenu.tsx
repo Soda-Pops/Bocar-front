@@ -10,9 +10,9 @@ type UserMenuProps = {
 };
 
 const ROLE_LABELS: Record<AppRole, string> = {
-  industrializacion: 'Industrialización',
-  compras: 'Compras',
-  proveedor: 'Proveedor',
+  industrializacion: 'Industrialization',
+  compras: 'Purchasing',
+  proveedor: 'Supplier',
 };
 
 function deriveInitials(source: string): string {
@@ -24,7 +24,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
   const navigate = useNavigate();
 
   const initials = auth.status === 'authenticated' ? deriveInitials(auth.user.username) : '--';
-  const name = auth.status === 'authenticated' ? auth.user.username : 'Usuario';
+  const name = auth.status === 'authenticated' ? auth.user.username : 'User';
   const department =
     auth.status === 'authenticated' ? ROLE_LABELS[auth.user.role] : '';
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -76,7 +76,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
         type="button"
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        aria-label="Abrir menu de usuario"
+        aria-label="Open user menu"
         onClick={() => setIsOpen((value) => !value)}
         className="flex items-center gap-3 rounded-[10px] px-1 py-1 transition focus:outline-none focus:shadow-[0_0_0_3px_rgba(31,58,97,0.18)]"
       >
@@ -128,7 +128,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
             disabled={isLoggingOut}
             className="flex w-full items-center rounded-[10px] px-3 py-2.5 text-left text-[13px] text-[var(--bocar-error,#aa000f)] transition hover:bg-[rgba(170,0,15,0.06)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoggingOut ? 'Cerrando sesion...' : 'Cerrar sesion'}
+            {isLoggingOut ? 'Signing out...' : 'Sign out'}
           </button>
         </div>
       ) : null}

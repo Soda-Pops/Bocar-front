@@ -45,7 +45,7 @@ const appRouter = createBrowserRouter([
     element: <UnauthorizedPage />,
   },
 
-  // Industrialización
+  // Industrialization
   {
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
     element: (
@@ -87,7 +87,7 @@ const appRouter = createBrowserRouter([
     ),
   },
 
-  // Compras
+  // Purchasing
   {
     path: ROUTES.PURCHASING.DASHBOARD,
     element: (
@@ -109,6 +109,14 @@ const appRouter = createBrowserRouter([
     element: (
       <Protected allowedRoles={['compras']}>
         <RfqDetailPage />
+      </Protected>
+    ),
+  },
+  {
+    path: ROUTES.PURCHASING.RFQ_DETAIL_FULL,
+    element: (
+      <Protected allowedRoles={['compras']}>
+        <RfqFormPage forcedMode="view" />
       </Protected>
     ),
   },
@@ -145,7 +153,7 @@ const appRouter = createBrowserRouter([
     ),
   },
 
-  // Proveedor
+  // Supplier
   {
     path: ROUTES.SUPPLIER.DASHBOARD,
     element: (

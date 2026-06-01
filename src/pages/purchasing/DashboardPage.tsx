@@ -50,14 +50,7 @@ function DashboardStatusBadge({ status }: { status: PurchasingRfqStatus }) {
   if (status === 'QUOTING') {
     return (
       <span className="inline-flex items-center rounded-full border border-[rgba(141,198,63,0.3)] bg-[rgba(141,198,63,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#5a8a1f]">
-        En cotización
-      </span>
-    );
-  }
-  if (status === 'EXPIRED') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-error)]">
-        Vencidas
+        In quotation
       </span>
     );
   }
@@ -90,19 +83,20 @@ function DeadlineBadge({ hoursToDeadline }: { hoursToDeadline: number }) {
 function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof useNavigate>) {
   const detailAction = {
     key: 'view_detail' as const,
-    label: 'Ver detalle',
-    onSelect: () => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)),
+    label: 'View details',
+    onSelect: () =>
+      navigate(`${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}`),
   };
 
   if (row.status === 'PENDING') {
     return [
+      detailAction,
       {
         key: 'assign' as const,
-        label: 'Asignar',
+        label: 'Assign suppliers',
         onSelect: () =>
           navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id)),
       },
-      detailAction,
     ];
   }
 
@@ -137,7 +131,7 @@ function WidgetPanel({
             onClick={() => navigate(actionHref)}
             className="inline-flex h-8 items-center gap-1.5 rounded-[9px] border border-[rgba(217,222,229,0.92)] bg-white px-3 text-[12px] font-medium text-[var(--bocar-blue-100)] transition hover:bg-[var(--bocar-bg)] focus:outline-none"
           >
-            Ver todo
+            View all
             <ArrowRightIcon />
           </button>
         ) : null}
@@ -210,7 +204,7 @@ function DashboardPage() {
     if (sortValue === 'Deadline') {
       return [...base].sort((a, b) => a.hoursToDeadline - b.hoursToDeadline);
     }
-    if (sortValue === 'Creador') {
+    if (sortValue === 'Creator') {
       return [...base].sort((a, b) => a.owner.localeCompare(b.owner));
     }
     return base;
@@ -258,7 +252,7 @@ function DashboardPage() {
   }));
 
   return (
-    <MainLayout header={<Header areaLabel="Compras" />}>
+    <MainLayout header={<Header areaLabel="Purchasing" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-10 lg:pt-8 xl:px-14">
 
         {/* Dashboard title */}
@@ -291,7 +285,7 @@ function DashboardPage() {
                 : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
             ].join(' ')}
           >
-            RFQs por asignar
+            RFQs to assign
           </button>
           <button
             type="button"
@@ -303,7 +297,7 @@ function DashboardPage() {
                 : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
             ].join(' ')}
           >
-            Históricas
+            Historical
           </button>
         </div>
 
@@ -315,7 +309,7 @@ function DashboardPage() {
           />
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <FilterSelect
-              label="Tipo de RFQ"
+              label="RFQ type"
               options={machineTypeOptions}
               value={tipoValue}
               onChange={handleFilterChange(setTipoValue)}
@@ -327,21 +321,15 @@ function DashboardPage() {
               onChange={handleFilterChange(setDeadlineValue)}
             />
             <FilterSelect
-              label="Ordenar por"
+              label="Sort by"
               options={[
-                { label: 'Más reciente', value: 'Mas reciente' },
+                { label: 'Most recent', value: 'Most recent' },
                 { label: 'Deadline', value: 'Deadline' },
-                { label: 'Creador', value: 'Creador' },
+                { label: 'Creator', value: 'Creator' },
               ]}
               value={sortValue}
               onChange={handleFilterChange(setSortValue)}
             />
-            <button
-              type="button"
-              className="ml-auto inline-flex h-9 items-center gap-2 rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.2)]"
-            >
-              Crear RFQ
-            </button>
           </div>
         </div>
 
@@ -353,7 +341,7 @@ function DashboardPage() {
             {visibleRows.length === 0 ? (
               <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center">
                 <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
-                  No hay RFQs que coincidan con los filtros actuales.
+                  No RFQs match the current filters.
                 </p>
               </div>
             ) : (
@@ -380,17 +368,17 @@ function DashboardPage() {
                   </div>
                   <dl className="mt-3 grid gap-2 text-[12px]">
                     <div className="flex gap-2">
-                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Creado por</dt>
+                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Created by</dt>
                       <dd className="m-0 text-[var(--bocar-text)]">{row.owner}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Fecha</dt>
+                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Date</dt>
                       <dd className="m-0 text-[var(--bocar-text)]">{row.createdAt}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Progreso</dt>
+                      <dt className="font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">Progress</dt>
                       <dd className="m-0 text-[var(--bocar-text)]">
-                        {row.supplierProgress?.label ?? 'Sin cotizaciones'}
+                        {row.supplierProgress?.label ?? 'No quotations'}
                       </dd>
                     </div>
                   </dl>
@@ -407,12 +395,12 @@ function DashboardPage() {
                   {[
                     'ID',
                     'STATUS',
-                    'TIPO',
+                    'TYPE',
                     'DEADLINE',
-                    'FECHA DE CREACIÓN',
-                    'CREADO POR',
-                    'PROGRESO DE PROVEEDORES',
-                    'ACCIONES',
+                    'CREATION DATE',
+                    'CREATED BY',
+                    'SUPPLIER PROGRESS',
+                    'ACTIONS',
                   ].map((header) => (
                     <th
                       key={header}
@@ -428,7 +416,7 @@ function DashboardPage() {
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
-                        No hay RFQs que coincidan con los filtros actuales.
+                        No RFQs match the current filters.
                       </p>
                     </td>
                   </tr>
@@ -454,7 +442,7 @@ function DashboardPage() {
                         {row.owner}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 align-middle text-[13px] text-[var(--bocar-text)]">
-                        {row.supplierProgress?.label ?? 'Sin cotizaciones'}
+                        {row.supplierProgress?.label ?? 'No quotations'}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 align-middle">
                         <ActionMenu dark actions={getRowActions(row, navigate)} />
@@ -469,7 +457,7 @@ function DashboardPage() {
           {/* Pagination */}
           <div className="flex flex-col gap-3 px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] sm:flex-row sm:items-center sm:justify-between">
             <p className="m-0">
-              Mostrando {visibleRows.length} de {filteredRows.length} resultados
+              Showing {visibleRows.length} of {filteredRows.length} results
             </p>
             {totalPages > 1 ? (
               <div className="flex items-center gap-1.5">
@@ -518,13 +506,13 @@ function DashboardPage() {
         {/* Bottom panels */}
         <section className="mt-5 grid gap-4 lg:grid-cols-2">
           <WidgetPanel
-            title="VENCIMIENTOS PROXIMOS"
-            caption="RFQs que requieren un seguimiento inmediato antes del cierre."
+            title="UPCOMING DEADLINES"
+            caption="RFQs requiring immediate follow-up before closing."
             items={urgentDeadlines}
           />
           <WidgetPanel
-            title="DESBLOQUEOS PENDIENTES"
-            caption="Solicitudes de reapertura recibidas por proveedores."
+            title="PENDING UNLOCK REQUESTS"
+            caption="Reopening requests received from suppliers."
             items={[]}
           />
         </section>

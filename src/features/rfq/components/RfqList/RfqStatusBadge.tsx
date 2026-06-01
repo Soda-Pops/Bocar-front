@@ -1,6 +1,6 @@
 import type { StatusValue } from '@/features/rfq/types';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 type StatusBadgeProps = {
   value: StatusValue;

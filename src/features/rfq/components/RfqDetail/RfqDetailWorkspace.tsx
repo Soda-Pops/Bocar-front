@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
@@ -57,6 +58,8 @@ export function RfqDetailWorkspace({
 }: RfqDetailWorkspaceProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [showAssignment, setShowAssignment] = useState(false);
+  const assignmentRef = useRef<HTMLDivElement>(null);
 
   const defaultRole = resolveDefaultRole(pathname);
   const defaultIsCreator = defaultRole === 'industrializacion';
@@ -72,7 +75,7 @@ export function RfqDetailWorkspace({
       <Navigate
         to={backHref}
         replace
-        state={{ toast: 'RFQ no disponible para tu rol o perfil de acceso.' }}
+        state={{ toast: 'This RFQ is not available for your role or access profile.' }}
       />
     );
   }
@@ -80,8 +83,15 @@ export function RfqDetailWorkspace({
   function handleAction(key: RfqActionKey) {
     const rfqId = rfq.id;
     switch (key) {
+      case 'view_full_detail':
+        navigate(ROUTES.PURCHASING.RFQ_DETAIL_FULL.replace(':id', rfqId));
+        break;
       case 'assign_suppliers':
-        navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', rfqId));
+        // Reveal the supplier assignment section inline and focus it.
+        setShowAssignment(true);
+        window.requestAnimationFrame(() =>
+          assignmentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+        );
         break;
       case 'view_benchmark':
         navigate(ROUTES.PURCHASING.BENCHMARK.replace(':rfqId', rfqId));
@@ -94,34 +104,43 @@ export function RfqDetailWorkspace({
     }
   }
 
+  const assignmentSuppliers =
+    rfq.suppliers.length > 0
+      ? rfq.suppliers
+      : ([
+          { name: 'PLASTIMEX', category: 'Plastic Injection', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Available' },
+          { name: 'RAMCO', category: 'Metal Machining', contact: 'Juan Perez', score: '100', scoreTone: 'success', status: 'Available' },
+          { name: 'HERTOLAB', category: 'Components', contact: 'Sofia Ruiz', score: '72', scoreTone: 'warning', status: 'Available' },
+        ] as typeof rfq.suppliers);
+
   // ─── ASSIGN MODE (SupplierSelectionPage) ──────────────────────────────────
   if (mode === 'assign') {
     return (
       <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 pb-10 pt-6 sm:px-8 lg:px-8 lg:pt-7 xl:px-0">
         <div className="flex items-center justify-between gap-4">
           <h1 className="m-0 text-[24px] font-semibold tracking-[0.02em] text-[var(--bocar-text)] lg:text-[22px]">
-            SELECCIÓN DE PROVEEDORES
+            SUPPLIER SELECTION
           </h1>
           <a
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] no-underline transition hover:text-[var(--bocar-blue-90)]"
             href={backHref}
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </a>
         </div>
 
         <section className="mt-6 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-white">
           {/* RFQ summary (assign mode) */}
           <div className="border-b border-[rgba(217,222,229,0.88)] px-7 py-4 lg:px-12">
-            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Resumen del RFQ</h2>
+            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">RFQ Summary</h2>
           </div>
           <div className="px-7 py-8 lg:px-12">
             <div className="grid min-h-[86px] items-center gap-6 bg-[var(--bocar-bg)] px-8 py-4 md:grid-cols-[1fr_auto_1fr_1.2fr] lg:px-12">
               <div className="grid grid-cols-[94px_minmax(0,1fr)] gap-3 text-[12px] leading-[1.35]">
                 <div className="text-right font-semibold uppercase text-[var(--bocar-blue-30)]">
                   <p className="m-0">ID</p>
-                  <p className="m-0">Creado Por</p>
+                  <p className="m-0">Created By</p>
                   <p className="m-0">Material</p>
                 </div>
                 <div className="font-medium text-[var(--bocar-text)]">
@@ -133,9 +152,9 @@ export function RfqDetailWorkspace({
               <span className="hidden h-14 w-px bg-[var(--bocar-blue-70)] md:block" />
               <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 text-[12px] leading-[1.35]">
                 <div className="text-right font-semibold uppercase text-[var(--bocar-blue-30)]">
-                  <p className="m-0">Descripcion</p>
-                  <p className="m-0">Fecha de creacion</p>
-                  <p className="m-0">Estado</p>
+                  <p className="m-0">Description</p>
+                  <p className="m-0">Created At</p>
+                  <p className="m-0">Status</p>
                 </div>
                 <div className="font-medium text-[var(--bocar-text)]">
                   <p className="m-0">{rfq.title}</p>
@@ -151,9 +170,9 @@ export function RfqDetailWorkspace({
           {/* Specs */}
           <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
             <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Especificaciones del RFQ</h2>
+              <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">RFQ Specifications</h2>
               <span className="rounded-[4px] bg-[var(--bocar-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                Solo lectura
+                Readonly
               </span>
             </div>
             <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
@@ -173,7 +192,7 @@ export function RfqDetailWorkspace({
 
           {/* Files */}
           <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
-            <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Archivos Subidos</h2>
+            <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Uploaded Files</h2>
             <div className="mt-3 grid gap-3">
               {rfq.files.map((file) => (
                 <div key={file.name} className="flex min-h-10 items-center justify-between rounded-[8px] bg-[var(--bocar-blue-100)] px-6 text-white">
@@ -182,7 +201,7 @@ export function RfqDetailWorkspace({
                     <span className="truncate text-[13px] font-medium">{file.name}</span>
                   </div>
                   <button className="rounded-[4px] px-2 py-1 text-[12px] font-semibold uppercase text-white transition hover:bg-white/10 focus:outline-none" type="button">
-                    Descargar
+                    Download
                   </button>
                 </div>
               ))}
@@ -191,9 +210,9 @@ export function RfqDetailWorkspace({
 
           {/* Supplier assignment panel */}
           <SupplierAssignmentPanel suppliers={rfq.suppliers.length > 0 ? rfq.suppliers : [
-            { name: 'PLASTIMEX', category: 'Inyeccion Plastica', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Disponible' },
-            { name: 'RAMCO', category: 'Metalmecanica', contact: 'Juan Perez', score: '100', scoreTone: 'success', status: 'Disponible' },
-            { name: 'HERTOLAB', category: 'Componentes', contact: 'Sofia Ruiz', score: '72', scoreTone: 'warning', status: 'Disponible' },
+            { name: 'PLASTIMEX', category: 'Plastic Injection', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Available' },
+            { name: 'RAMCO', category: 'Metal Machining', contact: 'Juan Perez', score: '100', scoreTone: 'success', status: 'Available' },
+            { name: 'HERTOLAB', category: 'Components', contact: 'Sofia Ruiz', score: '72', scoreTone: 'warning', status: 'Available' },
           ]} backHref={backHref} />
         </section>
       </div>
@@ -201,7 +220,8 @@ export function RfqDetailWorkspace({
   }
 
   // ─── READONLY MODE (RfqDetailPage) ────────────────────────────────────────
-  const showSuppliers = rfq.suppliers.length > 0;
+  const showSuppliers =
+    rfq.suppliers.length > 0 && rfq.status !== 'PENDING' && rfq.status !== 'PENDING_EDIT_REQUEST';
   const showBenchmark =
     (rfq.status === 'BENCHMARK_READY' || rfq.status === 'CLOSED') && rfq.benchmark.length > 0;
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';
@@ -215,12 +235,12 @@ export function RfqDetailWorkspace({
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--bocar-blue-100)] no-underline transition hover:text-[var(--bocar-blue-70)] focus:outline-none"
         >
           <BackArrowIcon />
-          Regresar
+          Back
         </a>
       </div>
 
       {/* Single unified card — all sections share the same white surface */}
-      <section className="overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-white">
+      <section className="rounded-[6px] border border-[var(--bocar-border)] bg-white">
 
         {/* Header: title, badge, meta */}
         <RfqStatusHeader rfq={rfq} status={rfq.status} statusMeta={statusMeta} />
@@ -242,9 +262,9 @@ export function RfqDetailWorkspace({
         {/* Specs */}
         <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Especificaciones</h2>
+            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Specifications</h2>
             <span className="rounded-[4px] bg-[var(--bocar-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-              Solo lectura
+              Read only
             </span>
           </div>
           <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
@@ -264,7 +284,7 @@ export function RfqDetailWorkspace({
 
         {/* Files */}
         <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
-          <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Archivos Subidos</h2>
+          <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Uploaded Files</h2>
           <div className="mt-4 grid gap-3">
             {rfq.files.map((file) => (
               <div key={file.name} className="flex min-h-10 items-center justify-between rounded-[8px] bg-[var(--bocar-blue-100)] px-6 text-white">
@@ -273,17 +293,30 @@ export function RfqDetailWorkspace({
                   <span className="truncate text-[13px] font-medium">{file.name}</span>
                 </div>
                 <button className="rounded-[4px] px-2 py-1 text-[12px] font-semibold uppercase text-white transition hover:bg-white/10 focus:outline-none" type="button">
-                  Descargar
+                  Download
                 </button>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Inline supplier assignment (revealed from the action menu) */}
+        {showAssignment ? (
+          <div
+            ref={assignmentRef}
+            className="scroll-mt-6 border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12"
+          >
+            <h2 className="m-0 mb-4 text-[15px] font-semibold text-[var(--bocar-text)]">
+              Supplier Assignment
+            </h2>
+            <SupplierAssignmentPanel suppliers={assignmentSuppliers} backHref={backHref} />
+          </div>
+        ) : null}
+
         {/* Suppliers readonly */}
-        {showSuppliers ? (
+        {showSuppliers && !showAssignment ? (
           <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
-            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Proveedores Seleccionados</h2>
+            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Selected Suppliers</h2>
             {/* Mobile */}
             <div className="mt-4 grid gap-3 sm:hidden">
               {rfq.suppliers.map((s) => (
@@ -292,7 +325,7 @@ export function RfqDetailWorkspace({
                     <div>
                       <p className="m-0 text-[12px] font-semibold text-[var(--bocar-text)]">{s.name}</p>
                       <p className="mt-1 text-[12px] text-[var(--bocar-blue-70)]">{s.category}</p>
-                      <p className="mt-3 text-[12px] text-[var(--bocar-text)]">Contacto: {s.contact}</p>
+                      <p className="mt-3 text-[12px] text-[var(--bocar-text)]">Contact: {s.contact}</p>
                     </div>
                     <span className="rounded-[4px] bg-[var(--bocar-neutral)] px-2 py-1 text-[10px] font-medium text-[var(--bocar-text)]">
                       {s.status}
@@ -306,7 +339,7 @@ export function RfqDetailWorkspace({
               <table className="w-full max-w-[1040px] border-separate border-spacing-0 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] text-left">
                 <thead>
                   <tr className="bg-[var(--bocar-bg)]">
-                    {['Proveedor', 'Categoría', 'Contacto', 'Estado'].map((h) => (
+                    {['Supplier', 'Category', 'Contact', 'Status'].map((h) => (
                       <th key={h} className="px-6 py-3 text-[12px] font-semibold text-[var(--bocar-text)]">{h}</th>
                     ))}
                   </tr>
@@ -333,7 +366,7 @@ export function RfqDetailWorkspace({
         {/* Benchmark */}
         {showBenchmark ? (
           <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
-            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Benchmark de Proveedores</h2>
+            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Supplier Benchmark</h2>
             {/* Mobile */}
             <div className="mt-4 grid gap-3 sm:hidden">
               {rfq.benchmark.map((row) => (
@@ -342,7 +375,7 @@ export function RfqDetailWorkspace({
                     <div>
                       <p className="m-0 text-[12px] font-semibold text-[var(--bocar-text)]">{row.supplier}</p>
                       <p className="mt-1 text-[12px] text-[var(--bocar-blue-70)]">
-                        {row.price} · {row.time} · Calidad {row.quality}
+                        {row.price} · {row.time} · Quality {row.quality}
                       </p>
                     </div>
                     <div className="flex min-w-[82px] items-center justify-end gap-2">
@@ -358,7 +391,7 @@ export function RfqDetailWorkspace({
               <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] text-left">
                 <thead>
                   <tr className="bg-[var(--bocar-bg)]">
-                    {['Proveedor', 'Precio', 'Tiempo', 'Calidad', 'Score'].map((h) => (
+                    {['Supplier', 'Price', 'Lead Time', 'Quality', 'Score'].map((h) => (
                       <th key={h} className="px-6 py-3 text-[12px] font-semibold text-[var(--bocar-text)]">{h}</th>
                     ))}
                   </tr>
@@ -388,28 +421,28 @@ export function RfqDetailWorkspace({
         {rfq.status === 'CANCELLED' && rfq.cancellation && isSuperUser ? (
           <div className="border-t border-[rgba(170,0,15,0.2)] bg-[rgba(170,0,15,0.05)] px-7 py-5 lg:px-12">
             <h2 className="m-0 text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--bocar-error)]">
-              Motivo de cancelación
+              Cancellation Reason
             </h2>
             <p className="m-0 mt-2 text-[13px] leading-[1.6] text-[var(--bocar-text)]">
               {rfq.cancellation.reason}
             </p>
             <div className="mt-4 flex flex-wrap gap-x-8 gap-y-1 text-[12px] text-[var(--bocar-blue-70)]">
               <span>
-                <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">Cancelada por</span>
+                <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">Cancelled by</span>
                 {rfq.cancellation.cancelledBy}
               </span>
               <span>
-                <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">Fecha</span>
+                <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">Date</span>
                 {rfq.cancellation.cancelledAt}
               </span>
               {rfq.cancellation.replacementRfqId ? (
                 <span>
-                  <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">RFQ de reemplazo</span>
+                  <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">Replacement RFQ</span>
                   {rfq.cancellation.replacementRfqId}
                 </span>
               ) : null}
               <span className="inline-flex items-center rounded-[4px] border border-[rgba(170,0,15,0.24)] bg-[rgba(170,0,15,0.08)] px-2 py-0.5 text-[10px] font-semibold text-[var(--bocar-error)]">
-                {rfq.cancellation.isLateCancellation ? 'Cancelación tardía (protocolo especial)' : 'Cancelación temprana'}
+                {rfq.cancellation.isLateCancellation ? 'Late cancellation (special protocol)' : 'Early cancellation'}
               </span>
             </div>
           </div>

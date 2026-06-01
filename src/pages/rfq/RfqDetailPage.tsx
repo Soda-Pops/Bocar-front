@@ -9,9 +9,9 @@ function RfqDetailPage() {
   const { id } = useParams();
   const { pathname } = useLocation();
   const isPurchasingRoute = pathname.startsWith('/compras');
-  const backHref = isPurchasingRoute ? ROUTES.PURCHASING.RFQ_LIST : ROUTES.INDUSTRIALIZATION.DASHBOARD;
+  const backHref = isPurchasingRoute ? ROUTES.PURCHASING.DASHBOARD : ROUTES.INDUSTRIALIZATION.DASHBOARD;
   return (
-    <MainLayout header={<Header areaLabel="Detalle RFQ" />}>
+    <MainLayout header={<Header areaLabel="RFQ Detail" />}>
       <RfqDetailWorkspace backHref={backHref} referenceId={id} />
     </MainLayout>
   );

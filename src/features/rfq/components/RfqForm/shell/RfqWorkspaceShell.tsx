@@ -100,7 +100,7 @@ function WorkspaceSidebarMobile({
   return (
     <div className="border-b border-[#d9dee5] bg-white px-4 py-3 lg:hidden">
       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bocar-blue-50)]">
-        Sección
+        Section
       </label>
       <select
         className="w-full rounded-[10px] border border-[#d9dee5] bg-white px-3 py-2 text-[13px] font-medium text-[var(--bocar-text)] outline-none focus:border-[var(--bocar-blue-70)]"
@@ -128,7 +128,7 @@ function WorkspaceSidebarMobile({
 
 type RfqWorkspaceShellProps<TValues extends FieldValues> = {
   definition: RfqWorkspaceDefinition<TValues>;
-  mode: 'create' | 'edit';
+  mode: 'create' | 'edit' | 'view';
   onBack: () => void;
   rfqId?: string;
   tipo: RfqTipo;
@@ -141,6 +141,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   rfqId,
   tipo,
 }: RfqWorkspaceShellProps<TValues>) {
+  const readOnly = mode === 'view';
   const [currentPage, setCurrentPage] = useState<string>(definition.pages[0] ?? 'basic');
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() =>
     getInitialFeedback(mode, rfqId)
@@ -151,7 +152,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   const skipNextEmptyPageErrorSyncRef = useRef(false);
 
   const defaults =
-    mode === 'edit' ? definition.getEditDefaultValues(rfqId) : definition.getCreateDefaultValues();
+    mode === 'create' ? definition.getCreateDefaultValues() : definition.getEditDefaultValues(rfqId);
 
   const form = useForm<TValues>({
     defaultValues: defaults as DefaultValues<TValues>,
@@ -170,9 +171,9 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
   useEffect(() => {
     reset(
-      (mode === 'edit'
-        ? definition.getEditDefaultValues(rfqId)
-        : definition.getCreateDefaultValues()) as DefaultValues<TValues>
+      (mode === 'create'
+        ? definition.getCreateDefaultValues()
+        : definition.getEditDefaultValues(rfqId)) as DefaultValues<TValues>
     );
     setCurrentPage(definition.pages[0] ?? 'basic');
     setFeedback(getInitialFeedback(mode, rfqId));
@@ -210,11 +211,17 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   }, [errors, attemptedSubmit, mode, rfqId, pageErrorSignature]);
 
   const meta = definition.pageMeta[currentPage];
-  const headerTitle = mode === 'edit' ? 'EDITAR RFQ' : 'CREAR RFQ';
+  const headerTitle = mode === 'view' ? 'RFQ DETAIL' : mode === 'edit' ? 'EDIT RFQ' : 'CREATE RFQ';
 
   async function goNext() {
     const nextPage = definition.pages[currentIndex + 1];
     if (!nextPage) return;
+
+    // Read-only navigation: jump straight to the next page without validation.
+    if (readOnly) {
+      setCurrentPage(nextPage);
+      return;
+    }
 
     const requiredFields = definition.requiredFieldsByPage[currentPage] ?? [];
 
@@ -228,7 +235,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
         setAttemptedSubmit(true);
         setVisiblePageErrors((prev) => ({ ...prev, [pageAtCallTime]: true }));
         setFeedback({
-          text: 'Esta sección tiene campos obligatorios sin completar.',
+          text: 'This section has required fields that are not complete.',
           tone: 'error',
         });
         return;
@@ -237,7 +244,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
     setCurrentPage(nextPage);
     setFeedback({
-      text: `Continua con ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Tu progreso queda guardado como borrador local.`,
+      text: `Continue with ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Your progress is saved as a local draft.`,
       tone: 'neutral',
     });
   }
@@ -251,8 +258,8 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} quedo guardada como borrador editable.`
-          : 'Borrador guardado.',
+          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} was saved as an editable draft.`
+          : 'Draft saved.',
       tone: 'success',
     });
   }
@@ -263,8 +270,8 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} quedo actualizada y lista para continuar el flujo.`
-          : 'La RFQ quedo capturada en el nuevo flujo y esta lista para revision interna.',
+          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} was updated and is ready to continue the workflow.`
+          : 'The RFQ was captured in the new workflow and is ready for internal review.',
       tone: 'success',
     });
   }
@@ -272,7 +279,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   const handleInvalidSubmit: SubmitErrorHandler<TValues> = (fieldErrors) => {
     setAttemptedSubmit(true);
     setFeedback({
-      text: 'Esta sección tiene campos obligatorios sin completar.',
+      text: 'This section has required fields that are not complete.',
       tone: 'error',
     });
     const errorMap = definition.getPageErrorMap(fieldErrors);
@@ -285,12 +292,13 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
   const progressPercent = ((currentIndex + 1) / definition.pages.length) * 100;
   const currentPageHasError = attemptedSubmit && Boolean(visiblePageErrors[currentPage]);
-  const showFeedback = feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
+  const showFeedback =
+    readOnly || feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
 
   return (
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-        <Header areaLabel={`Industrializacion · ${headerTitle} · ${tipo}`} />
+        <Header areaLabel={`${readOnly ? 'Purchasing' : 'Industrialization'} · ${headerTitle} · ${tipo}`} />
 
         <div className="flex min-h-0 flex-1">
           <WorkspaceSidebar
@@ -315,7 +323,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                       {headerTitle}
                     </h1>
                     <p className="mt-2 mb-0 text-[13px] font-medium text-[var(--bocar-blue-50)]">
-                      Página {currentIndex + 1} de {definition.pages.length} · {meta?.navLabel ?? currentPage}
+                      Page {currentIndex + 1} of {definition.pages.length} · {meta?.navLabel ?? currentPage}
                     </p>
                   </div>
 
@@ -325,7 +333,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                     onClick={onBack}
                   >
                     <BackArrowIcon />
-                    Regresar
+                    Back
                   </button>
                 </div>
 
@@ -350,7 +358,9 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                   noValidate
                   onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
                 >
-                  {definition.renderPage(currentPage)}
+                  <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+                    {definition.renderPage(currentPage)}
+                  </fieldset>
 
                   <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     {currentIndex === 0 ? (
@@ -361,28 +371,32 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                         type="button"
                         onClick={goPrevious}
                       >
-                        ← Anterior
+                        ← Previous
                       </button>
                     )}
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                      <button
-                        className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
-                        disabled={isSubmitting}
-                        type="button"
-                        onClick={handleSaveDraft}
-                      >
-                        Guardar Borrador
-                      </button>
+                      {!readOnly ? (
+                        <button
+                          className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
+                          disabled={isSubmitting}
+                          type="button"
+                          onClick={handleSaveDraft}
+                        >
+                          Save Draft
+                        </button>
+                      ) : null}
 
                       {currentIndex === definition.pages.length - 1 ? (
-                        <Button
-                          className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
-                          disabled={isSubmitting}
-                          type="submit"
-                        >
-                          {isSubmitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar RFQ' : 'Enviar RFQ'}
-                        </Button>
+                        readOnly ? null : (
+                          <Button
+                            className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
+                            disabled={isSubmitting}
+                            type="submit"
+                          >
+                            {isSubmitting ? 'Submitting...' : mode === 'edit' ? 'Update RFQ' : 'Submit RFQ'}
+                          </Button>
+                        )
                       ) : (
                         <Button
                           className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b]"
@@ -391,7 +405,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                             void goNext();
                           }}
                         >
-                          Siguiente →
+                          Next →
                         </Button>
                       )}
                     </div>
@@ -406,15 +420,21 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   );
 }
 
-function getInitialFeedback(mode: 'create' | 'edit', rfqId?: string) {
+function getInitialFeedback(mode: 'create' | 'edit' | 'view', rfqId?: string) {
+  if (mode === 'view') {
+    return {
+      text: `You are viewing ${(rfqId ?? 'RFQ-021').toUpperCase()} in read-only mode. Navigate through the sidebar sections to review all data.`,
+      tone: 'neutral' as const,
+    };
+  }
   if (mode === 'edit') {
     return {
-      text: `Estas ajustando ${(rfqId ?? 'RFQ-021').toUpperCase()} con el nuevo workspace multipantalla.`,
+      text: `You are editing ${(rfqId ?? 'RFQ-021').toUpperCase()} with the new multi-screen workspace.`,
       tone: 'neutral' as const,
     };
   }
   return {
-    text: 'Completa las secciones del sidebar y envia la RFQ cuando ya no tengas campos obligatorios pendientes.',
+    text: 'Complete the sidebar sections and submit the RFQ when all required fields are complete.',
     tone: 'neutral' as const,
   };
 }

@@ -2,7 +2,7 @@ import { isStatusValue } from '@/shared/utils/dashboard';
 import { Button } from '@/shared/components/ui/Button';
 import { RfqStatusBadge } from '@/features/rfq/components/RfqList/RfqStatusBadge';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 type DataCellProps = {
   value: string;
@@ -10,7 +10,7 @@ type DataCellProps = {
 };
 
 export function RfqDataCell({ value, columnIndex }: DataCellProps) {
-  if (value === 'Editar' || value === 'Ver') {
+  if (value === 'Edit' || value === 'View') {
     return (
       <td className="border-b border-slate-100 px-4 py-4 text-center align-middle">
         <Button compact>{value}</Button>

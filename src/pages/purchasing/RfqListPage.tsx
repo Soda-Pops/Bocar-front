@@ -128,15 +128,15 @@ function RfqListPage() {
   }
 
   return (
-    <MainLayout header={<Header areaLabel="Compras" />}>
+    <MainLayout header={<Header areaLabel="Purchasing" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-10 lg:pt-8 xl:px-14">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="m-0 text-[34px] font-semibold tracking-[-0.03em] text-[var(--bocar-text)] lg:text-[28px]">
-              Lista RFQ
+              RFQ List
             </h1>
             <p className="m-0 mt-2 max-w-[760px] text-[14px] text-[var(--bocar-blue-70)]">
-              Seguimiento operativo de RFQs de Compras con filtros por estado, prioridad y deadline.
+              Operational RFQ tracking for Purchasing with filters by status, priority, and deadline.
             </p>
           </div>
 
@@ -146,7 +146,7 @@ function RfqListPage() {
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)] focus:outline-none"
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </button>
         </section>
 
@@ -154,13 +154,13 @@ function RfqListPage() {
           <div className="grid gap-4 xl:grid-cols-[220px_repeat(5,minmax(0,1fr))]">
             <SearchField value={searchValue} onChange={setSearchValue} />
             <FilterSelect
-              label="Estado"
+              label="Status"
               options={purchasingRfqFilterOptions.statuses}
               value={statusValue}
               onChange={(nextValue) => updateStatusFilter(nextValue as PurchasingRfqStatus | '')}
             />
             <FilterSelect
-              label="Prioridad"
+              label="Priority"
               options={purchasingRfqFilterOptions.priorities}
               value={priorityValue}
               onChange={setPriorityValue}
@@ -172,7 +172,7 @@ function RfqListPage() {
               onChange={setRegionValue}
             />
             <FilterSelect
-              label="Tipo de maquina"
+              label="Machine type"
               options={purchasingRfqFilterOptions.machineTypes}
               value={machineTypeValue}
               onChange={setMachineTypeValue}
@@ -262,13 +262,13 @@ function RfqListPage() {
                       </div>
                       <div className="grid gap-1">
                         <dt className="font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                          Progreso proveedores
+                          Supplier progress
                         </dt>
-                        <dd className="m-0 text-[var(--bocar-text)]">{row.supplierProgress?.label ?? 'Sin cotizaciones'}</dd>
+                        <dd className="m-0 text-[var(--bocar-text)]">{row.supplierProgress?.label ?? 'No quotations'}</dd>
                       </div>
                       <div className="grid gap-1">
                         <dt className="font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                          Responsable
+                          Responsible
                         </dt>
                         <dd className="m-0">{row.owner}</dd>
                       </div>
@@ -279,14 +279,14 @@ function RfqListPage() {
             ) : (
               <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center">
                 <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
-                  No hay RFQs que coincidan con los filtros actuales.
+                  No RFQs match the current filters.
                 </p>
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.PURCHASING.DASHBOARD)}
                   className="mt-4 inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                 >
-                  Ir al dashboard
+                  Go to dashboard
                 </button>
               </div>
             )}
@@ -296,7 +296,7 @@ function RfqListPage() {
             <table className="w-full min-w-[1180px] border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {['RFQ', 'MATERIAL / PROYECTO', 'REGION', 'DEADLINE', 'PROGRESO PROVEEDORES', 'ESTADO', 'RESPONSABLE', 'ACCIONES'].map((header) => (
+                  {['RFQ', 'MATERIAL / PROJECT', 'REGION', 'DEADLINE', 'SUPPLIER PROGRESS', 'STATUS', 'RESPONSIBLE', 'ACTIONS'].map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-4 text-left text-[12px] font-semibold text-[var(--bocar-text)]"
@@ -342,7 +342,7 @@ function RfqListPage() {
                           </div>
                         </td>
                         <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 align-top text-[13px] text-[var(--bocar-text)]">
-                          {row.supplierProgress?.label ?? 'Sin cotizaciones'}
+                          {row.supplierProgress?.label ?? 'No quotations'}
                         </td>
                         <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 align-top">
                           <div className="flex flex-col items-start gap-2">
@@ -382,14 +382,14 @@ function RfqListPage() {
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
-                        No hay RFQs que coincidan con los filtros actuales.
+                        No RFQs match the current filters.
                       </p>
                       <button
                         type="button"
                         onClick={() => navigate(ROUTES.PURCHASING.DASHBOARD)}
                         className="mt-4 inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                       >
-                        Ir al dashboard
+                        Go to dashboard
                       </button>
                     </td>
                   </tr>
@@ -400,7 +400,7 @@ function RfqListPage() {
 
           <div className="flex flex-col gap-4 px-4 py-4 text-[13px] text-[var(--bocar-blue-70)] sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="m-0">
-              Mostrando {visibleRows.length} de {filteredRows.length} RFQs
+              Showing {visibleRows.length} of {filteredRows.length} RFQs
             </p>
             <div className="flex items-center gap-2">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (

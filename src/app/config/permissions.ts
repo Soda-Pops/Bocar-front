@@ -1,4 +1,4 @@
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 export const ROLE_PERMISSIONS = {
   industrializacion: ['rfq:create', 'rfq:view'],
   compras: ['rfq:view', 'supplier:view'],

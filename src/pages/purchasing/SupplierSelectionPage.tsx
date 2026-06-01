@@ -9,9 +9,9 @@ function SupplierSelectionPage() {
   const { id } = useParams();
 
   return (
-    <MainLayout header={<Header areaLabel="Selección Proveedores" />}>
+    <MainLayout header={<Header areaLabel="Supplier Selection" />}>
       <RfqDetailWorkspace
-        backHref={ROUTES.PURCHASING.RFQ_LIST}
+        backHref={ROUTES.PURCHASING.DASHBOARD}
         mode="assign"
         referenceId={id}
       />

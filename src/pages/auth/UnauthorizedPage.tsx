@@ -21,11 +21,11 @@ function UnauthorizedPage() {
         </span>
         <div className="flex flex-col gap-2">
           <h1 className="text-[22px] font-bold text-[var(--bocar-blue-100,#002E5D)]">
-            Acceso no autorizado
+            Unauthorized access
           </h1>
           <p className="text-[13px] leading-relaxed text-[var(--bocar-blue-70,#6f88a8)]">
-            No tienes permisos para ver esta sección. Si crees que esto es un error, contacta al
-            administrador del sistema.
+            You do not have permission to view this section. If you believe this is an error, contact the
+            system administrator.
           </p>
         </div>
         {auth.status === 'authenticated' && (
@@ -34,7 +34,7 @@ function UnauthorizedPage() {
             onClick={handleGoHome}
             className="rounded-lg bg-[var(--bocar-blue-100,#002E5D)] px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-80"
           >
-            Volver a mi área
+            Return to my area
           </button>
         )}
       </div>

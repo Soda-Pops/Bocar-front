@@ -11,11 +11,11 @@ type RfqStatusHeaderProps = {
 
 export function RfqStatusHeader({ rfq, status, statusMeta }: RfqStatusHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 bg-[var(--bocar-bg)] px-7 py-6 lg:px-12">
+    <div className="flex flex-col gap-4 rounded-t-[6px] bg-[var(--bocar-bg)] px-7 py-6 lg:px-12">
       {/* Title row */}
       <div className="min-w-0">
         <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bocar-blue-50)]">
-          Detalle RFQ
+          RFQ Detail
         </p>
         <h1 className="m-0 mt-0.5 truncate text-[20px] font-semibold leading-[1.2] tracking-[0.01em] text-[var(--bocar-text)] lg:text-[22px]">
           {rfq.id.toUpperCase()} — {rfq.title}
@@ -35,26 +35,26 @@ export function RfqStatusHeader({ rfq, status, statusMeta }: RfqStatusHeaderProp
           </span>
           <span className="text-[12px] text-[var(--bocar-blue-70)]">
             <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-              Cliente
+              Customer
             </span>
             {rfq.client}
           </span>
           <span className="text-[12px] text-[var(--bocar-blue-70)]">
             <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-              Creado por
+              Created by
             </span>
             {rfq.createdBy}
           </span>
           <span className="text-[12px] text-[var(--bocar-blue-70)]">
             <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-              Fecha
+              Date
             </span>
             {rfq.createdAt}
           </span>
           {rfq.deadline ? (
             <span className="text-[12px] text-[var(--bocar-blue-70)]">
               <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-                Plazo
+                Deadline
               </span>
               {rfq.deadline}
               {rfq.daysRemaining !== undefined ? (

@@ -20,7 +20,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ROUTES } from '@/app/config/routes';
 
-const RFQ_TIPO_OPTIONS = ['Trimming', 'Mold'] as const;
+const RFQ_TYPE_OPTIONS = ['Trimming', 'Mold'] as const;
 
 const PAGE_SIZE = 4;
 
@@ -30,11 +30,11 @@ function getSortLabel(sortValue: SortOption) {
   }
 
   if (sortValue === 'creator') {
-    return 'Creador';
+    return 'Creator';
   }
 
   if (sortValue === 'recent') {
-    return 'Mas reciente';
+    return 'Most recent';
   }
 
   return '';
@@ -45,11 +45,11 @@ function getNextSortOption(value: string): SortOption {
     return 'material';
   }
 
-  if (value === 'Creador') {
+  if (value === 'Creator') {
     return 'creator';
   }
 
-  if (value === 'Mas reciente') {
+  if (value === 'Most recent') {
     return 'recent';
   }
 
@@ -81,7 +81,7 @@ function DashboardPage() {
 
   return (
     <MainLayout
-      header={<Header areaLabel="Industrializacion" />}
+      header={<Header areaLabel="Industrialization" />}
     >
       <div
         className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 lg:pb-8 lg:pt-8 xl:px-14"
@@ -132,20 +132,20 @@ function DashboardPage() {
           <SearchField value={searchValue} onChange={setSearchValue} />
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <FilterSelect
-              label="Tipo"
-              options={[...RFQ_TIPO_OPTIONS]}
+              label="Type"
+              options={[...RFQ_TYPE_OPTIONS]}
               value={tipoValue}
               onChange={setTipoValue}
             />
             <FilterSelect
-              label="Fecha"
+              label="Date"
               options={dateOptions}
               value={dateValue}
               onChange={setDateValue}
             />
             <FilterSelect
-              label="Ordenar por"
-              options={['Mas reciente', 'Material', 'Creador']}
+              label="Sort by"
+              options={['Most recent', 'Material', 'Creator']}
               value={getSortLabel(sortValue)}
               onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
             />
@@ -171,7 +171,7 @@ function DashboardPage() {
                       className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                       onClick={() => handleViewRfq(row.id)}
                     >
-                      Ver
+                      View
                     </button>
                   </div>
 
@@ -184,14 +184,14 @@ function DashboardPage() {
                     </div>
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Fecha
+                        Date
                       </dt>
                       <dd className="m-0">{row.date}</dd>
                     </div>
                     {activeTab !== 'borradores' && (
                       <div className="grid gap-1">
                         <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                          Creado por
+                          Created by
                         </dt>
                         <dd className="m-0">{row.createdBy}</dd>
                       </div>
@@ -201,7 +201,7 @@ function DashboardPage() {
               ))
             ) : (
               <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center text-[14px] text-[var(--bocar-blue-70)]">
-                No hay RFQs que coincidan con los filtros actuales.
+                No RFQs match the current filters.
               </div>
             )}
           </div>
@@ -211,8 +211,8 @@ function DashboardPage() {
               <thead>
                 <tr className="bg-[#eef1f5]">
                   {(activeTab === 'borradores'
-                    ? ['ID', 'TIPO', 'STATUS', 'FECHA', 'ACCION']
-                    : ['ID', 'TIPO', 'STATUS', 'FECHA', 'CREADO POR', 'ACCION']
+                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'ACTION']
+                    : ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
                   ).map((header) => (
                     <th
                       key={header}
@@ -250,7 +250,7 @@ function DashboardPage() {
                           className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] lg:h-9 lg:min-w-[58px] lg:px-4 lg:text-[13px]"
                           onClick={() => handleViewRfq(row.id)}
                         >
-                          Ver
+                          View
                         </button>
                       </td>
                     </tr>
@@ -261,7 +261,7 @@ function DashboardPage() {
                       colSpan={activeTab === 'borradores' ? 5 : 6}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
-                      No hay RFQs que coincidan con los filtros actuales.
+                      No RFQs match the current filters.
                     </td>
                   </tr>
                 )}
@@ -271,7 +271,7 @@ function DashboardPage() {
 
           <div className="flex flex-col gap-4 px-4 py-4 text-[13px] text-[var(--bocar-blue-30)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-4 lg:py-2 lg:text-[12px]">
             <p className="m-0">
-              Mostrando {visibleRows.length} de {filteredRows.length} resultados
+              Showing {visibleRows.length} of {filteredRows.length} results
             </p>
             <div className="flex items-center gap-4">
               <span className="text-[var(--bocar-blue-70)]">1</span>
@@ -279,7 +279,7 @@ function DashboardPage() {
               <span>...</span>
               <span aria-hidden="true">›</span>
               <span aria-hidden="true">»</span>
-              <span className="sr-only">Total de paginas {totalPages}</span>
+              <span className="sr-only">Total pages {totalPages}</span>
             </div>
           </div>
         </section>

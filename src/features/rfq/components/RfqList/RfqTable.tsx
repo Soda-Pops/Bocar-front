@@ -1,7 +1,7 @@
 import type { Section } from '@/features/rfq/types';
 import { RfqDataCell } from '@/features/rfq/components/RfqList/RfqDataCell';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 type RfqTableProps = {
   section: Section;

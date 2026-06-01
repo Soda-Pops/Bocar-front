@@ -108,7 +108,7 @@ function QuotationSidebarMobile({
   return (
     <div className="border-b border-[#d9dee5] bg-white px-4 py-3 lg:hidden">
       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bocar-blue-50)]">
-        Sección
+        Section
       </label>
       <select
         className="w-full rounded-[10px] border border-[#d9dee5] bg-white px-3 py-2 text-[13px] font-medium text-[var(--bocar-text)] outline-none focus:border-[var(--bocar-blue-70)]"
@@ -225,7 +225,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   }, [errors, attemptedSubmit, mode, rfqId, quotationId, pageErrorSignature]);
 
   const meta = definition.pageMeta[currentPage];
-  const headerTitle = mode === 'edit' ? 'EDITAR COTIZACIÓN' : 'CREAR COTIZACIÓN';
+  const headerTitle = mode === 'edit' ? 'EDIT QUOTATION' : 'CREATE QUOTATION';
 
   async function goNext() {
     const nextPage = definition.pages[currentIndex + 1];
@@ -243,7 +243,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
         setAttemptedSubmit(true);
         setVisiblePageErrors((prev) => ({ ...prev, [pageAtCallTime]: true }));
         setFeedback({
-          text: 'Esta sección tiene campos obligatorios sin completar.',
+          text: 'This section has required fields that are not complete.',
           tone: 'error',
         });
         return;
@@ -252,7 +252,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
 
     setCurrentPage(nextPage);
     setFeedback({
-      text: `Continúa con ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Tu progreso queda guardado como borrador local.`,
+      text: `Continue with ${definition.pageMeta[nextPage]?.navLabel ?? nextPage}. Your progress is saved as a local draft.`,
       tone: 'neutral',
     });
   }
@@ -266,8 +266,8 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(quotationId ?? 'COT-001').toUpperCase()} quedó guardada como borrador editable.`
-          : `Borrador de cotización guardado para ${rfqId.toUpperCase()}.`,
+          ? `${(quotationId ?? 'COT-001').toUpperCase()} was saved as an editable draft.`
+          : `Quotation draft saved for ${rfqId.toUpperCase()}.`,
       tone: 'success',
     });
   }
@@ -278,8 +278,8 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(quotationId ?? 'COT-001').toUpperCase()} quedó actualizada y enviada a Compras.`
-          : `Tu cotización para ${rfqId.toUpperCase()} fue enviada a Compras para revisión.`,
+          ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
+          : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,
       tone: 'success',
     });
   }
@@ -287,7 +287,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   const handleInvalidSubmit: SubmitErrorHandler<TValues> = (fieldErrors) => {
     setAttemptedSubmit(true);
     setFeedback({
-      text: 'Esta sección tiene campos obligatorios sin completar.',
+      text: 'This section has required fields that are not complete.',
       tone: 'error',
     });
     const errorMap = definition.getPageErrorMap(fieldErrors);
@@ -305,7 +305,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   return (
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-        <Header areaLabel={`Proveedor · ${headerTitle} · ${tipo}`} />
+        <Header areaLabel={`Supplier · ${headerTitle} · ${tipo}`} />
 
         <div className="flex min-h-0 flex-1">
           <QuotationSidebar
@@ -327,7 +327,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                      <span>RFQ asignada</span>
+                      <span>Assigned RFQ</span>
                       <span
                         aria-hidden="true"
                         className="inline-block h-1 w-1 rounded-full bg-[var(--bocar-blue-30)]"
@@ -338,7 +338,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                       {headerTitle}
                     </h1>
                     <p className="mt-2 mb-0 text-[13px] font-medium text-[var(--bocar-blue-50)]">
-                      Página {currentIndex + 1} de {definition.pages.length} · {meta?.navLabel ?? currentPage}
+                      Page {currentIndex + 1} of {definition.pages.length} · {meta?.navLabel ?? currentPage}
                     </p>
                   </div>
 
@@ -348,7 +348,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                     onClick={onBack}
                   >
                     <BackArrowIcon />
-                    Regresar
+                    Back
                   </button>
                 </div>
 
@@ -384,7 +384,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                         type="button"
                         onClick={goPrevious}
                       >
-                        ← Anterior
+                        ← Previous
                       </button>
                     )}
 
@@ -395,7 +395,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                         type="button"
                         onClick={handleSaveDraft}
                       >
-                        Guardar Borrador
+                        Save Draft
                       </button>
 
                       {currentIndex === definition.pages.length - 1 ? (
@@ -405,10 +405,10 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                           type="submit"
                         >
                           {isSubmitting
-                            ? 'Enviando...'
+                            ? 'Submitting...'
                             : mode === 'edit'
-                              ? 'Actualizar Cotización'
-                              : 'Enviar Cotización'}
+                              ? 'Update Quotation'
+                              : 'Submit Quotation'}
                         </Button>
                       ) : (
                         <Button
@@ -418,7 +418,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                             void goNext();
                           }}
                         >
-                          Siguiente →
+                          Next →
                         </Button>
                       )}
                     </div>
@@ -436,12 +436,12 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
 function getInitialFeedback(mode: 'create' | 'edit', rfqId: string, quotationId?: string) {
   if (mode === 'edit') {
     return {
-      text: `Estás ajustando ${(quotationId ?? 'COT-001').toUpperCase()} para la RFQ ${rfqId.toUpperCase()}.`,
+      text: `You are editing ${(quotationId ?? 'COT-001').toUpperCase()} for RFQ ${rfqId.toUpperCase()}.`,
       tone: 'neutral' as const,
     };
   }
   return {
-    text: `Completa las secciones marcadas como "Por completar" y "Mixta". Los campos heredados del RFQ ${rfqId.toUpperCase()} no son editables.`,
+    text: `Complete the sections marked as "Pending" and "Mixed". The fields inherited from RFQ ${rfqId.toUpperCase()} are not editable.`,
     tone: 'neutral' as const,
   };
 }

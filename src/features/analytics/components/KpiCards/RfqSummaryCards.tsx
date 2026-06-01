@@ -1,7 +1,7 @@
 import { sectionStyles } from '@/features/rfq/constants';
 import type { SectionKey, SummaryCard } from '@/features/rfq/types';
 
-// No se usa en las pantallas activas por ahora; reservado para integracion futura.
+// Not used by active screens yet; reserved for future integration.
 
 type RfqSummaryCardsProps = {
   cards: SummaryCard[];

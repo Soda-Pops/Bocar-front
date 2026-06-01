@@ -66,57 +66,57 @@ export type RfqDetail = {
 };
 
 const BASE_SPECS: RfqSpecField[] = [
-  { code: 'DESC', label: 'Descripcion', value: 'Product / E-PCP Folio' },
-  { code: 'CUST', label: 'Cliente', value: 'GM Mexico' },
-  { code: 'PPY', label: 'Piezas por año', value: '120,000' },
+  { code: 'DESC', label: 'Description', value: 'Product / E-PCP Folio' },
+  { code: 'CUST', label: 'Customer', value: 'GM Mexico' },
+  { code: 'PPY', label: 'Parts per year', value: '120,000' },
   { code: 'PT', label: 'Part Technology', value: 'POWERTRAIN' },
 ];
 
 const BASE_FILES: RfqUploadedFile[] = [
-  { name: 'plano_motor.stp' },
-  { name: 'cotizacion.ppt' },
-  { name: 'especificaciones.pdf' },
+  { name: 'motor_drawing.stp' },
+  { name: 'quotation.ppt' },
+  { name: 'specifications.pdf' },
 ];
 
 const BASE_SUPPLIERS: RfqSupplier[] = [
   {
     name: 'PLASTIMEX',
-    category: 'Inyeccion Plastica',
+    category: 'Plastic Injection',
     contact: 'Laura Gomez',
     score: '92',
     scoreTone: 'success',
-    status: 'Seleccionado',
+    status: 'Selected',
   },
   {
     name: 'RAMCO',
-    category: 'Metalmecanica',
+    category: 'Metal Machining',
     contact: 'Juan Perez',
     score: '100',
     scoreTone: 'success',
-    status: 'Seleccionado',
+    status: 'Selected',
   },
   {
     name: 'HERTOLAB',
-    category: 'Componentes',
+    category: 'Components',
     contact: 'Sofia Ruiz',
     score: '72',
     scoreTone: 'warning',
-    status: 'Seleccionado',
+    status: 'Selected',
   },
 ];
 
 const BASE_BENCHMARK: RfqBenchmarkRow[] = [
-  { supplier: 'PLASTIMEX', price: '$1250', time: '4 dias', quality: '4.9', score: '92', scoreTone: 'success' },
-  { supplier: 'RAMCO', price: '$1100', time: '7 dias', quality: '3.8', score: '70', scoreTone: 'warning' },
-  { supplier: 'HERTOLAB', price: '$1350', time: '7 dias', quality: '4.0', score: '50', scoreTone: 'danger' },
+  { supplier: 'PLASTIMEX', price: '$1250', time: '4 days', quality: '4.9', score: '92', scoreTone: 'success' },
+  { supplier: 'RAMCO', price: '$1100', time: '7 days', quality: '3.8', score: '70', scoreTone: 'warning' },
+  { supplier: 'HERTOLAB', price: '$1350', time: '7 days', quality: '4.0', score: '50', scoreTone: 'danger' },
 ];
 
 // 9 mock RFQs — one per state for QA
 const MOCK_RFQS: RfqDetail[] = [
   {
     id: 'RFQ-001',
-    title: 'Molde de inyección para carcasa de motor',
-    material: 'Acero',
+    title: 'Injection mold for motor housing',
+    material: 'Steel',
     client: 'GM Mexico',
     createdBy: 'Ricardo Soto',
     createdById: 'user-ricardo',
@@ -129,8 +129,8 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-002',
-    title: 'Componente de transmisión aluminio',
-    material: 'Aluminio',
+    title: 'Aluminum transmission component',
+    material: 'Aluminum',
     client: 'Stellantis MX',
     createdBy: 'Ana Mendez',
     createdById: 'user-ana',
@@ -144,8 +144,8 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-003',
-    title: 'Soporte de suspensión delantera',
-    material: 'Acero galvanizado',
+    title: 'Front suspension bracket',
+    material: 'Galvanized steel',
     client: 'Ford Mexico',
     createdBy: 'Luis Torres',
     createdById: 'user-luis',
@@ -155,7 +155,7 @@ const MOCK_RFQS: RfqDetail[] = [
     editRequest: {
       requestedBy: 'Luis Torres',
       requestedAt: '20/04/2026',
-      reason: 'Error en las dimensiones del plano adjunto. Se requiere corregir cotas antes de cotizar.',
+      reason: 'Error in the dimensions of the attached drawing. Dimensions must be corrected before quoting.',
     },
     specs: BASE_SPECS,
     files: BASE_FILES,
@@ -164,8 +164,8 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-004',
-    title: 'Cubierta de motor termoplástico',
-    material: 'Plastico ABS',
+    title: 'Thermoplastic engine cover',
+    material: 'Plastic ABS',
     client: 'GM Mexico',
     createdBy: 'Valeria Cruz',
     createdById: 'user-valeria',
@@ -182,8 +182,8 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-005',
-    title: 'Tensor de cadena de distribución',
-    material: 'Acero',
+    title: 'Timing chain tensioner',
+    material: 'Steel',
     client: 'Nissan MX',
     createdBy: 'Carlos Reyes',
     createdById: 'user-carlos',
@@ -200,8 +200,8 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-006',
-    title: 'Bracket de fijación de radiador',
-    material: 'Aluminio',
+    title: 'Radiator mounting bracket',
+    material: 'Aluminum',
     client: 'Toyota MX',
     createdBy: 'Maria Gutierrez',
     createdById: 'user-maria',
@@ -217,10 +217,10 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-007',
-    title: 'Cubierta de caja de cambios',
-    material: 'Fundicion zinc',
+    title: 'Gearbox cover',
+    material: 'Zinc die casting',
     client: 'Honda MX',
-    createdBy: 'Jorge Peña',
+    createdBy: 'Jorge Pena',
     createdById: 'user-jorge',
     createdAt: '10/03/2026',
     status: 'EXPIRED',
@@ -234,15 +234,15 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-008',
-    title: 'Polea de alternador stamped',
-    material: 'Acero inoxidable',
+    title: 'Stamped alternator pulley',
+    material: 'Stainless steel',
     client: 'Volkswagen MX',
     createdBy: 'Sandra Lara',
     createdById: 'user-sandra',
     createdAt: '01/03/2026',
     status: 'CLOSED',
     closedAt: '15/04/2026',
-    closedBy: 'Admin Compras',
+    closedBy: 'Admin Purchasing',
     totalSuppliers: 3,
     quotedCount: 4,
     specs: BASE_SPECS,
@@ -252,17 +252,17 @@ const MOCK_RFQS: RfqDetail[] = [
   },
   {
     id: 'RFQ-009',
-    title: 'Palanca de velocidades ensamblada',
-    material: 'Plastico PP',
+    title: 'Assembled gear shift lever',
+    material: 'Plastic PP',
     client: 'Stellantis MX',
     createdBy: 'Roberto Diaz',
     createdById: 'user-roberto',
     createdAt: '20/03/2026',
     status: 'CANCELLED',
     cancellation: {
-      cancelledBy: 'Admin Industrialización',
+      cancelledBy: 'Admin Industrialization',
       cancelledAt: '10/04/2026',
-      reason: 'Proyecto congelado por decisión del cliente hasta nuevo aviso.',
+      reason: 'Project frozen by customer decision until further notice.',
       isLateCancellation: false,
     },
     specs: BASE_SPECS,

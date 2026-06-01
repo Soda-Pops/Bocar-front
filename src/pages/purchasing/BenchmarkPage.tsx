@@ -31,7 +31,7 @@ function BenchmarkPage() {
   );
 
   return (
-    <MainLayout header={<Header areaLabel="Compras" />}>
+    <MainLayout header={<Header areaLabel="Purchasing" />}>
       <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 pb-8 pt-8 sm:px-8 lg:px-12 xl:px-14">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -39,7 +39,7 @@ function BenchmarkPage() {
               Benchmark RFQ
             </h1>
             <p className="m-0 mt-2 text-[14px] text-[var(--bocar-blue-70)]">
-              Vista inicial para el comparativo de proveedores de {rfq.id}.
+              Initial supplier comparison view for {rfq.id}.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ function BenchmarkPage() {
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)] focus:outline-none"
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </button>
         </section>
 
@@ -72,23 +72,23 @@ function BenchmarkPage() {
             </div>
             <div className="rounded-[12px] border border-[rgba(217,222,229,0.84)] bg-[var(--bocar-bg)] p-4">
               <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                Responsable
+                Responsible
               </p>
               <p className="m-0 mt-2 text-[16px] font-semibold text-[var(--bocar-text)]">{rfq.owner}</p>
             </div>
             <div className="rounded-[12px] border border-[rgba(217,222,229,0.84)] bg-[var(--bocar-bg)] p-4">
               <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                Progreso
+                Progress
               </p>
               <p className="m-0 mt-2 text-[16px] font-semibold text-[var(--bocar-text)]">
-                {rfq.supplierProgress?.label ?? 'Sin cotizaciones'}
+                {rfq.supplierProgress?.label ?? 'No quotations'}
               </p>
             </div>
           </div>
 
           <div className="mt-5 rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center">
             <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
-              Esta vista deja listo el entry point para el comparativo; el detalle completo del benchmark sigue pendiente en el backlog.
+              This view prepares the comparison entry point; the full benchmark detail remains pending in the backlog.
             </p>
           </div>
         </section>

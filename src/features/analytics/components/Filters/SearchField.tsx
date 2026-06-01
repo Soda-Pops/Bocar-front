@@ -19,11 +19,11 @@ function SearchIcon() {
 export function SearchField({ value, onChange }: SearchFieldProps) {
   return (
     <label className="relative min-w-0 lg:w-[172px] lg:flex-none">
-      <span className="sr-only">Buscar RFQ</span>
+      <span className="sr-only">Search RFQ</span>
       <input
-        aria-label="Buscar RFQ"
+        aria-label="Search RFQ"
         className="h-12 w-full rounded-[10px] border border-[var(--bocar-border)] bg-white pl-10 pr-4 text-[14px] text-[var(--bocar-text)] shadow-[0_6px_14px_rgba(0,46,93,0.03)] outline-none transition placeholder:text-[var(--bocar-blue-30)] focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)] lg:h-9 lg:text-[13px]"
-        placeholder="Buscar..."
+        placeholder="Search..."
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

@@ -5,7 +5,7 @@ import { trimmingDefinition } from './definitions/trimmingDefinition';
 import { RfqWorkspaceShell } from './shell/RfqWorkspaceShell';
 
 type RfqWorkspaceProps = {
-  mode: 'create' | 'edit';
+  mode: 'create' | 'edit' | 'view';
   onBack: () => void;
   rfqId?: string;
   tipo: RfqTipo;

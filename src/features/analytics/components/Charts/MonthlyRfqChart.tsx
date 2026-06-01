@@ -28,7 +28,7 @@ export function MonthlyRfqChart({ series }: MonthlyRfqChartProps) {
   return (
     <section className="rounded-[12px] border border-[var(--bocar-border)] bg-white px-5 py-4 shadow-[0_8px_18px_rgba(0,46,93,0.04)] lg:px-4 lg:py-2">
       <h2 className="m-0 text-[12px] font-medium uppercase tracking-[0.035em] text-[var(--bocar-text)] lg:text-[10px]">
-        RFQ por mes
+        RFQs per Month
       </h2>
 
       <svg aria-hidden="true" className="mt-3 h-auto w-full lg:mt-1" viewBox={`0 0 ${width} ${height}`} fill="none">
