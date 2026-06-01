@@ -50,7 +50,7 @@ export function useLoginForm() {
     try {
       const user = await auth.login(values);
       const state = location.state as LocationState | null;
-      const target = state?.from?.pathname ?? resolveHomeRouteForRole(user.role);
+      const target = state?.from?.pathname ?? resolveHomeRouteForRole(user.role, user.isAdmin);
       navigate(target, { replace: true });
     } catch (error) {
       setFormError(getErrorMessage(error));
