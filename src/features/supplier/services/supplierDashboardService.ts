@@ -8,7 +8,7 @@ export const supplierMetrics: SupplierMetric[] = [
 ];
 
 export const assignedRows: SupplierRfqRow[] = [
-  { id: 'RFQ-001', status: 'PENDING', tipo: 'Mold', deadline: '20/06/2024' },
+  { id: 'RFQ-001', status: 'PENDING', tipo: 'Trimming', deadline: '20/06/2024' },
   { id: 'RFQ-004', status: 'QUOTED', tipo: 'Mold', deadline: '20/06/2024' },
   { id: 'RFQ-005', status: 'QUOTED', tipo: 'Trimming', deadline: '20/06/2024' },
   { id: 'RFQ-002', status: 'PENDING', tipo: 'Mold', deadline: '22/06/2024' },

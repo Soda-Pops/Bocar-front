@@ -25,7 +25,7 @@ function LoginRoute() {
   const auth = useAuth();
 
   if (auth.status === 'authenticated') {
-    return <Navigate to={resolveHomeRouteForRole(auth.user.role)} replace />;
+    return <Navigate to={resolveHomeRouteForRole(auth.user.role, auth.user.isAdmin)} replace />;
   }
 
   return <LoginPage />;
