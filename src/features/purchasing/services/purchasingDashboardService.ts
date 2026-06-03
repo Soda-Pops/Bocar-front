@@ -26,7 +26,7 @@ export const purchasingAdminUser: PurchasingUser = {
 export const purchasingMetrics: PurchasingDashboardMetric[] = [
   {
     key: 'pending',
-    label: 'RFQs TO ASSIGN',
+    label: 'RFQs PENDING ASSIGNMENT',
     status: 'PENDING',
     value: '2',
     valueColor: 'var(--bocar-blue-100)',

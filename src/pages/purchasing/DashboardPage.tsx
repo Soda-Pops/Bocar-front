@@ -227,11 +227,12 @@ function DashboardPage() {
   function handleMetricSelect(key: string) {
     const metric = purchasingMetrics.find((m) => m.key === key);
     if (!metric) return;
-    if (metric.status === 'QUOTING' || metric.status === 'EXPIRED') {
+    if (metric.status === 'QUOTING' || metric.status === 'EXPIRED' || metric.status === 'PENDING') {
+      setActiveTab('pending');
       setActiveStatusFilter((prev) => (prev === metric.status ? '' : metric.status));
       setCurrentPage(1);
-    } else {
-      navigate(`${ROUTES.PURCHASING.RFQ_LIST}?status=${metric.status}`);
+    } else if (metric.status === 'BENCHMARK_READY') {
+      handleTabChange('historical');
     }
   }
 
@@ -264,7 +265,10 @@ function DashboardPage() {
             {purchasingMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
-                isActive={activeStatusFilter !== '' && metric.status === activeStatusFilter}
+                isActive={
+                  (activeStatusFilter !== '' && metric.status === activeStatusFilter) ||
+                  (activeStatusFilter === '' && metric.status === 'BENCHMARK_READY' && activeTab === 'historical')
+                }
                 metric={metric}
                 onSelect={handleMetricSelect}
               />
@@ -389,19 +393,13 @@ function DashboardPage() {
 
           {/* Desktop table */}
           <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1100px] border-separate border-spacing-0">
+            <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {[
-                    'ID',
-                    'STATUS',
-                    'TYPE',
-                    'DEADLINE',
-                    'CREATION DATE',
-                    'CREATED BY',
-                    'SUPPLIER PROGRESS',
-                    'ACTIONS',
-                  ].map((header) => (
+                  {(activeTab === 'historical'
+                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                    : ['ID', 'STATUS', 'TYPE', 'DEADLINE', 'CREATION DATE', 'CREATED BY', 'SUPPLIER PROGRESS', 'ACTIONS']
+                  ).map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
@@ -414,12 +412,41 @@ function DashboardPage() {
               <tbody>
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
+                    <td colSpan={activeTab === 'historical' ? 6 : 8} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
                         No RFQs match the current filters.
                       </p>
                     </td>
                   </tr>
+                ) : activeTab === 'historical' ? (
+                  visibleRows.map((row) => (
+                    <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
+                        {row.id}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.machineType}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                        <DashboardStatusBadge status={row.status} />
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.createdAt}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.owner}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
+                          onClick={() => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: false } })}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   visibleRows.map((row) => (
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.8)]">

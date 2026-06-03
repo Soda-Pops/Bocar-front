@@ -20,14 +20,12 @@ export const dashboardUser: DashboardUser = {
 
 export const dashboardTabs: DashboardTab[] = [
   { key: 'borradores', label: 'Drafts' },
-  { key: 'revision', label: 'Awaiting Authorization' },
   { key: 'activas', label: 'Active' },
   { key: 'historicas', label: 'Historical' },
 ];
 
 export const dashboardMetrics: DashboardMetric[] = [
   { key: 'borradores', label: 'RFQs Drafts', value: '2', valueColor: 'var(--bocar-blue-100)' },
-  { key: 'revision', label: 'RFQs Under Review', value: '1', valueColor: 'var(--bocar-review)' },
   { key: 'activas', label: 'RFQs Active', value: '3', valueColor: 'var(--bocar-done)' },
   { key: 'historicas', label: 'RFQs Historical', value: '10', valueColor: 'var(--bocar-neutral)' },
 ];
@@ -50,12 +48,6 @@ export const dashboardRowsByTab: Record<DashboardTabKey, DashboardRow[]> = {
     { id: 'RFQ-011', material: 'Steel', createdBy: 'Gabriela Ruiz', date: '14/06/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Draft' },
     { id: 'RFQ-013', material: 'Resin', createdBy: 'Laura Flores', date: '13/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Draft' },
   ],
-  revision: [
-    { id: 'RFQ-014', material: 'Steel', createdBy: 'Ricardo Soto', date: '21/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Under Review' },
-    { id: 'RFQ-015', material: 'Aluminum', createdBy: 'Sofia Lara', date: '18/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Under Review' },
-    { id: 'RFQ-016', material: 'Plastic', createdBy: 'Antonio Leon', date: '16/06/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Under Review' },
-    { id: 'RFQ-017', material: 'Resin', createdBy: 'Valeria Cruz', date: '12/06/2024', supplier: 'Metalsa', tipo: 'Mold', status: 'Under Review' },
-  ],
   activas: [
     { id: 'RFQ-021', material: 'Steel', createdBy: 'Ricardo Soto', date: '22/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Active' },
     { id: 'RFQ-022', material: 'Plastic', createdBy: 'Karina Diaz', date: '18/06/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Active' },
@@ -63,16 +55,16 @@ export const dashboardRowsByTab: Record<DashboardTabKey, DashboardRow[]> = {
     { id: 'RFQ-024', material: 'Steel', createdBy: 'Laura Flores', date: '11/06/2024', supplier: 'Metalsa', tipo: 'Mold', status: 'Active' },
   ],
   historicas: [
-    { id: 'RFQ-031', material: 'Steel', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Historical' },
-    { id: 'RFQ-032', material: 'Aluminum', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Historical' },
-    { id: 'RFQ-033', material: 'Plastic', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Historical' },
-    { id: 'RFQ-034', material: 'Steel', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Historical' },
-    { id: 'RFQ-035', material: 'Resin', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Historical' },
-    { id: 'RFQ-036', material: 'Steel', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Historical' },
-    { id: 'RFQ-037', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Historical' },
-    { id: 'RFQ-038', material: 'Plastic', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Historical' },
-    { id: 'RFQ-039', material: 'Steel', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Historical' },
-    { id: 'RFQ-040', material: 'Resin', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Historical' },
+    { id: 'RFQ-031', material: 'Steel', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-032', material: 'Aluminum', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-033', material: 'Plastic', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-034', material: 'Steel', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-035', material: 'Resin', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-036', material: 'Steel', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-037', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-038', material: 'Plastic', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-039', material: 'Steel', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-040', material: 'Resin', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
   ],
 };
 
@@ -93,10 +85,10 @@ export const superuserMetrics: SuperUserMetric[] = [
 export const superuserRowsByTab: Record<SuperUserTabKey, DashboardRow[]> = {
   borradores: dashboardRowsByTab.borradores,
   eliminadas: [
-    { id: 'RFQ-051', material: 'Steel', createdBy: 'Ricardo Soto', date: '19/06/2024', supplier: 'Magna' },
-    { id: 'RFQ-052', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/06/2024', supplier: 'Nemak' },
-    { id: 'RFQ-053', material: 'Plastic', createdBy: 'Antonio Leon', date: '10/06/2024', supplier: 'Bosch' },
-    { id: 'RFQ-054', material: 'Resin', createdBy: 'Karina Diaz', date: '08/06/2024', supplier: 'Metalsa' },
+    { id: 'RFQ-051', material: 'Steel', createdBy: 'Ricardo Soto', date: '19/06/2024', supplier: 'Magna', status: 'Deleted', tipo: 'Mold' },
+    { id: 'RFQ-052', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/06/2024', supplier: 'Nemak', status: 'Deleted', tipo: 'Trimming' },
+    { id: 'RFQ-053', material: 'Plastic', createdBy: 'Antonio Leon', date: '10/06/2024', supplier: 'Bosch', status: 'Deleted', tipo: 'Mold' },
+    { id: 'RFQ-054', material: 'Resin', createdBy: 'Karina Diaz', date: '08/06/2024', supplier: 'Metalsa', status: 'Deleted', tipo: 'Trimming' },
   ],
   activas: dashboardRowsByTab.activas,
   historicas: dashboardRowsByTab.historicas,

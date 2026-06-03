@@ -16,7 +16,6 @@ import QuotationFormPage from '@/pages/proveedor/QuotationFormPage';
 import PurchasingBenchmarkPage from '@/pages/purchasing/BenchmarkPage';
 import PurchasingAdminDashboardPage from '@/pages/purchasing/AdminDashboardPage';
 import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
-import PurchasingRfqListPage from '@/pages/purchasing/RfqListPage';
 import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
 import PurchasingUnlockRequestsPage from '@/pages/purchasing/UnlockRequestsPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
@@ -93,14 +92,6 @@ const appRouter = createBrowserRouter([
     element: (
       <Protected allowedRoles={['compras']}>
         <PurchasingDashboardPage />
-      </Protected>
-    ),
-  },
-  {
-    path: ROUTES.PURCHASING.RFQ_LIST,
-    element: (
-      <Protected allowedRoles={['compras']}>
-        <PurchasingRfqListPage />
       </Protected>
     ),
   },

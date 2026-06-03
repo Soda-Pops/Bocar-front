@@ -45,9 +45,10 @@ function getScoreToneClass(tone: 'success' | 'warning' | 'danger') {
   return 'bg-[var(--bocar-error)]';
 }
 
-function resolveDefaultRole(pathname: string): UserRole {
+function resolveDefaultRole(pathname: string, fromAdmin: boolean): UserRole {
   if (pathname.startsWith('/compras')) return 'compras_admin';
   if (pathname.startsWith('/proveedor')) return 'proveedor';
+  if (fromAdmin) return 'industrializacion_admin';
   return 'industrializacion';
 }
 
@@ -56,13 +57,15 @@ export function RfqDetailWorkspace({
   mode = 'readonly',
   referenceId = 'RFQ-004',
 }: RfqDetailWorkspaceProps) {
-  const { pathname } = useLocation();
+  const routerLocation = useLocation();
+  const { pathname } = routerLocation;
   const navigate = useNavigate();
   const [showAssignment, setShowAssignment] = useState(false);
   const assignmentRef = useRef<HTMLDivElement>(null);
 
-  const defaultRole = resolveDefaultRole(pathname);
-  const defaultIsCreator = defaultRole === 'industrializacion';
+  const fromAdmin = (routerLocation.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
+  const defaultRole = resolveDefaultRole(pathname, fromAdmin);
+  const defaultIsCreator = defaultRole === 'industrializacion' || defaultRole === 'industrializacion_admin';
 
   const { rfq, allowedActions, statusMeta, banner, isAccessible, role } = useRfqDetail(
     referenceId,
@@ -95,6 +98,9 @@ export function RfqDetailWorkspace({
         break;
       case 'view_benchmark':
         navigate(ROUTES.PURCHASING.BENCHMARK.replace(':rfqId', rfqId));
+        break;
+      case 'open_rfq':
+        navigate(`/industrializacion/rfq/${rfqId}/editar?view=true`);
         break;
       case 'edit_draft':
         navigate(`/industrializacion/rfq/${rfqId}/editar`);
@@ -220,8 +226,12 @@ export function RfqDetailWorkspace({
   }
 
   // ─── READONLY MODE (RfqDetailPage) ────────────────────────────────────────
+  const isIndustrializacionRole = role === 'industrializacion' || role === 'industrializacion_admin';
   const showSuppliers =
-    rfq.suppliers.length > 0 && rfq.status !== 'PENDING' && rfq.status !== 'PENDING_EDIT_REQUEST';
+    !isIndustrializacionRole &&
+    rfq.suppliers.length > 0 &&
+    rfq.status !== 'PENDING' &&
+    rfq.status !== 'PENDING_EDIT_REQUEST';
   const showBenchmark =
     (rfq.status === 'BENCHMARK_READY' || rfq.status === 'CLOSED') && rfq.benchmark.length > 0;
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';

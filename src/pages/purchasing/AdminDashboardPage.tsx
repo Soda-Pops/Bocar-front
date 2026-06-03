@@ -100,7 +100,7 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
   const detailAction = {
     key: 'view_detail' as const,
     label: 'View details',
-    onSelect: () => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)),
+    onSelect: () => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: true } }),
   };
 
   if (row.status === 'PENDING') {
@@ -109,7 +109,7 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
         key: 'assign' as const,
         label: 'Assign',
         onSelect: () =>
-          navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id)),
+          navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id), { state: { fromAdmin: true } }),
       },
       detailAction,
     ];
@@ -253,8 +253,10 @@ function AdminDashboardPage() {
       setCurrentPage(1);
     } else if (metric.status === 'CANCELLED') {
       handleTabChange('eliminated');
-    } else {
-      navigate(`${ROUTES.PURCHASING.RFQ_LIST}?status=${metric.status}`);
+    } else if (metric.status === 'PENDING') {
+      handleTabChange('pending');
+    } else if (metric.status === 'BENCHMARK_READY') {
+      handleTabChange('historical');
     }
   }
 
@@ -293,7 +295,14 @@ function AdminDashboardPage() {
             {superuserPurchasingMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
-                isActive={activeStatusFilter !== '' && metric.status === activeStatusFilter}
+                isActive={
+                  (activeStatusFilter !== '' && metric.status === activeStatusFilter) ||
+                  (activeStatusFilter === '' && (
+                    (metric.status === 'PENDING' && activeTab === 'pending') ||
+                    (metric.status === 'CANCELLED' && activeTab === 'eliminated') ||
+                    (metric.status === 'BENCHMARK_READY' && activeTab === 'historical')
+                  ))
+                }
                 metric={metric}
                 onSelect={handleMetricSelect}
               />

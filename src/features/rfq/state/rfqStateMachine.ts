@@ -23,6 +23,7 @@ export type RfqActionKey =
   | 'edit_draft'
   | 'submit_draft'
   | 'delete_draft'
+  | 'open_rfq'
   | 'request_edit'
   | 'view_full_detail'
   | 'assign_suppliers'
@@ -84,6 +85,13 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
     icon: 'edit',
     requiresConfirmation: true,
     onlyCreator: true,
+  },
+  open_rfq: {
+    key: 'open_rfq',
+    label: 'Open RFQ',
+    tone: 'secondary',
+    icon: 'arrow-right',
+    requiresConfirmation: false,
   },
   view_full_detail: {
     key: 'view_full_detail',
@@ -164,7 +172,7 @@ export function resolveIsAccessible(
 
   switch (status) {
     case 'DRAFT':
-      return isCreator;
+      return isCreator || isSuperUser;
     case 'PENDING':
     case 'PENDING_EDIT_REQUEST':
       return !isSupplier;
@@ -201,10 +209,10 @@ export function resolveAllowedActions(input: {
   switch (status) {
     case 'DRAFT': {
       // isAccessible already requires isCreator; only called when the viewer is the creator
+      actions.push({ ...A.open_rfq });
       actions.push({ ...A.edit_draft });
       actions.push({ ...A.submit_draft });
       actions.push({ ...A.delete_draft });
-      // Creator who is also admin can cancel their own draft
       if (isIndustrializationAdmin || isPurchasingAdmin) {
         actions.push({ ...A.cancel_early });
       }
@@ -248,18 +256,12 @@ export function resolveAllowedActions(input: {
       if (isSupplier && isAssignedSupplier) {
         actions.push({ ...A.create_quotation });
       }
-      if (isSuperUser) {
-        actions.push({ ...A.cancel_late });
-      }
       break;
     }
 
     case 'PARTIALLY_QUOTED': {
       if (isSupplier && isAssignedSupplier) {
         actions.push({ ...A.create_quotation });
-      }
-      if (isSuperUser) {
-        actions.push({ ...A.cancel_late });
       }
       break;
     }
@@ -270,7 +272,6 @@ export function resolveAllowedActions(input: {
       }
       if (isSuperUser) {
         actions.push({ ...A.close_rfq });
-        actions.push({ ...A.cancel_late });
       }
       break;
     }
@@ -282,7 +283,6 @@ export function resolveAllowedActions(input: {
         if (isPurchasingAdmin) {
           actions.push({ ...A.extend_deadline });
         }
-        actions.push({ ...A.cancel_late });
       }
       break;
     }
