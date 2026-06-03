@@ -36,6 +36,8 @@ export const ROUTES = {
   PURCHASING: {
     // Falta por programar: dashboard operativo de Compras.
     DASHBOARD: '/compras/dashboard',
+    // Programada: creacion de RFQ desde compras admin.
+    RFQ_CREATE: '/compras/rfq/crear',
     // Falta por programar: listado de RFQs de Compras.
     RFQ_LIST: '/compras/rfq',
     // Programada: detalle de RFQ con pantalla compartida.

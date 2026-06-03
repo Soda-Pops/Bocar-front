@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
@@ -275,58 +276,17 @@ function SupplierDashboardPage() {
             rows={visibleRows}
             tab={activeTab}
             onView={(row) => {
-              if (row.status === 'PENDING') {
-                navigate(
-                  `${ROUTES.SUPPLIER.QUOTATION_CREATE.replace(':rfqId', row.id)}?tipo=${row.tipo}`
-                );
-              } else {
-                navigate(ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', row.id));
-              }
+              navigate(ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', row.id));
             }}
           />
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-5 py-4 text-[13px] text-[var(--bocar-blue-50)]">
-            <p className="m-0">
-              Showing {visibleRows.length} of {filteredRows.length} results
-            </p>
-            {totalPages > 1 ? (
-              <div className="flex items-center gap-3">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={[
-                      'min-w-[16px] text-[13px] transition hover:text-[var(--bocar-text)]',
-                      page === safePage
-                        ? 'font-semibold text-[var(--bocar-text)]'
-                        : 'text-[var(--bocar-blue-50)]',
-                    ].join(' ')}
-                  >
-                    {page}
-                  </button>
-                ))}
-                {totalPages > 2 && <span className="text-[var(--bocar-blue-30)]">...</span>}
-                <button
-                  type="button"
-                  disabled={safePage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="text-[13px] text-[var(--bocar-blue-50)] transition hover:text-[var(--bocar-text)] disabled:opacity-30"
-                >
-                  {'>'}
-                </button>
-                <button
-                  type="button"
-                  disabled={safePage === totalPages}
-                  onClick={() => setCurrentPage(totalPages)}
-                  className="text-[13px] text-[var(--bocar-blue-50)] transition hover:text-[var(--bocar-text)] disabled:opacity-30"
-                >
-                  {'»'}
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            visibleCount={visibleRows.length}
+            totalCount={filteredRows.length}
+            onPageChange={setCurrentPage}
+          />
         </section>
 
       </div>

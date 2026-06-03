@@ -132,6 +132,7 @@ type RfqWorkspaceShellProps<TValues extends FieldValues> = {
   onBack: () => void;
   rfqId?: string;
   tipo: RfqTipo;
+  areaPrefix?: string;
 };
 
 export function RfqWorkspaceShell<TValues extends FieldValues>({
@@ -140,6 +141,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   onBack,
   rfqId,
   tipo,
+  areaPrefix,
 }: RfqWorkspaceShellProps<TValues>) {
   const readOnly = mode === 'view';
   const [currentPage, setCurrentPage] = useState<string>(definition.pages[0] ?? 'basic');
@@ -298,7 +300,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   return (
     <FormProvider {...form}>
       <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-        <Header areaLabel={`${readOnly ? 'Purchasing' : 'Industrialization'} · ${headerTitle} · ${tipo}`} />
+        <Header areaLabel={`${areaPrefix ?? (readOnly ? 'Purchasing' : 'Industrialization')} · ${headerTitle} · ${tipo}`} />
 
         <div className="flex min-h-0 flex-1">
           <WorkspaceSidebar

@@ -8,9 +8,10 @@ import type { AppRole } from '@/features/auth/types';
 type ProtectedRouteProps = {
   children: ReactNode;
   allowedRoles?: AppRole[];
+  requireAdmin?: boolean;
 };
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, requireAdmin }: ProtectedRouteProps) {
   const auth = useAuth();
   const location = useLocation();
 
@@ -29,6 +30,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(auth.user.role)) {
+    return <Navigate to={ROUTES.AUTH.UNAUTHORIZED} replace />;
+  }
+
+  if (requireAdmin && !auth.user.isAdmin) {
     return <Navigate to={ROUTES.AUTH.UNAUTHORIZED} replace />;
   }
 

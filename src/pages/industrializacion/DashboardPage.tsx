@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
 import { DashboardHeader } from '@/features/analytics/components/DashboardHeader';
@@ -71,6 +72,7 @@ function DashboardPage() {
   const [sortValue, setSortValue] = useState<SortOption>('');
   const [tipoValue, setTipoValue] = useState('');
   const [dateValue, setDateValue] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const rows = dashboardRowsByTab[activeTab];
   const dateOptions = useMemo(() => getDateOptions(rows), [rows]);
@@ -78,8 +80,9 @@ function DashboardPage() {
     () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
     [rows, searchValue, sortValue, tipoValue, dateValue],
   );
-  const visibleRows = filteredRows.slice(0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const hasRows = visibleRows.length > 0;
   const handleViewRfq = (rfqId: string) => {
     navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId));
@@ -275,19 +278,13 @@ function DashboardPage() {
             </table>
           </div>
 
-          <div className="flex flex-col gap-4 px-4 py-4 text-[13px] text-[var(--bocar-blue-30)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-4 lg:py-2 lg:text-[12px]">
-            <p className="m-0">
-              Showing {visibleRows.length} of {filteredRows.length} results
-            </p>
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--bocar-blue-70)]">1</span>
-              <span>{Math.min(2, totalPages)}</span>
-              <span>...</span>
-              <span aria-hidden="true">›</span>
-              <span aria-hidden="true">»</span>
-              <span className="sr-only">Total pages {totalPages}</span>
-            </div>
-          </div>
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            visibleCount={visibleRows.length}
+            totalCount={filteredRows.length}
+            onPageChange={setCurrentPage}
+          />
         </section>
       </div>
     </MainLayout>

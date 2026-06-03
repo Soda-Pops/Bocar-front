@@ -30,8 +30,8 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
-function Protected({ children, allowedRoles }: { children: ReactNode; allowedRoles?: AppRole[] }) {
-  return <ProtectedRoute allowedRoles={allowedRoles}>{children}</ProtectedRoute>;
+function Protected({ children, allowedRoles, requireAdmin }: { children: ReactNode; allowedRoles?: AppRole[]; requireAdmin?: boolean }) {
+  return <ProtectedRoute allowedRoles={allowedRoles} requireAdmin={requireAdmin}>{children}</ProtectedRoute>;
 }
 
 const appRouter = createBrowserRouter([
@@ -87,6 +87,14 @@ const appRouter = createBrowserRouter([
   },
 
   // Purchasing
+  {
+    path: ROUTES.PURCHASING.RFQ_CREATE,
+    element: (
+      <Protected allowedRoles={['compras']} requireAdmin>
+        <RfqFormPage areaLabel="Purchasing · Create RFQ" />
+      </Protected>
+    ),
+  },
   {
     path: ROUTES.PURCHASING.DASHBOARD,
     element: (
