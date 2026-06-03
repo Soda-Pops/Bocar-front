@@ -1,4 +1,4 @@
-export type DashboardTabKey = 'borradores' | 'revision' | 'activas' | 'historicas';
+export type DashboardTabKey = 'borradores' | 'activas' | 'historicas';
 
 export type SuperUserTabKey = 'borradores' | 'eliminadas' | 'activas' | 'historicas';
 

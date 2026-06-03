@@ -22,43 +22,49 @@ import { ROUTES } from '@/app/config/routes';
 
 const RFQ_TYPE_OPTIONS = ['Trimming', 'Mold'] as const;
 
+function RfqStatusBadge({ status }: { status?: string }) {
+  if (!status) return <span>—</span>;
+  if (status === 'Draft') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(0,46,93,0.2)] bg-[rgba(0,46,93,0.08)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-100)]">
+        {status}
+      </span>
+    );
+  }
+  if (status === 'Active') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(141,198,63,0.3)] bg-[rgba(141,198,63,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#5a8a1f]">
+        {status}
+      </span>
+    );
+  }
+  if (status === 'Done') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
+        {status}
+      </span>
+    );
+  }
+  return <span className="text-[13px] text-[var(--bocar-text)]">{status}</span>;
+}
+
 const PAGE_SIZE = 4;
 
 function getSortLabel(sortValue: SortOption) {
-  if (sortValue === 'material') {
-    return 'Material';
-  }
-
-  if (sortValue === 'creator') {
-    return 'Creator';
-  }
-
-  if (sortValue === 'recent') {
-    return 'Most recent';
-  }
-
+  if (sortValue === 'creator') return 'Creator';
+  if (sortValue === 'recent') return 'Most recent';
   return '';
 }
 
 function getNextSortOption(value: string): SortOption {
-  if (value === 'Material') {
-    return 'material';
-  }
-
-  if (value === 'Creator') {
-    return 'creator';
-  }
-
-  if (value === 'Most recent') {
-    return 'recent';
-  }
-
+  if (value === 'Creator') return 'creator';
+  if (value === 'Most recent') return 'recent';
   return '';
 }
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'borradores' | 'revision' | 'activas' | 'historicas'>(
+  const [activeTab, setActiveTab] = useState<'borradores' | 'activas' | 'historicas'>(
     'borradores',
   );
   const [searchValue, setSearchValue] = useState('');
@@ -145,7 +151,7 @@ function DashboardPage() {
             />
             <FilterSelect
               label="Sort by"
-              options={['Most recent', 'Material', 'Creator']}
+              options={['Most recent', 'Creator']}
               value={getSortLabel(sortValue)}
               onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
             />
@@ -180,7 +186,7 @@ function DashboardPage() {
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
                         Status
                       </dt>
-                      <dd className="m-0">{row.status ?? '—'}</dd>
+                      <dd className="m-0"><RfqStatusBadge status={row.status} /></dd>
                     </div>
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
@@ -234,7 +240,7 @@ function DashboardPage() {
                         {row.tipo ?? '—'}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.status ?? '—'}
+                        <RfqStatusBadge status={row.status} />
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.date}

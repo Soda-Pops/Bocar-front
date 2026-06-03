@@ -3,11 +3,13 @@ import type { ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { z } from 'zod';
 
+import { FileUploadField } from '@shared/components/ui/FileUploadField';
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
+
 import {
   ConsiderationTogglePage,
   FormGrid,
   SectionCard,
-  TextAreaField,
   TextField,
   inputBaseClasses,
   type ConsiderationGroupConfig,
@@ -49,7 +51,8 @@ const moldSchema = z
     prlf: z.string(),
     projected: z.string(),
     rfq_name: z.string().trim().min(1, 'Enter the RFQ name to continue.'),
-    sk_part: z.string(),
+    sk_part: z.object({ name: z.string(), size: z.number(), type: z.string() }).nullable(),
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })),
     surface: z.string(),
     three_plate: z.string(),
     tt: z.string(),
@@ -84,11 +87,12 @@ type MoldPageKey =
   | 'spareparts'
   | 'geometry'
   | 'tool_spec'
-  | 'comments';
+  | 'comments'
+  | 'files';
 
 const PAGES: readonly MoldPageKey[] = [
   'basic', 'tool_eng', 'dcm', 'diritpotd', 'other_cons', 'ot_inf', 'spareparts',
-  'geometry', 'tool_spec', 'comments',
+  'geometry', 'tool_spec', 'comments', 'files',
 ];
 
 const PAGE_META: Record<MoldPageKey, PageMeta> = {
@@ -99,9 +103,10 @@ const PAGE_META: Record<MoldPageKey, PageMeta> = {
   geometry: { navLabel: 'PART GEOMETRY', subtitle: 'Component dimensions and properties.', title: '8. Part Geometry' },
   other_cons: { navLabel: 'OTHER', subtitle: 'Other quotation deliverables.', title: '5. Other' },
   ot_inf: { navLabel: 'OT INF', subtitle: 'Additional documentation required from the supplier.', title: '6. OT INF' },
-  spareparts: { navLabel: 'SK PART', subtitle: 'Critical spare parts to quote individually.', title: '7. SK PART' },
+  spareparts: { navLabel: 'SK PART', subtitle: 'Attach the complete SK part sketch of the component.', title: '7. SK PART' },
   tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Tooling configuration and parameters.', title: '2. Tool Engineering' },
   tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Detailed tooling dimensions and configuration.', title: '9. Tool Specification' },
+  files: { navLabel: 'UPLOAD FILES', subtitle: 'Attach blueprints, quotations and part specifications.', title: '11. Upload Files' },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -125,6 +130,13 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'geometry', label: 'PART GEOMETRY' },
       { key: 'tool_spec', label: 'TOOL SPECIFICATION' },
       { key: 'comments', label: 'COMMENTS' },
+    ],
+  },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [
+      { key: 'files', label: 'UPLOAD FILES' },
     ],
   },
 ];
@@ -226,7 +238,7 @@ function getCreateDefaultValues(): MoldFormValues {
     alloy: '', buhler: '', comments: '', considerations: {}, cust: '', dtq: '', elab: '', gates: '',
     hydr_slides: '', mech_slides: '', num_cav: '', num_tools: '', part_dim: '', part_name: '',
     part_number: '', part_tech: '', parts_stroke: '', pnum: '', ppy: '', prlf: '', projected: '',
-    rfq_name: '', sk_part: '', surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
+    rfq_name: '', sk_part: null, files: [], surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
     wall_min: '', weight: '',
   };
 }
@@ -262,7 +274,8 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     prlf: '5',
     projected: '336',
     rfq_name: 'Door support project',
-    sk_part: 'Lateral H13 insert (safety set) - 2 pcs.\nMain replacement cavity (H13 forged) - 1 pc.',
+    sk_part: null,
+    files: [],
     surface: '522',
     three_plate: '0',
     tt: 'PRODUCTION',
@@ -363,12 +376,10 @@ function ToolEngineeringPage() {
 function SparePartsPage() {
   return (
     <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
-      <TextAreaField
-        label="Description"
+      <FileUploadField
+        accept=".png,.jpg,.jpeg,.pdf,.dwg"
+        maxSizeMb={10}
         name="sk_part"
-        placeholder="Enter an additional description"
-        rows={8}
-        span={2}
       />
     </SectionCard>
   );
@@ -411,14 +422,27 @@ function ToolSpecificationPage() {
 }
 
 function CommentsPage() {
+  const { register } = useFormContext();
   return (
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
-      <TextAreaField
-        label="Additional comments"
-        name="comments"
+      <textarea
+        className={`${inputBaseClasses(false)} resize-y`}
         placeholder="Enter an additional comment"
-        rows={8}
-        span={2}
+        rows={6}
+        {...register('comments')}
+      />
+    </SectionCard>
+  );
+}
+
+function FilesPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+      <MultiFileUploadField
+        accept=".ppt,.pptx,.stp,.pdf"
+        acceptLabel="PPT, STP, PDF"
+        maxSizeMb={25}
+        name="files"
       />
     </SectionCard>
   );
@@ -431,6 +455,7 @@ function renderPage(page: string): ReactNode {
   if (page === 'geometry') return <GeometryPage />;
   if (page === 'tool_spec') return <ToolSpecificationPage />;
   if (page === 'comments') return <CommentsPage />;
+  if (page === 'files') return <FilesPage />;
 
   if (page === 'dcm') {
     const group = CONSIDERATION_GROUPS.find((g) => g.page === page);

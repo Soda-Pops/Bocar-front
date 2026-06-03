@@ -22,7 +22,7 @@ function RfqFormPage({ forcedMode }: RfqFormPageProps) {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const isViewMode = forcedMode === 'view';
+  const isViewMode = forcedMode === 'view' || searchParams.get('view') === 'true';
   const isEditMode = Boolean(id) && !isViewMode;
   const tipoFromQuery = parseRfqTipo(searchParams.get('tipo'));
   const [createTipo, setCreateTipo] = useState<RfqTipo | null>(tipoFromQuery);
@@ -44,7 +44,7 @@ function RfqFormPage({ forcedMode }: RfqFormPageProps) {
     return <RfqTypeSelectionScreen onBack={handleBack} onSelect={setCreateTipo} />;
   }
 
-  return <RfqWorkspace mode="create" tipo={createTipo} onBack={handleBack} />;
+  return <RfqWorkspace mode="create" tipo={createTipo} onBack={() => setCreateTipo(null)} />;
 }
 
 export default RfqFormPage;

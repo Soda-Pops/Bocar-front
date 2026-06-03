@@ -38,7 +38,7 @@ function UnlockRequestsPage() {
 
           <button
             type="button"
-            onClick={() => navigate(ROUTES.PURCHASING.DASHBOARD)}
+            onClick={() => navigate(ROUTES.PURCHASING.ADMIN_DASHBOARD)}
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)] focus:outline-none"
           >
             <BackArrowIcon />
@@ -61,7 +61,7 @@ function UnlockRequestsPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate(ROUTES.PURCHASING.RFQ_LIST)}
+                    onClick={() => navigate(ROUTES.PURCHASING.ADMIN_DASHBOARD)}
                     className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                   >
                     Review RFQ

@@ -7,6 +7,7 @@ import { SearchField } from '@/features/analytics/components/Filters/SearchField
 import { MonthlyRfqChart } from '@/features/analytics/components/Charts/MonthlyRfqChart';
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import {
+  getDateOptions,
   getFilteredDashboardRows,
   monthlyRfqSeries,
   superuserMetrics,
@@ -20,40 +21,73 @@ import { Header } from '@/layouts/components/Header';
 import { ROUTES } from '@/app/config/routes';
 
 const PAGE_SIZE = 4;
+const RFQ_TYPE_OPTIONS = ['Trimming', 'Mold'] as const;
 
 function getSortLabel(sortValue: SortOption) {
-  if (sortValue === 'material') return 'Material';
   if (sortValue === 'creator') return 'Creator';
   if (sortValue === 'recent') return 'Most recent';
   return '';
 }
 
 function getNextSortOption(value: string): SortOption {
-  if (value === 'Material') return 'material';
   if (value === 'Creator') return 'creator';
   if (value === 'Most recent') return 'recent';
   return '';
+}
+
+function RfqStatusBadge({ status }: { status?: string }) {
+  if (!status) return <span>—</span>;
+  if (status === 'Draft') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(0,46,93,0.2)] bg-[rgba(0,46,93,0.08)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-100)]">
+        {status}
+      </span>
+    );
+  }
+  if (status === 'Active') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(141,198,63,0.3)] bg-[rgba(141,198,63,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#5a8a1f]">
+        {status}
+      </span>
+    );
+  }
+  if (status === 'Done') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
+        {status}
+      </span>
+    );
+  }
+  if (status === 'Deleted') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(170,0,15,0.25)] bg-[rgba(170,0,15,0.08)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#AA000F]">
+        {status}
+      </span>
+    );
+  }
+  return <span className="text-[13px] text-[var(--bocar-text)]">{status}</span>;
 }
 
 function SuperUserDashboardPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SuperUserTabKey>('borradores');
   const [searchValue, setSearchValue] = useState('');
-  const [supplierValue, setSupplierValue] = useState('');
   const [sortValue, setSortValue] = useState<SortOption>('');
+  const [tipoValue, setTipoValue] = useState('');
+  const [dateValue, setDateValue] = useState('');
 
   const rows = superuserRowsByTab[activeTab];
-  const supplierOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.supplier))), [rows]);
+  const dateOptions = useMemo(() => getDateOptions(rows), [rows]);
   const filteredRows = useMemo(
-    () => getFilteredDashboardRows(rows, searchValue, supplierValue, sortValue),
-    [rows, searchValue, supplierValue, sortValue],
+    () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
+    [rows, searchValue, sortValue, tipoValue, dateValue],
   );
   const visibleRows = filteredRows.slice(0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const hasRows = visibleRows.length > 0;
 
   const handleViewRfq = (rfqId: string) => {
-    navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId));
+    navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId), { state: { fromAdmin: true } });
   };
 
   return (
@@ -104,28 +138,30 @@ function SuperUserDashboardPage() {
           </nav>
         </section>
 
-        <section className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid gap-4 lg:flex lg:flex-1 lg:items-center lg:gap-5">
-            <SearchField value={searchValue} onChange={setSearchValue} />
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:min-w-0 lg:flex-1">
-              <FilterSelect
-                label="Suppliers"
-                options={supplierOptions}
-                value={supplierValue}
-                onChange={setSupplierValue}
-              />
-              <FilterSelect
-                label="Sort by"
-                options={['Most recent', 'Material', 'Creator']}
-                value={getSortLabel(sortValue)}
-                onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
-              />
-            </div>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <SearchField value={searchValue} onChange={setSearchValue} />
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <FilterSelect
+              label="Type"
+              options={[...RFQ_TYPE_OPTIONS]}
+              value={tipoValue}
+              onChange={setTipoValue}
+            />
+            <FilterSelect
+              label="Date"
+              options={dateOptions}
+              value={dateValue}
+              onChange={setDateValue}
+            />
+            <FilterSelect
+              label="Sort by"
+              options={['Most recent', 'Creator']}
+              value={getSortLabel(sortValue)}
+              onChange={(nextValue) => setSortValue(getNextSortOption(nextValue))}
+            />
           </div>
-
           <CreateRfqButton />
-        </section>
+        </div>
 
         <section className="mt-6 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
           <div className="grid gap-3 p-4 sm:hidden">
@@ -138,7 +174,8 @@ function SuperUserDashboardPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
-                      <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.material}</p>
+                      <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
+                      <div className="mt-2"><RfqStatusBadge status={row.status} /></div>
                     </div>
                     <button
                       type="button"
@@ -150,12 +187,14 @@ function SuperUserDashboardPage() {
                   </div>
 
                   <dl className="mt-4 grid gap-3 text-[13px]">
-                    <div className="grid gap-1">
-                      <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Created by
-                      </dt>
-                      <dd className="m-0">{row.createdBy}</dd>
-                    </div>
+                    {activeTab !== 'borradores' && (
+                      <div className="grid gap-1">
+                        <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
+                          Created by
+                        </dt>
+                        <dd className="m-0">{row.createdBy}</dd>
+                      </div>
+                    )}
                     <div className="grid gap-1">
                       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
                         Date
@@ -176,7 +215,10 @@ function SuperUserDashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {['ID', 'MATERIAL', 'CREATED BY', 'DATE', 'ACTION'].map((header) => (
+                  {(activeTab === 'borradores'
+                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'ACTION']
+                    : ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                  ).map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-4 text-left text-[13px] font-medium text-[var(--bocar-text)] lg:px-4 lg:py-4"
@@ -193,15 +235,34 @@ function SuperUserDashboardPage() {
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
                         {row.id}
                       </td>
-                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.material}
-                      </td>
-                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.createdBy}
-                      </td>
-                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                        {row.date}
-                      </td>
+                      {activeTab === 'borradores' ? (
+                        <>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.tipo ?? '—'}
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                            <RfqStatusBadge status={row.status} />
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.date}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.tipo ?? '—'}
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                            <RfqStatusBadge status={row.status} />
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.date}
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.createdBy}
+                          </td>
+                        </>
+                      )}
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
                         <button
                           type="button"
@@ -216,7 +277,7 @@ function SuperUserDashboardPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={activeTab === 'borradores' ? 5 : 6}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
                       No RFQs match the current filters.
