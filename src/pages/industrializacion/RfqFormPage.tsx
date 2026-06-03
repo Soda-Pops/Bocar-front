@@ -16,9 +16,10 @@ function parseRfqTipo(value: string | null): RfqTipo | null {
 
 type RfqFormPageProps = {
   forcedMode?: 'view';
+  areaLabel?: string;
 };
 
-function RfqFormPage({ forcedMode }: RfqFormPageProps) {
+function RfqFormPage({ forcedMode, areaLabel }: RfqFormPageProps) {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -40,11 +41,13 @@ function RfqFormPage({ forcedMode }: RfqFormPageProps) {
     return <RfqWorkspace mode="edit" rfqId={id} tipo="Mold" onBack={handleBack} />;
   }
 
+  const areaPrefix = areaLabel ? areaLabel.split(' · ')[0] : undefined;
+
   if (!createTipo) {
-    return <RfqTypeSelectionScreen onBack={handleBack} onSelect={setCreateTipo} />;
+    return <RfqTypeSelectionScreen onBack={handleBack} onSelect={setCreateTipo} areaLabel={areaLabel} />;
   }
 
-  return <RfqWorkspace mode="create" tipo={createTipo} onBack={() => setCreateTipo(null)} />;
+  return <RfqWorkspace mode="create" tipo={createTipo} onBack={() => setCreateTipo(null)} areaPrefix={areaPrefix} />;
 }
 
 export default RfqFormPage;

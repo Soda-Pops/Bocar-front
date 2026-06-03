@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 type RfqTypeSelectionScreenProps = {
   onSelect: (tipo: RfqTipo) => void;
   onBack: () => void;
+  areaLabel?: string;
 };
 
 type TypeOption = {
@@ -92,7 +93,7 @@ function TypeCard({
   );
 }
 
-export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScreenProps) {
+export function RfqTypeSelectionScreen({ onBack, onSelect, areaLabel = 'Industrialization · Create RFQ' }: RfqTypeSelectionScreenProps) {
   const [selectedTipo, setSelectedTipo] = useState<RfqTipo | null>(null);
 
   const handleContinue = () => {
@@ -103,7 +104,7 @@ export function RfqTypeSelectionScreen({ onBack, onSelect }: RfqTypeSelectionScr
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f7fa]">
-      <Header areaLabel="Industrialization · Create RFQ" />
+      <Header areaLabel={areaLabel} />
 
       <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-12 lg:py-14">
         <div className="mx-auto w-full max-w-[1180px]">

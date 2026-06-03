@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
@@ -29,7 +30,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ActionMenu } from '@/shared/components/ui/ActionMenu';
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 4;
 
 type AdminTab = 'pending' | 'eliminated' | 'historical';
 
@@ -45,6 +46,14 @@ function ArrowRightIcon() {
         strokeWidth="1.5"
       />
     </svg>
+  );
+}
+
+function HistoricalStatusBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
+      Done
+    </span>
   );
 }
 
@@ -343,14 +352,17 @@ function AdminDashboardPage() {
               value={tipoValue}
               onChange={handleFilterChange(setTipoValue)}
             />
-            <FilterSelect
-              label="Deadline"
-              options={deadlineOptions}
-              value={deadlineValue}
-              onChange={handleFilterChange(setDeadlineValue)}
-            />
+            {activeTab === 'pending' && (
+              <FilterSelect
+                label="Deadline"
+                options={deadlineOptions}
+                value={deadlineValue}
+                onChange={handleFilterChange(setDeadlineValue)}
+              />
+            )}
             <button
               type="button"
+              onClick={() => navigate(ROUTES.PURCHASING.RFQ_CREATE)}
               className="ml-auto inline-flex h-9 items-center gap-2 rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.2)]"
             >
               Create RFQ
@@ -414,19 +426,13 @@ function AdminDashboardPage() {
 
           {/* Desktop table */}
           <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1100px] border-separate border-spacing-0">
+            <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {[
-                    'ID',
-                    'STATUS',
-                    'TYPE',
-                    'DEADLINE',
-                    'CREATION DATE',
-                    'CREATED BY',
-                    'SUPPLIER PROGRESS',
-                    'ACTIONS',
-                  ].map((header) => (
+                  {(activeTab === 'historical'
+                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                    : ['ID', 'STATUS', 'TYPE', 'DEADLINE', 'CREATION DATE', 'CREATED BY', 'SUPPLIER PROGRESS', 'ACTIONS']
+                  ).map((header) => (
                     <th
                       key={header}
                       className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
@@ -439,12 +445,41 @@ function AdminDashboardPage() {
               <tbody>
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
+                    <td colSpan={activeTab === 'historical' ? 6 : 8} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
                         No RFQs match the current filters.
                       </p>
                     </td>
                   </tr>
+                ) : activeTab === 'historical' ? (
+                  visibleRows.map((row) => (
+                    <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
+                        {row.id}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.machineType}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                        <HistoricalStatusBadge />
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.createdAt}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                        {row.owner}
+                      </td>
+                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
+                          onClick={() => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: true } })}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   visibleRows.map((row) => (
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.8)]">
@@ -479,53 +514,13 @@ function AdminDashboardPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex flex-col gap-3 px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] sm:flex-row sm:items-center sm:justify-between">
-            <p className="m-0">
-              Showing {visibleRows.length} of {filteredRows.length} results
-            </p>
-            {totalPages > 1 ? (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={safePage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white text-[var(--bocar-blue-90)] transition hover:bg-[var(--bocar-bg)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none">
-                    <path d="M9 2.5L5 7L9 11.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={[
-                      'inline-flex h-8 min-w-[32px] items-center justify-center rounded-[8px] border px-2.5 text-[12px] transition',
-                      page === safePage
-                        ? 'border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] font-semibold text-white'
-                        : 'border-[rgba(217,222,229,0.92)] bg-white text-[var(--bocar-blue-90)] hover:bg-[var(--bocar-bg)]',
-                    ].join(' ')}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  disabled={safePage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white text-[var(--bocar-blue-90)] transition hover:bg-[var(--bocar-bg)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none">
-                    <path d="M5 2.5L9 7L5 11.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            visibleCount={visibleRows.length}
+            totalCount={filteredRows.length}
+            onPageChange={setCurrentPage}
+          />
         </section>
 
         {/* Bottom panels */}

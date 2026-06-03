@@ -9,9 +9,10 @@ type RfqWorkspaceProps = {
   onBack: () => void;
   rfqId?: string;
   tipo: RfqTipo;
+  areaPrefix?: string;
 };
 
-export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
+export function RfqWorkspace({ mode, onBack, rfqId, tipo, areaPrefix }: RfqWorkspaceProps) {
   if (tipo === 'Trimming') {
     return (
       <RfqWorkspaceShell
@@ -20,6 +21,7 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
         onBack={onBack}
         rfqId={rfqId}
         tipo={tipo}
+        areaPrefix={areaPrefix}
       />
     );
   }
@@ -31,6 +33,7 @@ export function RfqWorkspace({ mode, onBack, rfqId, tipo }: RfqWorkspaceProps) {
       onBack={onBack}
       rfqId={rfqId}
       tipo={tipo}
+      areaPrefix={areaPrefix}
     />
   );
 }

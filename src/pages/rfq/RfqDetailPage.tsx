@@ -9,14 +9,17 @@ function RfqDetailPage() {
   const { id } = useParams();
   const location = useLocation();
   const isPurchasingRoute = location.pathname.startsWith('/compras');
+  const isSupplierRoute = location.pathname.startsWith('/proveedor');
   const fromAdmin = (location.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
-  const backHref = fromAdmin && isPurchasingRoute
-    ? ROUTES.PURCHASING.ADMIN_DASHBOARD
-    : fromAdmin && !isPurchasingRoute
-      ? ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD
-      : isPurchasingRoute
-        ? ROUTES.PURCHASING.DASHBOARD
-        : ROUTES.INDUSTRIALIZATION.DASHBOARD;
+  const backHref = isSupplierRoute
+    ? ROUTES.SUPPLIER.DASHBOARD
+    : fromAdmin && isPurchasingRoute
+      ? ROUTES.PURCHASING.ADMIN_DASHBOARD
+      : fromAdmin && !isPurchasingRoute
+        ? ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD
+        : isPurchasingRoute
+          ? ROUTES.PURCHASING.DASHBOARD
+          : ROUTES.INDUSTRIALIZATION.DASHBOARD;
   return (
     <MainLayout header={<Header areaLabel="RFQ Detail" />}>
       <RfqDetailWorkspace backHref={backHref} referenceId={id} />

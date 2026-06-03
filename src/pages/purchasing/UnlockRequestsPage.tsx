@@ -38,7 +38,7 @@ function UnlockRequestsPage() {
 
           <button
             type="button"
-            onClick={() => navigate(ROUTES.PURCHASING.ADMIN_DASHBOARD)}
+            onClick={() => navigate(-1)}
             className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-90)] focus:outline-none"
           >
             <BackArrowIcon />
