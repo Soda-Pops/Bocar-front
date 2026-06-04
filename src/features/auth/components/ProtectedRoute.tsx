@@ -3,15 +3,22 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { resolveHomeRouteForRole } from '@/features/auth/services/roleRouting';
 import type { AppRole } from '@/features/auth/types';
 
 type ProtectedRouteProps = {
   children: ReactNode;
   allowedRoles?: AppRole[];
   requireAdmin?: boolean;
+  redirectAdminToHome?: boolean;
 };
 
-export function ProtectedRoute({ children, allowedRoles, requireAdmin }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  allowedRoles,
+  requireAdmin = false,
+  redirectAdminToHome = false,
+}: ProtectedRouteProps) {
   const auth = useAuth();
   const location = useLocation();
 
@@ -37,6 +44,10 @@ export function ProtectedRoute({ children, allowedRoles, requireAdmin }: Protect
     return <Navigate to={ROUTES.AUTH.UNAUTHORIZED} replace />;
   }
 
+  if (redirectAdminToHome && auth.user.isAdmin) {
+    return <Navigate to={resolveHomeRouteForRole(auth.user.role, auth.user.isAdmin)} replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -52,7 +63,7 @@ function AuthBootstrapScreen() {
           aria-hidden="true"
           className="h-3 w-3 animate-pulse rounded-full bg-[var(--bocar-blue-100,#002E5D)]"
         />
-        Verificando sesion...
+        Verifying session...
       </div>
     </div>
   );

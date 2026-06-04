@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import type { AppRole } from '@/features/auth/types';
 import { RfqActionBar } from '@/features/rfq/components/RfqDetail/RfqActionBar';
 import { RfqStatusBanner } from '@/features/rfq/components/RfqDetail/RfqStatusBanner';
 import { RfqStatusHeader } from '@/features/rfq/components/RfqDetail/RfqStatusHeader';
@@ -52,6 +54,17 @@ function resolveDefaultRole(pathname: string, fromAdmin: boolean): UserRole {
   return 'industrializacion';
 }
 
+function resolveSessionRole(role: AppRole, isAdmin: boolean): UserRole {
+  if (role === 'industrializacion') return isAdmin ? 'industrializacion_admin' : 'industrializacion';
+  if (role === 'compras') return isAdmin ? 'compras_admin' : 'compras';
+  return 'proveedor';
+}
+
+function resolveQuotationTipo(rfqId: string): 'Mold' | 'Trimming' {
+  const trimmingRfqs = new Set(['RFQ-005', 'RFQ-006', 'RFQ-021']);
+  return trimmingRfqs.has(rfqId.toUpperCase()) ? 'Trimming' : 'Mold';
+}
+
 export function RfqDetailWorkspace({
   backHref = '/industrializacion/dashboard',
   mode = 'readonly',
@@ -60,12 +73,17 @@ export function RfqDetailWorkspace({
   const routerLocation = useLocation();
   const { pathname } = routerLocation;
   const navigate = useNavigate();
+  const auth = useAuth();
   const [showAssignment, setShowAssignment] = useState(false);
   const assignmentRef = useRef<HTMLDivElement>(null);
 
   const fromAdmin = (routerLocation.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
-  const defaultRole = resolveDefaultRole(pathname, fromAdmin);
-  const defaultIsCreator = defaultRole === 'industrializacion' || defaultRole === 'industrializacion_admin';
+  const defaultRole =
+    auth.status === 'authenticated'
+      ? resolveSessionRole(auth.user.role, auth.user.isAdmin)
+      : resolveDefaultRole(pathname, fromAdmin);
+  const defaultIsCreator =
+    defaultRole === 'industrializacion' || defaultRole === 'industrializacion_admin';
 
   const { rfq, allowedActions, statusMeta, banner, isAccessible, role } = useRfqDetail(
     referenceId,
@@ -104,6 +122,11 @@ export function RfqDetailWorkspace({
         break;
       case 'edit_draft':
         navigate(`/industrializacion/rfq/${rfqId}/editar`);
+        break;
+      case 'create_quotation':
+        navigate(
+          `${ROUTES.SUPPLIER.QUOTATION_CREATE.replace(':rfqId', rfqId)}?tipo=${resolveQuotationTipo(rfqId)}`,
+        );
         break;
       default:
         console.log('[RfqDetail] action triggered:', key, rfqId);

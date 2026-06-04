@@ -1,25 +1,20 @@
-import { useLocation, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { resolveHomeRouteForRole } from '@/features/auth/services/roleRouting';
 import { RfqDetailWorkspace } from '@/features/rfq/components/RfqDetail/RfqDetailWorkspace';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 
 function RfqDetailPage() {
   const { id } = useParams();
-  const location = useLocation();
-  const isPurchasingRoute = location.pathname.startsWith('/compras');
-  const isSupplierRoute = location.pathname.startsWith('/proveedor');
-  const fromAdmin = (location.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
-  const backHref = isSupplierRoute
-    ? ROUTES.SUPPLIER.DASHBOARD
-    : fromAdmin && isPurchasingRoute
-      ? ROUTES.PURCHASING.ADMIN_DASHBOARD
-      : fromAdmin && !isPurchasingRoute
-        ? ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD
-        : isPurchasingRoute
-          ? ROUTES.PURCHASING.DASHBOARD
-          : ROUTES.INDUSTRIALIZATION.DASHBOARD;
+  const auth = useAuth();
+  const backHref =
+    auth.status === 'authenticated'
+      ? resolveHomeRouteForRole(auth.user.role, auth.user.isAdmin)
+      : ROUTES.AUTH.LOGIN;
+
   return (
     <MainLayout header={<Header areaLabel="RFQ Detail" />}>
       <RfqDetailWorkspace backHref={backHref} referenceId={id} />

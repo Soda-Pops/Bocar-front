@@ -35,9 +35,6 @@ export function TablePagination({
               {page}
             </button>
           ))}
-          {totalPages > 2 && (
-            <span className="text-[var(--bocar-blue-30)]">...</span>
-          )}
           <button
             type="button"
             disabled={currentPage === totalPages}

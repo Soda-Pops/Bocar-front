@@ -9,7 +9,7 @@ function UnauthorizedPage() {
 
   function handleGoHome() {
     if (auth.status === 'authenticated') {
-      navigate(resolveHomeRouteForRole(auth.user.role), { replace: true });
+      navigate(resolveHomeRouteForRole(auth.user.role, auth.user.isAdmin), { replace: true });
     }
   }
 

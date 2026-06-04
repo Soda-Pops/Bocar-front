@@ -1,10 +1,10 @@
 import type { SupplierMetric, SupplierRfqRow } from '@/features/supplier/types';
 
 export const supplierMetrics: SupplierMetric[] = [
-  { key: 'assigned', label: 'ASSIGNED RFQs', value: '5', valueColor: 'var(--bocar-blue-100)' },
-  { key: 'pending', label: 'PENDING RFQs', value: '2', valueColor: '#c8970a' },
+  { key: 'assigned', label: 'ASSIGNED RFQs', value: '6', valueColor: 'var(--bocar-blue-100)' },
+  { key: 'pending', label: 'PENDING RFQs', value: '3', valueColor: '#c8970a' },
   { key: 'quoted', label: 'QUOTED RFQs', value: '3', valueColor: '#5a8a1f' },
-  { key: 'historical', label: 'HISTORICAL RFQs', value: '4', valueColor: 'var(--bocar-blue-50)' },
+  { key: 'historical', label: 'HISTORICAL RFQs', value: '6', valueColor: 'var(--bocar-blue-50)' },
 ];
 
 export const assignedRows: SupplierRfqRow[] = [

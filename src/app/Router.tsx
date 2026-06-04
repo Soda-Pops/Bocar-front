@@ -30,8 +30,26 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
-function Protected({ children, allowedRoles, requireAdmin }: { children: ReactNode; allowedRoles?: AppRole[]; requireAdmin?: boolean }) {
-  return <ProtectedRoute allowedRoles={allowedRoles} requireAdmin={requireAdmin}>{children}</ProtectedRoute>;
+function Protected({
+  children,
+  allowedRoles,
+  requireAdmin,
+  redirectAdminToHome,
+}: {
+  children: ReactNode;
+  allowedRoles?: AppRole[];
+  requireAdmin?: boolean;
+  redirectAdminToHome?: boolean;
+}) {
+  return (
+    <ProtectedRoute
+      allowedRoles={allowedRoles}
+      requireAdmin={requireAdmin}
+      redirectAdminToHome={redirectAdminToHome}
+    >
+      {children}
+    </ProtectedRoute>
+  );
 }
 
 const appRouter = createBrowserRouter([
@@ -48,7 +66,7 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.INDUSTRIALIZATION.DASHBOARD,
     element: (
-      <Protected allowedRoles={['industrializacion']}>
+      <Protected allowedRoles={['industrializacion']} redirectAdminToHome>
         <DashboardPage />
       </Protected>
     ),
@@ -56,7 +74,7 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.INDUSTRIALIZATION.ADMIN_DASHBOARD,
     element: (
-      <Protected allowedRoles={['industrializacion']}>
+      <Protected allowedRoles={['industrializacion']} requireAdmin>
         <SuperUserDashboardPage />
       </Protected>
     ),
@@ -98,7 +116,7 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.PURCHASING.DASHBOARD,
     element: (
-      <Protected allowedRoles={['compras']}>
+      <Protected allowedRoles={['compras']} redirectAdminToHome>
         <PurchasingDashboardPage />
       </Protected>
     ),
@@ -130,7 +148,7 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.PURCHASING.ADMIN_DASHBOARD,
     element: (
-      <Protected allowedRoles={['compras']}>
+      <Protected allowedRoles={['compras']} requireAdmin>
         <PurchasingAdminDashboardPage />
       </Protected>
     ),
@@ -138,7 +156,7 @@ const appRouter = createBrowserRouter([
   {
     path: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
     element: (
-      <Protected allowedRoles={['compras']}>
+      <Protected allowedRoles={['compras']} requireAdmin>
         <PurchasingUnlockRequestsPage />
       </Protected>
     ),

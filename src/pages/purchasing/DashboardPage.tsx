@@ -513,7 +513,6 @@ function DashboardPage() {
             title="PENDING UNLOCK REQUESTS"
             caption="Reopening requests received from suppliers."
             items={unlockRequests}
-            actionHref={ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS}
           />
         </section>
 

@@ -1,4 +1,5 @@
 import logoBocar from '@/assets/images/Logo-Bocar.png';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/layouts/components/UserMenu';
 
 type HeaderProps = {
@@ -7,7 +8,9 @@ type HeaderProps = {
 };
 
 export function Header({ areaLabel, variant = 'light' }: HeaderProps) {
-  const isDark = variant === 'dark';
+  const auth = useAuth();
+  const isAdmin = auth.status === 'authenticated' && auth.user.isAdmin;
+  const isDark = variant === 'dark' || isAdmin;
 
   return (
     <header
@@ -41,7 +44,7 @@ export function Header({ areaLabel, variant = 'light' }: HeaderProps) {
         </span>
       </div>
 
-      <UserMenu variant={variant} />
+      <UserMenu variant={isDark ? 'dark' : 'light'} />
     </header>
   );
 }
