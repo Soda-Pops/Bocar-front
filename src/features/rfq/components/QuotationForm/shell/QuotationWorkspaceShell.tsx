@@ -137,6 +137,8 @@ function QuotationSidebarMobile({
 type QuotationWorkspaceShellProps<TValues extends FieldValues> = {
   definition: RfqWorkspaceDefinition<TValues>;
   mode: 'create' | 'edit';
+  onSaveDraft?: (values: TValues) => Promise<void>;
+  onSubmit?: (values: TValues) => Promise<{ rfqCompleted?: boolean } | void>;
   onBack: () => void;
   quotationId?: string;
   rfqId: string;
@@ -146,6 +148,8 @@ type QuotationWorkspaceShellProps<TValues extends FieldValues> = {
 export function QuotationWorkspaceShell<TValues extends FieldValues>({
   definition,
   mode,
+  onSaveDraft,
+  onSubmit,
   onBack,
   quotationId,
   rfqId,
@@ -262,7 +266,18 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     if (prev) setCurrentPage(prev);
   }
 
-  function handleSaveDraft() {
+  async function handleSaveDraft() {
+    if (onSaveDraft) {
+      try {
+        await onSaveDraft(form.getValues());
+      } catch (error) {
+        setFeedback({
+          text: error instanceof Error ? error.message : 'The draft could not be saved.',
+          tone: 'error',
+        });
+        return;
+      }
+    }
     setFeedback({
       text:
         mode === 'edit'
@@ -272,11 +287,27 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     });
   }
 
-  function handleValidSubmit() {
+  async function handleValidSubmit(values: TValues) {
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
+    let rfqCompleted = false;
+    if (onSubmit) {
+      try {
+        const result = await onSubmit(values);
+        rfqCompleted = Boolean(result && 'rfqCompleted' in result && result.rfqCompleted);
+      } catch (error) {
+        setFeedback({
+          text: error instanceof Error ? error.message : 'The quotation could not be submitted.',
+          tone: 'error',
+        });
+        return;
+      }
+    }
     setFeedback({
       text:
+        rfqCompleted
+          ? 'Quotation submitted. RFQ closed.'
+          : 
         mode === 'edit'
           ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
           : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,

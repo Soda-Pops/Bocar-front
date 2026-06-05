@@ -14,6 +14,7 @@ import type {
   PurchasingRfqRow,
   PurchasingUserRole,
 } from '@/features/purchasing/types';
+import { listRfqsComercializacion } from '@/features/purchasing/services/comercializacionService';
 
 export const purchasingRfqRows: PurchasingRfqRow[] = [
   {
@@ -154,6 +155,10 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
     owner: 'Karen Salgado',
   },
 ];
+
+export async function fetchPurchasingRfqRows(): Promise<PurchasingRfqRow[]> {
+  return listRfqsComercializacion();
+}
 
 export const purchasingRfqFilterOptions = {
   statuses: purchasingStatusOptions,

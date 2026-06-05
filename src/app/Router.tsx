@@ -188,6 +188,14 @@ const appRouter = createBrowserRouter([
     ),
   },
   {
+    path: ROUTES.SUPPLIER.RFQ_DETAIL_FULL,
+    element: (
+      <Protected allowedRoles={['proveedor']}>
+        <RfqFormPage forcedMode="view" />
+      </Protected>
+    ),
+  },
+  {
     path: ROUTES.SUPPLIER.QUOTATION_CREATE,
     element: (
       <Protected allowedRoles={['proveedor']}>

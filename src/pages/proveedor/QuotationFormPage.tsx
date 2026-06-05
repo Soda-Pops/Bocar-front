@@ -20,7 +20,7 @@ function QuotationFormPage() {
   const tipo = parseRfqTipo(searchParams.get('tipo'));
 
   const handleBack = () =>
-    navigate(ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', rfqId ?? ''));
+    navigate(`${ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', rfqId ?? '')}?tipo=${tipo ?? 'Mold'}`);
 
   if (!tipo) {
     return (

@@ -27,7 +27,7 @@ type ConsiderationItem = {
   notes: string;
 };
 
-type InheritedRfq = {
+export type InheritedRfq = {
   // Section 1 — RFQ
   description: string;
   parts_per_year: string;
@@ -1293,9 +1293,10 @@ function SparePartsPage() {
 // ─── Definition factory ───────────────────────────────────────────────────────
 
 export function buildTrimmingQuotationDefinition(
-  rfqId: string
+  rfqId: string,
+  inheritedOverride?: InheritedRfq,
 ): RfqWorkspaceDefinition<TrimmingQuotationValues> {
-  const inherited = getInheritedRfqMock(rfqId);
+  const inherited = inheritedOverride ?? getInheritedRfqMock(rfqId);
 
   function renderPage(page: string): ReactNode {
     if (page === 'basic') return <BasicPage inherited={inherited} />;

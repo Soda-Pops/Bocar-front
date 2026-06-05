@@ -3,7 +3,7 @@ import { useController, useFormContext } from 'react-hook-form';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type FileInfo = { name: string; size: number; type: string };
+export type FileInfo = { name: string; size: number; type: string; file?: File };
 
 type MultiFileUploadFieldProps = {
   name: string;
@@ -163,7 +163,7 @@ export function MultiFileUploadField({
       const err = validateFile(file, accept, maxSizeMb);
       if (err) { errs.push(err); continue; }
       const dup = files.some((f) => f.name === file.name && f.size === file.size);
-      if (!dup) toAdd.push({ name: file.name, size: file.size, type: file.type });
+      if (!dup) toAdd.push({ name: file.name, size: file.size, type: file.type, file });
     }
 
     setFieldErrors(errs);

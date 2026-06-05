@@ -8,15 +8,15 @@ import { SearchField } from '@/features/analytics/components/Filters/SearchField
 import { MonthlyRfqChart } from '@/features/analytics/components/Charts/MonthlyRfqChart';
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import {
-  dashboardMetrics,
-  dashboardRowsByTab,
   dashboardTabs,
   getDateOptions,
   getFilteredDashboardRows,
   monthlyRfqSeries,
 } from '@/features/analytics/services/analyticsService';
+import type { DashboardMetric, DashboardRow } from '@/features/analytics/types';
 import type { SortOption } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
+import { useRfqList } from '@/features/rfq/hooks/useRfqList';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ROUTES } from '@/app/config/routes';
@@ -65,6 +65,7 @@ function getNextSortOption(value: string): SortOption {
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const rfqs = useRfqList();
   const [activeTab, setActiveTab] = useState<'borradores' | 'activas' | 'historicas'>(
     'borradores',
   );
@@ -74,7 +75,10 @@ function DashboardPage() {
   const [dateValue, setDateValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const rows = dashboardRowsByTab[activeTab];
+  const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
+  const rowsByTab = useMemo(() => groupRowsByTab(allRows), [allRows]);
+  const dashboardMetrics = useMemo(() => buildMetrics(rowsByTab), [rowsByTab]);
+  const rows = rowsByTab[activeTab];
   const dateOptions = useMemo(() => getDateOptions(rows), [rows]);
   const filteredRows = useMemo(
     () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
@@ -85,7 +89,8 @@ function DashboardPage() {
   const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const hasRows = visibleRows.length > 0;
   const handleViewRfq = (rfqId: string) => {
-    navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId));
+    const row = allRows.find((item) => item.id === rfqId);
+    navigate(`${ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId)}?tipo=${row?.tipo ?? 'Mold'}`);
   };
 
   return (
@@ -163,6 +168,16 @@ function DashboardPage() {
         </div>
 
         <section className="mt-6 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
+          {rfqs.state.status === 'loading' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
+              Loading RFQs...
+            </div>
+          ) : rfqs.state.status === 'error' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-error)]">
+              {rfqs.state.error.message}
+            </div>
+          ) : (
+          <>
           <div className="grid gap-3 p-4 sm:hidden">
             {hasRows ? (
               visibleRows.map((row) => (
@@ -285,6 +300,8 @@ function DashboardPage() {
             totalCount={filteredRows.length}
             onPageChange={setCurrentPage}
           />
+          </>
+          )}
         </section>
       </div>
     </MainLayout>
@@ -292,3 +309,19 @@ function DashboardPage() {
 }
 
 export default DashboardPage;
+
+function groupRowsByTab(rows: DashboardRow[]) {
+  return {
+    borradores: rows.filter((row) => row.status === 'Draft'),
+    activas: rows.filter((row) => row.status === 'Active'),
+    historicas: rows.filter((row) => row.status === 'Done'),
+  };
+}
+
+function buildMetrics(rowsByTab: ReturnType<typeof groupRowsByTab>): DashboardMetric[] {
+  return [
+    { key: 'borradores', label: 'DRAFT RFQs', value: String(rowsByTab.borradores.length), valueColor: 'var(--bocar-blue-100)' },
+    { key: 'activas', label: 'ACTIVE RFQs', value: String(rowsByTab.activas.length), valueColor: '#5a8a1f' },
+    { key: 'historicas', label: 'HISTORICAL RFQs', value: String(rowsByTab.historicas.length), valueColor: 'var(--bocar-blue-50)' },
+  ];
+}

@@ -7,11 +7,9 @@ import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/Da
 import { FilterSelect } from '@/features/analytics/components/Filters/FilterSelect';
 import { SearchField } from '@/features/analytics/components/Filters/SearchField';
 import {
-  assignedRows,
   getFilteredRows,
-  historicalRows,
-  supplierMetrics,
 } from '@/features/supplier/services/supplierDashboardService';
+import { useMisAsignaciones } from '@/features/supplier/hooks/useMisAsignaciones';
 import type { SupplierMetricKey, SupplierRfqRow, SupplierRfqStatus, SupplierTab } from '@/features/supplier/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
@@ -125,6 +123,7 @@ function RfqTable({
 
 function SupplierDashboardPage() {
   const navigate = useNavigate();
+  const assignments = useMisAsignaciones();
   const [activeTab, setActiveTab] = useState<SupplierTab>('assigned');
   const [statusFilter, setStatusFilter] = useState<'PENDING' | 'QUOTED' | ''>('');
   const [searchValue, setSearchValue] = useState('');
@@ -132,7 +131,12 @@ function SupplierDashboardPage() {
   const [tipoValue, setTipoValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const sourceRows = activeTab === 'assigned' ? assignedRows : historicalRows;
+  const realData =
+    assignments.state.status === 'success'
+      ? assignments.state.data
+      : { assignedRows: [], historicalRows: [], metrics: [] };
+  const sourceRows = activeTab === 'assigned' ? realData.assignedRows : realData.historicalRows;
+  const supplierMetrics = realData.metrics;
 
   const filteredRows = useMemo(() => {
     let rows = getFilteredRows(sourceRows, searchValue, deadlineValue);
@@ -272,11 +276,22 @@ function SupplierDashboardPage() {
 
         {/* Table card */}
         <section className="mt-5 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
+          {assignments.state.status === 'loading' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
+              Loading assigned RFQs...
+            </div>
+          ) : assignments.state.status === 'error' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-error)]">
+              {assignments.state.error.message}
+            </div>
+          ) : (
+          <>
           <RfqTable
             rows={visibleRows}
             tab={activeTab}
             onView={(row) => {
-              navigate(ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', row.id));
+              const id = row.assignmentId ? String(row.assignmentId) : row.id;
+              navigate(`${ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', id)}?tipo=${row.tipo}`);
             }}
           />
 
@@ -287,6 +302,8 @@ function SupplierDashboardPage() {
             totalCount={filteredRows.length}
             onPageChange={setCurrentPage}
           />
+          </>
+          )}
         </section>
 
       </div>

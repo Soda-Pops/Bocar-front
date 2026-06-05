@@ -27,7 +27,7 @@ type ConsiderationItem = {
   notes: string;
 };
 
-type InheritedMoldRfq = {
+export type InheritedMoldRfq = {
   // RFQ
   description: string;
   parts_per_year: string;
@@ -1540,9 +1540,10 @@ function SocSparePartsPage() {
 // ─── Definition factory ───────────────────────────────────────────────────────
 
 export function buildMoldQuotationDefinition(
-  rfqId: string
+  rfqId: string,
+  inheritedOverride?: InheritedMoldRfq,
 ): RfqWorkspaceDefinition<MoldQuotationValues> {
-  const inherited = getInheritedMoldRfqMock(rfqId);
+  const inherited = inheritedOverride ?? getInheritedMoldRfqMock(rfqId);
 
   function renderPage(page: string): ReactNode {
     if (page === 'rfq') return <MoldRfqPage inherited={inherited} />;

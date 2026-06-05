@@ -6,6 +6,7 @@ export type SupplierMetricKey = 'assigned' | 'pending' | 'quoted' | 'historical'
 
 export type SupplierRfqRow = {
   id: string;
+  assignmentId?: number;
   status: SupplierRfqStatus;
   tipo: string;
   deadline: string;

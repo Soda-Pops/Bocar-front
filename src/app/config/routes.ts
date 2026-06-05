@@ -66,6 +66,8 @@ export const ROUTES = {
     RFQ_LIST: '/proveedor/rfq',
     // Programada: detalle de RFQ con pantalla compartida.
     RFQ_DETAIL: '/proveedor/rfq/:id',
+    // Programada: detalle completo del RFQ asignado en modo solo lectura.
+    RFQ_DETAIL_FULL: '/proveedor/rfq/:id/completo',
     // Falta por programar: formulario para enviar cotizacion de una RFQ.
     QUOTATION_CREATE: '/proveedor/rfq/:rfqId/cotizar',
     // Falta por programar: historial/listado de cotizaciones del proveedor.

@@ -17,14 +17,12 @@ import {
 import {
   getDashboardCardStatusClass,
   getFilteredDashboardRows,
-  historicalRows,
-  purchasingMetrics,
   purchasingMonthlySeries,
-  purchasingQueueRows,
   unlockRequests,
   urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
-import type { PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
+import { usePurchasingRfqList } from '@/features/purchasing/hooks/usePurchasingRfqList';
+import type { PurchasingDashboardMetric, PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ActionMenu } from '@/shared/components/ui/ActionMenu';
@@ -95,7 +93,7 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
     key: 'view_detail' as const,
     label: 'View details',
     onSelect: () =>
-      navigate(`${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}`),
+      navigate(`${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`),
   };
 
   if (row.status === 'PENDING') {
@@ -105,7 +103,7 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
         key: 'assign' as const,
         label: 'Assign suppliers',
         onSelect: () =>
-          navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id)),
+          navigate(`${ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id)}?tipo=${row.machineType}`),
       },
     ];
   }
@@ -125,6 +123,7 @@ function WidgetPanel({
   title: string;
 }) {
   const navigate = useNavigate();
+  const rfqs = usePurchasingRfqList();
 
   return (
     <section className="rounded-[14px] border border-[var(--bocar-border)] bg-white p-5 shadow-[0_10px_24px_rgba(0,46,93,0.05)]">
@@ -196,6 +195,7 @@ function WidgetPanel({
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const rfqs = usePurchasingRfqList();
   const [activeTab, setActiveTab] = useState<DashboardTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
@@ -204,6 +204,10 @@ function DashboardPage() {
   const [sortValue, setSortValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
+  const purchasingQueueRows = allRows.filter((row) => row.status !== 'CLOSED' && row.status !== 'CANCELLED');
+  const historicalRows = allRows.filter((row) => row.status === 'CLOSED' || row.status === 'CANCELLED');
+  const purchasingMetrics = useMemo(() => buildPurchasingMetrics(allRows), [allRows]);
   const sourceRows = activeTab === 'pending' ? purchasingQueueRows : historicalRows;
 
   const filteredRows = useMemo(() => {
@@ -351,6 +355,16 @@ function DashboardPage() {
 
         {/* Table card */}
         <section className="mt-5 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
+          {rfqs.state.status === 'loading' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
+              Loading purchasing RFQs...
+            </div>
+          ) : rfqs.state.status === 'error' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-error)]">
+              {rfqs.state.error.message}
+            </div>
+          ) : (
+          <>
 
           {/* Mobile cards */}
           <div className="grid gap-3 p-4 lg:hidden">
@@ -452,7 +466,7 @@ function DashboardPage() {
                         <button
                           type="button"
                           className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
-                          onClick={() => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: false } })}
+                          onClick={() => navigate(`${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?tipo=${row.machineType}`, { state: { fromAdmin: false } })}
                         >
                           View
                         </button>
@@ -500,6 +514,8 @@ function DashboardPage() {
             totalCount={filteredRows.length}
             onPageChange={setCurrentPage}
           />
+          </>
+          )}
         </section>
 
         {/* Bottom panels */}
@@ -522,3 +538,14 @@ function DashboardPage() {
 }
 
 export default DashboardPage;
+
+function buildPurchasingMetrics(rows: PurchasingDashboardRow[]): PurchasingDashboardMetric[] {
+  const count = (status: PurchasingRfqStatus) => rows.filter((row) => row.status === status).length;
+  return [
+    { key: 'pending', label: 'PENDING', status: 'PENDING', value: String(count('PENDING')), valueColor: 'var(--bocar-blue-100)' },
+    { key: 'quoting', label: 'QUOTING', status: 'QUOTING', value: String(count('QUOTING') + count('PARTIALLY_QUOTED')), valueColor: '#5a8a1f' },
+    { key: 'benchmark_ready', label: 'READY', status: 'BENCHMARK_READY', value: '0', valueColor: 'var(--bocar-blue-50)' },
+    { key: 'expired', label: 'EXPIRED', status: 'EXPIRED', value: String(count('EXPIRED')), valueColor: 'var(--bocar-error)' },
+    { key: 'eliminated', label: 'ELIMINATED', status: 'CANCELLED', value: String(count('CANCELLED')), valueColor: 'var(--bocar-blue-30)' },
+  ];
+}

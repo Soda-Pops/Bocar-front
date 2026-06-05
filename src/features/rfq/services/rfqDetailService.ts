@@ -1,4 +1,7 @@
+import type { RfqTipo } from '@/features/analytics/types';
+import { getRfqDetail } from '@/features/rfq/services/rfqLifecycleService';
 import type { RfqStatus } from '@/features/rfq/state/rfqStateMachine';
+import { parseId } from '@/shared/utils/rfqId';
 
 export type RfqSpecField = {
   code: string;
@@ -11,6 +14,7 @@ export type RfqUploadedFile = {
 };
 
 export type RfqSupplier = {
+  backendId?: number;
   name: string;
   category: string;
   contact: string;
@@ -335,12 +339,6 @@ const MOCK_MAP: Record<string, RfqDetail> = Object.fromEntries(
   MOCK_RFQS.map((rfq) => [rfq.id.toUpperCase(), rfq]),
 );
 
-export function getRfqDetailById(id: string): RfqDetail {
-  const normalized = id.toUpperCase();
-  return (
-    MOCK_MAP[normalized] ?? {
-      ...MOCK_RFQS[3],
-      id: normalized,
-    }
-  );
+export async function getRfqDetailById(id: string, tipo: RfqTipo = 'Mold'): Promise<RfqDetail> {
+  return getRfqDetail(tipo, parseId(id));
 }

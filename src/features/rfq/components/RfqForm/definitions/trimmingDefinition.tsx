@@ -56,7 +56,7 @@ const trimmingSchema = z
     ), // free-form keys -> { checked?: string, notes: string }; superRefine: las 15 claves de TRIMMING_TOGGLE_REQUIRED require a non-empty checked value; if others.checked === 'yes', notes is also required
     // Section 5 — Shot Sketch
     shot_sketch_file: z
-      .object({ name: z.string(), size: z.number(), type: z.string() })
+      .object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })
       .nullable(), // null = no attached file; if present: name (string), size (number in bytes), type (MIME string)
     // Section 6 — Part Geometry
     pg_part_name: z.string(), // optional · free-form string
@@ -81,7 +81,7 @@ const trimmingSchema = z
     // Section 8 — Comments
     comments: z.string(), // optional · free-form text (textarea, no length limit)
     // Section 9 — Files
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
@@ -105,7 +105,7 @@ const trimmingSchema = z
     }
   });
 
-type TrimmingFormValues = z.infer<typeof trimmingSchema>;
+export type TrimmingFormValues = z.infer<typeof trimmingSchema>;
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 

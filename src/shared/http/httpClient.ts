@@ -69,7 +69,8 @@ async function readBody(response: Response): Promise<unknown> {
 
 async function executeRequest(url: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers ?? {});
-  if (init.body && !headers.has('Content-Type')) {
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  if (init.body && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   if (!headers.has('Accept')) {
@@ -98,7 +99,10 @@ export async function request<T = unknown>(
     signal,
   };
   if (body !== undefined) {
-    init.body = typeof body === 'string' ? body : JSON.stringify(body);
+    init.body =
+      typeof body === 'string' || (typeof FormData !== 'undefined' && body instanceof FormData)
+        ? (body as BodyInit)
+        : JSON.stringify(body);
   }
 
   let response = await executeRequest(url, init);

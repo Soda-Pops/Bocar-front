@@ -128,8 +128,11 @@ function WorkspaceSidebarMobile({
 
 type RfqWorkspaceShellProps<TValues extends FieldValues> = {
   definition: RfqWorkspaceDefinition<TValues>;
+  initialValues?: TValues;
   mode: 'create' | 'edit' | 'view';
   onBack: () => void;
+  onCreatedDashboard?: () => void;
+  onSubmit?: (values: TValues) => Promise<{ created?: boolean } | void>;
   rfqId?: string;
   tipo: RfqTipo;
   areaPrefix?: string;
@@ -137,8 +140,11 @@ type RfqWorkspaceShellProps<TValues extends FieldValues> = {
 
 export function RfqWorkspaceShell<TValues extends FieldValues>({
   definition,
+  initialValues,
   mode,
   onBack,
+  onCreatedDashboard,
+  onSubmit,
   rfqId,
   tipo,
   areaPrefix,
@@ -149,12 +155,14 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     getInitialFeedback(mode, rfqId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [createdSuccessfully, setCreatedSuccessfully] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
   const currentPageRef = useRef<string>(definition.pages[0] ?? 'basic');
   const skipNextEmptyPageErrorSyncRef = useRef(false);
 
   const defaults =
-    mode === 'create' ? definition.getCreateDefaultValues() : definition.getEditDefaultValues(rfqId);
+    initialValues ??
+    (mode === 'create' ? definition.getCreateDefaultValues() : definition.getEditDefaultValues(rfqId));
 
   const form = useForm<TValues>({
     defaultValues: defaults as DefaultValues<TValues>,
@@ -173,15 +181,17 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
 
   useEffect(() => {
     reset(
-      (mode === 'create'
+      (initialValues ??
+        (mode === 'create'
         ? definition.getCreateDefaultValues()
-        : definition.getEditDefaultValues(rfqId)) as DefaultValues<TValues>
+        : definition.getEditDefaultValues(rfqId))) as DefaultValues<TValues>
     );
     setCurrentPage(definition.pages[0] ?? 'basic');
     setFeedback(getInitialFeedback(mode, rfqId));
     setAttemptedSubmit(false);
+    setCreatedSuccessfully(false);
     setVisiblePageErrors({});
-  }, [mode, reset, rfqId, tipo, definition]);
+  }, [mode, reset, rfqId, tipo, definition, initialValues]);
 
   currentPageRef.current = currentPage;
 
@@ -266,9 +276,29 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     });
   }
 
-  async function handleValidSubmit() {
+  async function handleValidSubmit(values: TValues) {
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
+    setCreatedSuccessfully(false);
+    if (onSubmit) {
+      try {
+        const result = await onSubmit(values);
+        if (result?.created) {
+          setCreatedSuccessfully(true);
+          setFeedback({
+            text: 'RFQ created successfully. The draft is now available in the Industrialization dashboard.',
+            tone: 'success',
+          });
+          return;
+        }
+      } catch (error) {
+        setFeedback({
+          text: error instanceof Error ? error.message : 'The RFQ could not be saved.',
+          tone: 'error',
+        });
+        return;
+      }
+    }
     setFeedback({
       text:
         mode === 'edit'
@@ -296,6 +326,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   const currentPageHasError = attemptedSubmit && Boolean(visiblePageErrors[currentPage]);
   const showFeedback =
     readOnly || feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
+  const disableWorkspace = readOnly || createdSuccessfully;
 
   return (
     <FormProvider {...form}>
@@ -351,7 +382,18 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                     className={`mt-5 rounded-[12px] border px-4 py-3 text-[13px] leading-[1.55] ${getFeedbackClasses(feedback.tone)}`}
                     role={feedback.tone === 'error' ? 'alert' : 'status'}
                   >
-                    {feedback.text}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span>{feedback.text}</span>
+                      {createdSuccessfully ? (
+                        <button
+                          className="inline-flex h-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b]"
+                          type="button"
+                          onClick={onCreatedDashboard ?? onBack}
+                        >
+                          Back to dashboard
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
 
@@ -360,7 +402,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                   noValidate
                   onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
                 >
-                  <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+                  <fieldset disabled={disableWorkspace} className="m-0 min-w-0 border-0 p-0">
                     {definition.renderPage(currentPage)}
                   </fieldset>
 
@@ -378,7 +420,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                     )}
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                      {!readOnly ? (
+                      {!disableWorkspace ? (
                         <button
                           className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
                           disabled={isSubmitting}
@@ -390,7 +432,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                       ) : null}
 
                       {currentIndex === definition.pages.length - 1 ? (
-                        readOnly ? null : (
+                        disableWorkspace ? null : (
                           <Button
                             className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
                             disabled={isSubmitting}

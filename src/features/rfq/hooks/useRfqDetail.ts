@@ -1,21 +1,28 @@
 import { useSearchParams } from 'react-router-dom';
 
-import { getRfqDetailById } from '@/features/rfq/services/rfqDetailService';
+import type { RfqTipo } from '@/features/analytics/types';
 import type { RfqDetail } from '@/features/rfq/services/rfqDetailService';
+import { getRfqDetail } from '@/features/rfq/services/rfqLifecycleService';
+import { detalleAsignacion } from '@/features/supplier/services/asignacionesService';
 import type { RfqBannerConfig, RfqStatus, UserRole } from '@/features/rfq/state/rfqStateMachine';
 import { resolveAllowedActions, resolveIsAccessible } from '@/features/rfq/state/rfqStateMachine';
 import type { RfqStatusMeta } from '@/features/rfq/state/rfqStatusMeta';
 import { rfqStatusMeta } from '@/features/rfq/state/rfqStatusMeta';
 import type { RfqActionDescriptor } from '@/features/rfq/state/rfqStateMachine';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useResource } from '@/shared/hooks/useResource';
+import { parseId } from '@/shared/utils/rfqId';
 
 type UseRfqDetailResult = {
-  rfq: RfqDetail;
+  rfq: RfqDetail | null;
   allowedActions: RfqActionDescriptor[];
-  statusMeta: RfqStatusMeta;
+  statusMeta: RfqStatusMeta | null;
   banner: RfqBannerConfig | null;
   isAccessible: boolean;
   role: UserRole;
   isCreator: boolean;
+  isLoading: boolean;
+  error: Error | null;
 };
 
 function resolveBanner(
@@ -149,11 +156,14 @@ export function useRfqDetail(
   rfqId: string,
   defaultRole: UserRole,
   defaultIsCreator: boolean,
+  source: 'rfq' | 'assignment' = 'rfq',
 ): UseRfqDetailResult {
   const [searchParams] = useSearchParams();
+  const auth = useAuth();
 
   let role = defaultRole;
   let isCreator = defaultIsCreator;
+  const tipo = parseTipo(searchParams.get('tipo'));
 
   // Status hint: the originating list (e.g. the Purchasing dashboard) tells the detail
   // which status to render. With no backend yet, this is the mock's source of truth.
@@ -169,8 +179,46 @@ export function useRfqDetail(
     if (paramCreator !== null) isCreator = paramCreator !== 'false';
   }
 
-  const rfqRaw = getRfqDetailById(rfqId);
-  const rfq: RfqDetail = statusOverride ? { ...rfqRaw, status: statusOverride } : rfqRaw;
+  const { state } = useResource(
+    (signal) =>
+      source === 'assignment'
+        ? detalleAsignacion(tipo, parseId(rfqId), signal)
+        : getRfqDetail(tipo, parseId(rfqId), signal),
+    [tipo, rfqId, source],
+  );
+
+  if (state.status === 'loading' || state.status === 'idle') {
+    return {
+      rfq: null,
+      allowedActions: [],
+      statusMeta: null,
+      banner: null,
+      isAccessible: true,
+      role,
+      isCreator,
+      isLoading: true,
+      error: null,
+    };
+  }
+
+  if (state.status === 'error') {
+    return {
+      rfq: null,
+      allowedActions: [],
+      statusMeta: null,
+      banner: null,
+      isAccessible: true,
+      role,
+      isCreator,
+      isLoading: false,
+      error: state.error,
+    };
+  }
+
+  const rfq: RfqDetail = statusOverride ? { ...state.data, status: statusOverride } : state.data;
+  if (auth.status === 'authenticated') {
+    isCreator = rfq.createdById === String(auth.user.id);
+  }
 
   const isAccessible = resolveIsAccessible(rfq.status, role, isCreator);
 
@@ -187,5 +235,19 @@ export function useRfqDetail(
   const banner = resolveBanner(rfq, role, isCreator);
   const statusMeta = rfqStatusMeta[rfq.status];
 
-  return { rfq, allowedActions, statusMeta, banner, isAccessible, role, isCreator };
+  return {
+    rfq,
+    allowedActions,
+    statusMeta,
+    banner,
+    isAccessible,
+    role,
+    isCreator,
+    isLoading: false,
+    error: null,
+  };
+}
+
+function parseTipo(value: string | null): RfqTipo {
+  return value === 'Trimming' || value === 'trimming' ? 'Trimming' : 'Mold';
 }

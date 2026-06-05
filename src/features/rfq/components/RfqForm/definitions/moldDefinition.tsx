@@ -51,8 +51,8 @@ const moldSchema = z
     prlf: z.string(),
     projected: z.string(),
     rfq_name: z.string().trim().min(1, 'Enter the RFQ name to continue.'),
-    sk_part: z.object({ name: z.string(), size: z.number(), type: z.string() }).nullable(),
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string() })),
+    sk_part: z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() }).nullable(),
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })),
     surface: z.string(),
     three_plate: z.string(),
     tt: z.string(),
@@ -73,7 +73,7 @@ const moldSchema = z
     });
   });
 
-type MoldFormValues = z.infer<typeof moldSchema>;
+export type MoldFormValues = z.infer<typeof moldSchema>;
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 

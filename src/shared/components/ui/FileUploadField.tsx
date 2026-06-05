@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
-type FileInfo = { name: string; size: number; type: string };
+export type FileInfo = { name: string; size: number; type: string; file?: File };
 
 type FileUploadFieldProps = {
   name: string;
@@ -45,7 +45,7 @@ export function FileUploadField({ accept, maxSizeMb = 10, name }: FileUploadFiel
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     const nextUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
     setPreviewUrl(nextUrl);
-    field.onChange({ name: file.name, size: file.size, type: file.type });
+    field.onChange({ name: file.name, size: file.size, type: file.type, file });
   }
 
   function handleRemove() {

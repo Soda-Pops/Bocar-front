@@ -4,6 +4,7 @@ import type { RfqSupplier } from '@/features/rfq/services/rfqDetailService';
 type SupplierAssignmentPanelProps = {
   suppliers: RfqSupplier[];
   backHref: string;
+  onSubmit?: (input: { proveedores: number[]; due_date: string }) => Promise<void>;
 };
 
 type Feedback = {
@@ -23,7 +24,7 @@ function getRowStateClass(isInvalid: boolean) {
     : 'border-t border-[rgba(217,222,229,0.72)]';
 }
 
-export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignmentPanelProps) {
+export function SupplierAssignmentPanel({ suppliers, backHref, onSubmit }: SupplierAssignmentPanelProps) {
   const [selectedNames, setSelectedNames] = useState<string[]>(() =>
     suppliers.map((s) => s.name),
   );
@@ -47,7 +48,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
     setFeedback(null);
   }
 
-  function handleSend() {
+  async function handleSend() {
     setShowValidation(true);
     if (selectedNames.length === 0) {
       setFeedback({ tone: 'error', text: 'Select at least one supplier before submitting.' });
@@ -57,6 +58,26 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
     if (missingDeadline) {
       setFeedback({ tone: 'error', text: 'Each selected supplier requires a deadline.' });
       return;
+    }
+    if (onSubmit) {
+      const proveedores = suppliers
+        .filter((supplier) => selectedNames.includes(supplier.name))
+        .map((supplier) => supplier.backendId)
+        .filter((id): id is number => typeof id === 'number');
+      const dueDate = deadlines[selectedNames[0]];
+      if (proveedores.length === 0 || !dueDate) {
+        setFeedback({ tone: 'error', text: 'The selected suppliers are missing backend IDs.' });
+        return;
+      }
+      try {
+        await onSubmit({ proveedores, due_date: dueDate });
+      } catch (error) {
+        setFeedback({
+          tone: 'error',
+          text: error instanceof Error ? error.message : 'Supplier assignment failed.',
+        });
+        return;
+      }
     }
     setFeedback({ tone: 'success', text: 'Suppliers selected successfully.' });
   }
@@ -200,7 +221,9 @@ export function SupplierAssignmentPanel({ suppliers, backHref }: SupplierAssignm
             Cancel
           </button>
           <button
-            onClick={handleSend}
+            onClick={() => {
+              void handleSend();
+            }}
             className="h-10 min-w-[220px] rounded-[8px] bg-[var(--bocar-blue-100)] px-8 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,46,93,0.14)]"
             type="button"
           >

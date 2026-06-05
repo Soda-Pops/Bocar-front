@@ -4,12 +4,28 @@ import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { ROUTES } from '@/app/config/routes';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { AppRole } from '@/features/auth/types';
+import type { RfqTipo } from '@/features/analytics/types';
 import { RfqActionBar } from '@/features/rfq/components/RfqDetail/RfqActionBar';
 import { RfqStatusBanner } from '@/features/rfq/components/RfqDetail/RfqStatusBanner';
 import { RfqStatusHeader } from '@/features/rfq/components/RfqDetail/RfqStatusHeader';
 import { SupplierAssignmentPanel } from '@/features/rfq/components/RfqDetail/SupplierAssignmentPanel';
+import { EditRequestModal } from '@/features/rfq/components/RfqDetail/EditRequestModal';
+import { ConfirmEditModal } from '@/features/rfq/components/RfqDetail/ConfirmEditModal';
+import { RfqEditRequestsPanel } from '@/features/rfq/components/RfqDetail/RfqEditRequestsPanel';
 import { useRfqDetail } from '@/features/rfq/hooks/useRfqDetail';
-import type { RfqActionKey, UserRole } from '@/features/rfq/state/rfqStateMachine';
+import { useAssignSuppliers } from '@/features/purchasing/hooks/useAssignSuppliers';
+import { useProveedores } from '@/features/purchasing/hooks/useProveedores';
+import {
+  deleteRfq,
+  requestEdit,
+  sendRfqToCom,
+  approveEditRequest,
+  rejectEditRequest,
+  getPendingEditRequestId,
+} from '@/features/rfq/services/rfqLifecycleService';
+import type { RfqActionKey, RfqBannerConfig, UserRole } from '@/features/rfq/state/rfqStateMachine';
+import { HttpError } from '@/shared/http/errors';
+import { parseId } from '@/shared/utils/rfqId';
 
 type RfqDetailWorkspaceProps = {
   backHref?: string;
@@ -60,9 +76,8 @@ function resolveSessionRole(role: AppRole, isAdmin: boolean): UserRole {
   return 'proveedor';
 }
 
-function resolveQuotationTipo(rfqId: string): 'Mold' | 'Trimming' {
-  const trimmingRfqs = new Set(['RFQ-005', 'RFQ-006', 'RFQ-021']);
-  return trimmingRfqs.has(rfqId.toUpperCase()) ? 'Trimming' : 'Mold';
+function parseTipo(value: string | null): RfqTipo {
+  return value === 'Trimming' || value === 'trimming' ? 'Trimming' : 'Mold';
 }
 
 export function RfqDetailWorkspace({
@@ -72,12 +87,21 @@ export function RfqDetailWorkspace({
 }: RfqDetailWorkspaceProps) {
   const routerLocation = useLocation();
   const { pathname } = routerLocation;
+  const isSupplierPath = pathname.startsWith('/proveedor');
   const navigate = useNavigate();
   const auth = useAuth();
   const [showAssignment, setShowAssignment] = useState(false);
+  const [feedbackBanner, setFeedbackBanner] = useState<RfqBannerConfig | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
+  const [showEditRequestModal, setShowEditRequestModal] = useState(false);
+  const [confirmEditVariant, setConfirmEditVariant] = useState<'approve' | 'reject' | null>(null);
   const assignmentRef = useRef<HTMLDivElement>(null);
+  const assignSuppliers = useAssignSuppliers();
+  const proveedores = useProveedores();
 
   const fromAdmin = (routerLocation.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
+  const searchParams = new URLSearchParams(routerLocation.search);
+  const tipo = parseTipo(searchParams.get('tipo'));
   const defaultRole =
     auth.status === 'authenticated'
       ? resolveSessionRole(auth.user.role, auth.user.isAdmin)
@@ -85,11 +109,32 @@ export function RfqDetailWorkspace({
   const defaultIsCreator =
     defaultRole === 'industrializacion' || defaultRole === 'industrializacion_admin';
 
-  const { rfq, allowedActions, statusMeta, banner, isAccessible, role } = useRfqDetail(
+  const { rfq, allowedActions, statusMeta, banner, isAccessible, role, isLoading, error } = useRfqDetail(
     referenceId,
     defaultRole,
     defaultIsCreator,
+    isSupplierPath ? 'assignment' : 'rfq',
   );
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 py-10 sm:px-8 xl:px-0">
+        <div className="rounded-[8px] border border-[var(--bocar-border)] bg-white px-6 py-8 text-[14px] text-[var(--bocar-blue-70)]">
+          Loading RFQ detail...
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !rfq || !statusMeta) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 py-10 sm:px-8 xl:px-0">
+        <div className="rounded-[8px] border border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] px-6 py-8 text-[14px] text-[var(--bocar-error)]">
+          {error?.message ?? 'The RFQ detail could not be loaded.'}
+        </div>
+      </div>
+    );
+  }
 
   if (!isAccessible) {
     return (
@@ -101,14 +146,32 @@ export function RfqDetailWorkspace({
     );
   }
 
+  function extractErrorMessage(err: unknown): string {
+    if (err instanceof HttpError) {
+      const body = err.body;
+      if (body && typeof body === 'object') {
+        const b = body as Record<string, unknown>;
+        if (typeof b.detail === 'string') return b.detail;
+        if (typeof b.message === 'string') return b.message;
+        if (typeof b.error === 'string') return b.error;
+      }
+      return `Error ${err.status}`;
+    }
+    if (err instanceof Error) return err.message;
+    return 'Ocurrió un error inesperado.';
+  }
+
   function handleAction(key: RfqActionKey) {
-    const rfqId = rfq.id;
+    const rfqId = rfq!.id;
     switch (key) {
       case 'view_full_detail':
-        navigate(ROUTES.PURCHASING.RFQ_DETAIL_FULL.replace(':id', rfqId));
+        navigate(
+          isSupplierPath
+            ? `${ROUTES.SUPPLIER.RFQ_DETAIL_FULL.replace(':id', referenceId)}?tipo=${tipo}`
+            : `${ROUTES.PURCHASING.RFQ_DETAIL_FULL.replace(':id', rfqId)}?tipo=${tipo}`,
+        );
         break;
       case 'assign_suppliers':
-        // Reveal the supplier assignment section inline and focus it.
         setShowAssignment(true);
         window.requestAnimationFrame(() =>
           assignmentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
@@ -121,11 +184,64 @@ export function RfqDetailWorkspace({
         navigate(`/industrializacion/rfq/${rfqId}/editar?view=true`);
         break;
       case 'edit_draft':
-        navigate(`/industrializacion/rfq/${rfqId}/editar`);
+        navigate(`/industrializacion/rfq/${rfqId}/editar?tipo=${tipo}`);
+        break;
+      case 'submit_draft': {
+        setIsMutating(true);
+        setFeedbackBanner(null);
+        sendRfqToCom(tipo, parseId(rfqId))
+          .then(() => {
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'RFQ enviada a Comercialización correctamente. Redirigiendo...',
+            });
+            setTimeout(() => navigate(backHref), 2500);
+          })
+          .catch((err: unknown) => {
+            setFeedbackBanner({
+              tone: 'danger',
+              icon: 'alert',
+              message: extractErrorMessage(err),
+            });
+          })
+          .finally(() => setIsMutating(false));
+        break;
+      }
+      case 'delete_draft': {
+        setIsMutating(true);
+        setFeedbackBanner(null);
+        deleteRfq(tipo, parseId(rfqId))
+          .then(() => {
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'Borrador eliminado correctamente. Redirigiendo...',
+            });
+            setTimeout(() => navigate(backHref), 2500);
+          })
+          .catch((err: unknown) => {
+            setFeedbackBanner({
+              tone: 'danger',
+              icon: 'alert',
+              message: extractErrorMessage(err),
+            });
+          })
+          .finally(() => setIsMutating(false));
+        break;
+      }
+      case 'request_edit':
+        setShowEditRequestModal(true);
+        break;
+      case 'approve_edit_request':
+        setConfirmEditVariant('approve');
+        break;
+      case 'reject_edit_request':
+        setConfirmEditVariant('reject');
         break;
       case 'create_quotation':
         navigate(
-          `${ROUTES.SUPPLIER.QUOTATION_CREATE.replace(':rfqId', rfqId)}?tipo=${resolveQuotationTipo(rfqId)}`,
+          `${ROUTES.SUPPLIER.QUOTATION_CREATE.replace(':rfqId', isSupplierPath ? referenceId : rfqId)}?tipo=${tipo}`,
         );
         break;
       default:
@@ -134,7 +250,9 @@ export function RfqDetailWorkspace({
   }
 
   const assignmentSuppliers =
-    rfq.suppliers.length > 0
+    proveedores.state.status === 'success' && proveedores.state.data.length > 0
+      ? proveedores.state.data
+      : rfq.suppliers.length > 0
       ? rfq.suppliers
       : ([
           { name: 'PLASTIMEX', category: 'Plastic Injection', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Available' },
@@ -229,20 +347,25 @@ export function RfqDetailWorkspace({
                     <DocumentIcon />
                     <span className="truncate text-[13px] font-medium">{file.name}</span>
                   </div>
-                  <button className="rounded-[4px] px-2 py-1 text-[12px] font-semibold uppercase text-white transition hover:bg-white/10 focus:outline-none" type="button">
-                    Download
-                  </button>
+                  <span className="rounded-[4px] px-2 py-1 text-[11px] font-semibold uppercase text-white/80">
+                    Read only
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Supplier assignment panel */}
-          <SupplierAssignmentPanel suppliers={rfq.suppliers.length > 0 ? rfq.suppliers : [
-            { name: 'PLASTIMEX', category: 'Plastic Injection', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Available' },
-            { name: 'RAMCO', category: 'Metal Machining', contact: 'Juan Perez', score: '100', scoreTone: 'success', status: 'Available' },
-            { name: 'HERTOLAB', category: 'Components', contact: 'Sofia Ruiz', score: '72', scoreTone: 'warning', status: 'Available' },
-          ]} backHref={backHref} />
+          <SupplierAssignmentPanel
+            suppliers={assignmentSuppliers}
+            backHref={backHref}
+            onSubmit={(input) =>
+              assignSuppliers.mutate(tipo, {
+                id_rfq: parseId(rfq.id),
+                ...input,
+              })
+            }
+          />
         </section>
       </div>
     );
@@ -250,6 +373,10 @@ export function RfqDetailWorkspace({
 
   // ─── READONLY MODE (RfqDetailPage) ────────────────────────────────────────
   const isIndustrializacionRole = role === 'industrializacion' || role === 'industrializacion_admin';
+  const isPurchasingRole = role === 'compras' || role === 'compras_admin';
+  const showEditRequestsPanel =
+    isPurchasingRole &&
+    (rfq.status === 'PENDING' || rfq.status === 'PENDING_EDIT_REQUEST');
   const showSuppliers =
     !isIndustrializacionRole &&
     rfq.suppliers.length > 0 &&
@@ -288,8 +415,31 @@ export function RfqDetailWorkspace({
         {/* Action bar */}
         {allowedActions.length > 0 ? (
           <div className="border-t border-[rgba(217,222,229,0.48)] px-7 py-4 lg:px-12">
-            <RfqActionBar actions={allowedActions} onAction={handleAction} />
+            <RfqActionBar actions={allowedActions} onAction={handleAction} disabled={isMutating} />
           </div>
+        ) : null}
+
+        {/* Feedback banner (resultado de submit / delete) */}
+        {feedbackBanner ? (
+          <div className="border-t border-[rgba(217,222,229,0.48)] px-7 py-4 lg:px-12">
+            <RfqStatusBanner config={feedbackBanner} />
+          </div>
+        ) : null}
+
+        {/* Panel de solicitudes de edición — solo para Compras cuando hay una pendiente */}
+        {showEditRequestsPanel ? (
+          <RfqEditRequestsPanel
+            rfqNumericId={parseId(rfq.id)}
+            tipo={tipo}
+            onResolved={() => {
+              setFeedbackBanner({
+                tone: 'success',
+                icon: 'check',
+                message: 'Solicitud resuelta. Redirigiendo...',
+              });
+              setTimeout(() => navigate(backHref), 2500);
+            }}
+          />
         ) : null}
 
         {/* Specs */}
@@ -325,9 +475,9 @@ export function RfqDetailWorkspace({
                   <DocumentIcon />
                   <span className="truncate text-[13px] font-medium">{file.name}</span>
                 </div>
-                <button className="rounded-[4px] px-2 py-1 text-[12px] font-semibold uppercase text-white transition hover:bg-white/10 focus:outline-none" type="button">
-                  Download
-                </button>
+                <span className="rounded-[4px] px-2 py-1 text-[11px] font-semibold uppercase text-white/80">
+                  Read only
+                </span>
               </div>
             ))}
           </div>
@@ -342,7 +492,16 @@ export function RfqDetailWorkspace({
             <h2 className="m-0 mb-4 text-[15px] font-semibold text-[var(--bocar-text)]">
               Supplier Assignment
             </h2>
-            <SupplierAssignmentPanel suppliers={assignmentSuppliers} backHref={backHref} />
+            <SupplierAssignmentPanel
+              suppliers={assignmentSuppliers}
+              backHref={backHref}
+              onSubmit={(input) =>
+                assignSuppliers.mutate(tipo, {
+                  id_rfq: parseId(rfq.id),
+                  ...input,
+                })
+              }
+            />
           </div>
         ) : null}
 
@@ -482,6 +641,50 @@ export function RfqDetailWorkspace({
         ) : null}
 
       </section>
+
+      {/* Modal: solicitar edición */}
+      {showEditRequestModal ? (
+        <EditRequestModal
+          rfqId={rfq.id}
+          onClose={() => setShowEditRequestModal(false)}
+          onConfirm={async (reason) => {
+            await requestEdit(tipo, parseId(rfq.id), reason);
+            setShowEditRequestModal(false);
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'Solicitud de edición enviada. Comercialización recibirá tu petición.',
+            });
+          }}
+        />
+      ) : null}
+
+      {/* Modal: aprobar o rechazar solicitud de edición */}
+      {confirmEditVariant ? (
+        <ConfirmEditModal
+          variant={confirmEditVariant}
+          rfqId={rfq.id}
+          onClose={() => setConfirmEditVariant(null)}
+          onConfirm={async () => {
+            const editRequestId = await getPendingEditRequestId(tipo, parseId(rfq.id));
+            if (confirmEditVariant === 'approve') {
+              await approveEditRequest(tipo, editRequestId);
+            } else {
+              await rejectEditRequest(tipo, editRequestId);
+            }
+            setConfirmEditVariant(null);
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message:
+                confirmEditVariant === 'approve'
+                  ? 'Solicitud aprobada. El RFQ volvió a Industrialización.'
+                  : 'Solicitud rechazada. El RFQ permanece en Comercialización.',
+            });
+            setTimeout(() => navigate(backHref), 2500);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

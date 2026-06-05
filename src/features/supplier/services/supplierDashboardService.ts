@@ -1,4 +1,5 @@
 import type { SupplierMetric, SupplierRfqRow } from '@/features/supplier/types';
+import { misAsignaciones } from '@/features/supplier/services/asignacionesService';
 
 export const supplierMetrics: SupplierMetric[] = [
   { key: 'assigned', label: 'ASSIGNED RFQs', value: '6', valueColor: 'var(--bocar-blue-100)' },
@@ -41,4 +42,17 @@ export function getFilteredRows(
     result = result.filter((r) => r.deadline === deadline);
   }
   return result;
+}
+
+export async function fetchSupplierDashboardData(): Promise<{
+  assignedRows: SupplierRfqRow[];
+  historicalRows: SupplierRfqRow[];
+  supplierMetrics: SupplierMetric[];
+}> {
+  const data = await misAsignaciones();
+  return {
+    assignedRows: data.assignedRows,
+    historicalRows: data.historicalRows,
+    supplierMetrics: data.metrics,
+  };
 }
