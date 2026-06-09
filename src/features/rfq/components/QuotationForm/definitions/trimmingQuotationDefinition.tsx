@@ -257,6 +257,7 @@ type PageKey =
   | 'trim_die'
   | 'data_info'
   | 'other_info'
+  | 'cost_and_timing_breakdown'
   | 'shot_sketch'
   | 'basic_data'
   | 'part_geometry'
@@ -275,6 +276,7 @@ const PAGES: readonly PageKey[] = [
   'trim_die',
   'data_info',
   'other_info',
+  'cost_and_timing_breakdown',
   'shot_sketch',
   'basic_data',
   'part_geometry',
@@ -309,6 +311,11 @@ const PAGE_META: Record<PageKey, PageMeta> = {
     navLabel: 'OTHER INFORMATION',
     subtitle: 'Other required deliverables and services, as defined by Industrialization.',
     title: '4. Other Information',
+  },
+  cost_and_timing_breakdown: {
+    navLabel: 'COST AND TIMING BREAKDOWN',
+    subtitle: 'Cost and Timing Breakdown',
+    title: '5. Cost and Timing Breakdown',
   },
   shot_sketch: {
     navLabel: 'SHOT SKETCH',
@@ -381,6 +388,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'trim_die', label: 'TRIM DIE' },
       { key: 'data_info', label: 'DATA INFORMATION' },
       { key: 'other_info', label: 'OTHER INFORMATION' },
+      { key: 'cost_and_timing_breakdown', label: 'COST AND TIMING BREAKDOWN' },
       { key: 'shot_sketch', label: 'SHOT SKETCH' },
     ],
   },
@@ -1290,6 +1298,180 @@ function SparePartsPage() {
   );
 }
 
+// ─── Cost and Timing Breakdown page ──────────────────────────────────────────
+
+function CostAndTimingBreakdownPage() {
+  const { control } = useFormContext<TrimmingQuotationValues>();
+  const currency = useWatch({ control, name: 'basic_data.currency' }) as string | undefined;
+
+  const bd = '1px solid rgba(217,222,229,0.92)';
+  const RH = 34;
+
+  const th1 = { background: 'rgba(0,46,93,0.08)', border: bd, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const th2 = { background: 'rgba(0,46,93,0.04)', border: bd, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--bocar-blue-70)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const th3 = { background: 'rgba(0,46,93,0.02)', border: bd, fontSize: 10, color: 'var(--bocar-blue-50)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const sec = { border: bd, background: '#f5f7fa', fontSize: 12, fontWeight: 600, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
+  const secWrap = { border: bd, background: '#f5f7fa', fontSize: 11, fontWeight: 600, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '4px 8px', verticalAlign: 'middle' as const };
+  const tot = { border: bd, background: 'rgba(0,46,93,0.06)', fontSize: 12, fontWeight: 700, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
+  const lbl = { border: bd, background: '#ffffff', fontSize: 13, color: 'var(--bocar-text)', padding: '0 12px', overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const };
+  const dat = { border: bd, background: '#ffffff', padding: 0 };
+  const th0 = { border: 'none' as const, background: 'transparent' };
+  const inp = { width: '100%', height: RH, border: 'none' as const, outline: 'none', padding: '0 10px', fontSize: 13, color: 'var(--bocar-text)', background: 'transparent', display: 'block' as const, boxSizing: 'border-box' as const };
+
+  return (
+    <SectionCard subtitle={PAGE_META.cost_and_timing_breakdown.subtitle} title={PAGE_META.cost_and_timing_breakdown.title}>
+      <div className="overflow-x-auto">
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+
+          {/* ── TABLE 1: TRIM DIE 1 ───────────────────────────────────────────── */}
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 86 }} />
+              <col style={{ width: 172 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={th0} />
+                <th colSpan={2} style={th1}>TRIM DIE 1</th>
+              </tr>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={th0} />
+                <th style={th2}>Price</th>
+                <th style={th2}>Weeks</th>
+              </tr>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={{ ...th2, color: 'var(--bocar-blue-100)', fontWeight: 700 }}>SUMM</th>
+                <th style={th3}>Price Breakdown</th>
+                <th style={th3}>Time Breakdown</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ height: RH }}>
+                <td rowSpan={3} style={secWrap}>DIE FAB</td>
+                <td style={lbl}>Material cost</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Accessories</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Manufacturing cost</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td rowSpan={2} style={secWrap}>ACT REQ POST-F</td>
+                <td style={lbl}>Adjustment</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Logistic cost</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={tot}>GRAND TOTAL</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={sec}>SPARE PARTS</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={sec}>CURRENCY</td>
+                <td colSpan={2} style={dat}>
+                  <select
+                    className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
+                    defaultValue={currency ?? 'USD'}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* ── TABLE 2: TRIM DIE 2 ───────────────────────────────────────────── */}
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ height: RH }}><th colSpan={2} style={th1}>TRIM DIE 2</th></tr>
+              <tr style={{ height: RH }}><th style={th2}>Price</th><th style={th2}>Weeks</th></tr>
+              <tr style={{ height: RH }}><th style={th3}>Price Breakdown</th><th style={th3}>Time Breakdown</th></tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <tr key={i} style={{ height: RH }}>
+                  <td style={dat}><input style={inp} /></td>
+                  <td style={dat}><input style={inp} /></td>
+                </tr>
+              ))}
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={dat}>
+                  <select
+                    className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
+                    defaultValue={currency ?? 'USD'}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      {/* Metadata — bottom right */}
+      <div className="mt-8 flex justify-end">
+        <div className="overflow-hidden rounded-[12px] border border-[rgba(217,222,229,0.92)] shadow-[0_4px_16px_rgba(0,46,93,0.06)]">
+          <table style={{ borderCollapse: 'collapse' }}>
+            <tbody>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SUPPLIER NAME</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3} style={{ minWidth: 300 }}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SIGNATURE</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">DATE</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">PREPARED BY</td>
+                <td className="p-2" colSpan={3}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
 // ─── Definition factory ───────────────────────────────────────────────────────
 
 export function buildTrimmingQuotationDefinition(
@@ -1303,6 +1485,7 @@ export function buildTrimmingQuotationDefinition(
     if (page === 'trim_die') return <TrimDiePage inherited={inherited} />;
     if (page === 'data_info') return <DataInfoPage inherited={inherited} />;
     if (page === 'other_info') return <OtherInfoPage inherited={inherited} />;
+    if (page === 'cost_and_timing_breakdown') return <CostAndTimingBreakdownPage />;
     if (page === 'shot_sketch') return <ShotSketchPage inherited={inherited} />;
     if (page === 'basic_data') return <BasicDataPage />;
     if (page === 'part_geometry') return <PartGeometryPage inherited={inherited} />;

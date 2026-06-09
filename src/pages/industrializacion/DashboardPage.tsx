@@ -240,7 +240,7 @@ function DashboardPage() {
                   ).map((header) => (
                     <th
                       key={header}
-                      className="border-b border-[var(--bocar-border)] px-5 py-4 text-left text-[13px] font-medium text-[var(--bocar-text)] lg:px-4 lg:py-4"
+                      className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
                     >
                       {header}
                     </th>
