@@ -411,8 +411,8 @@ const PAGE_META: Record<PageKey, PageMeta> = {
   },
   ctbd: {
     navLabel: 'CTBD',
-    subtitle: 'Costs and concepts to determine in the mold quotation.',
-    title: '8. Costs to Be Determined',
+    subtitle: 'Cost and Timing Breakdown',
+    title: '8. CTBD',
   },
   basic_data: {
     navLabel: 'BASIC DATA',
@@ -993,10 +993,201 @@ function SkPartPage({ inherited }: { inherited: InheritedMoldRfq }) {
   );
 }
 
-function CtbdPage({ inherited }: { inherited: InheritedMoldRfq }) {
+
+function CtbdPage() {
+  const { control } = useFormContext<MoldQuotationValues>();
+  const currency = useWatch({ control, name: 'basic_data.base_currency' }) as string | undefined;
+
+  const bd = '1px solid rgba(217,222,229,0.92)';
+  const RH = 34;
+
+  const th1 = { background: 'rgba(0,46,93,0.08)', border: bd, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const th2 = { background: 'rgba(0,46,93,0.04)', border: bd, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--bocar-blue-70)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const th3 = { background: 'rgba(0,46,93,0.02)', border: bd, fontSize: 10, color: 'var(--bocar-blue-50)', textAlign: 'center' as const, padding: '0 10px', whiteSpace: 'nowrap' as const };
+  const sec = { border: bd, background: '#f5f7fa', fontSize: 12, fontWeight: 600, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
+  const secWrap = { border: bd, background: '#f5f7fa', fontSize: 11, fontWeight: 600, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '4px 8px', verticalAlign: 'middle' as const };
+  const tot = { border: bd, background: 'rgba(0,46,93,0.06)', fontSize: 12, fontWeight: 700, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
+  const lbl = { border: bd, background: '#ffffff', fontSize: 13, color: 'var(--bocar-text)', padding: '0 12px', overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const };
+  const dat = { border: bd, background: '#ffffff', padding: 0 };
+const spa = { border: 'none' as const, background: 'transparent' };
+  const th0 = { border: 'none' as const, background: 'transparent' };
+  const inp = { width: '100%', height: RH, border: 'none' as const, outline: 'none', padding: '0 10px', fontSize: 13, color: 'var(--bocar-text)', background: 'transparent', display: 'block' as const, boxSizing: 'border-box' as const };
+
   return (
     <SectionCard subtitle={PAGE_META.ctbd.subtitle} title={PAGE_META.ctbd.title}>
-      <ConsiderationTableReadonly items={inherited.ctbd_items} />
+      <div className="overflow-x-auto">
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+
+          {/* ── TABLE 1: M 1 ──────────────────────────────────────────────────── */}
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 86 }} />
+              <col style={{ width: 172 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={th0} />
+                <th colSpan={2} style={th1}>M 1</th>
+              </tr>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={th0} />
+                <th style={th2}>Pr</th>
+                <th style={th2}>Weeks</th>
+              </tr>
+              <tr style={{ height: RH }}>
+                <th colSpan={2} style={{ ...th2, color: 'var(--bocar-blue-100)', fontWeight: 700 }}>SUMM</th>
+                <th style={th3}>Pr BD</th>
+                <th style={th3}>T BD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ height: RH }}>
+                <td rowSpan={3} style={secWrap}>D FAB</td>
+                <td style={lbl}>Mat cst (pur pt &amp; rw mat)</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Accs</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Man cst</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td rowSpan={2} style={secWrap}>ACT REQ POST-F</td>
+                <td style={lbl}>Corr, opt and meas</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={lbl}>Log cst</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={tot}>GR TOT</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={sec}>SAMP IN SUPP FAC</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={sec}>SP PT</td>
+                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} /></td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td colSpan={2} style={sec}>CURR</td>
+                <td colSpan={2} style={dat}>
+                  <select
+                    className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
+                    defaultValue={currency ?? 'USD'}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* ── TABLE 2: TOOL REP ─────────────────────────────────────────────── */}
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ height: RH }}><th colSpan={2} style={th1}>TOOL REP</th></tr>
+              <tr style={{ height: RH }}><th style={th2}>Pr</th><th style={th2}>Weeks</th></tr>
+              <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} style={{ height: RH }}>
+                  <td style={dat}><input style={inp} /></td>
+                  <td style={dat}><input style={inp} /></td>
+                </tr>
+              ))}
+              <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
+            </tbody>
+          </table>
+
+          {/* ── TABLE 3: SET OF CAV ───────────────────────────────────────────── */}
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ height: RH }}><th colSpan={2} style={th1}>SET OF CAV</th></tr>
+              <tr style={{ height: RH }}><th style={th2}>Pr</th><th style={th2}>Weeks</th></tr>
+              <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} style={{ height: RH }}>
+                  <td style={dat}><input style={inp} /></td>
+                  <td style={dat}><input style={inp} /></td>
+                </tr>
+              ))}
+              <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      {/* Metadata — bottom right */}
+      <div className="mt-8 flex justify-end">
+        <div className="overflow-hidden rounded-[12px] border border-[rgba(217,222,229,0.92)] shadow-[0_4px_16px_rgba(0,46,93,0.06)]">
+          <table style={{ borderCollapse: 'collapse' }}>
+            <tbody>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SUPP</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3} style={{ minWidth: 300 }}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SIGN</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">DATE</td>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] p-2" style={{ minWidth: 130 }}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+                <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">QT No</td>
+                <td className="border-b border-[rgba(217,222,229,0.92)] p-2" style={{ minWidth: 130 }}>
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+              <tr>
+                <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">PREP</td>
+                <td className="border-r border-[rgba(217,222,229,0.92)] p-2">
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+                <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">INC.</td>
+                <td className="p-2">
+                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </SectionCard>
   );
 }
@@ -1553,7 +1744,7 @@ export function buildMoldQuotationDefinition(
     if (page === 'other') return <MoldOtherPage inherited={inherited} />;
     if (page === 'ot_inf') return <OtInfPage inherited={inherited} />;
     if (page === 'sk_part') return <SkPartPage inherited={inherited} />;
-    if (page === 'ctbd') return <CtbdPage inherited={inherited} />;
+    if (page === 'ctbd') return <CtbdPage />;
     if (page === 'basic_data') return <MoldBasicDataPage />;
     if (page === 'part_geometry') return <MoldPartGeometryPage inherited={inherited} />;
     if (page === 'tool_spec') return <MoldToolSpecPage inherited={inherited} />;
