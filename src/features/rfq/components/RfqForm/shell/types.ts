@@ -20,7 +20,7 @@ export type RfqWorkspaceDefinition<TValues extends FieldValues> = {
   navGroups: readonly NavGroup[];
   pageMeta: Record<string, PageMeta>;
   requiredFieldsByPage: Partial<Record<string, readonly FieldPath<TValues>[]>>;
-  renderPage: (page: string) => ReactNode;
+  renderPage: (page: string, readOnly?: boolean) => ReactNode;
   getCompletedMap: (values: TValues) => Partial<Record<string, boolean>>;
   getPageErrorMap: (errors: FieldErrors<TValues>) => Partial<Record<string, boolean>>;
   onInvalidSubmit?: (

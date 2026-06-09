@@ -10,7 +10,10 @@ export type RfqSpecField = {
 };
 
 export type RfqUploadedFile = {
+  id?: number;
   name: string;
+  url: string;
+  uploadedAt?: string;
 };
 
 export type RfqSupplier = {
@@ -77,9 +80,9 @@ const BASE_SPECS: RfqSpecField[] = [
 ];
 
 const BASE_FILES: RfqUploadedFile[] = [
-  { name: 'motor_drawing.stp' },
-  { name: 'quotation.ppt' },
-  { name: 'specifications.pdf' },
+  { name: 'motor_drawing.stp', url: '#' },
+  { name: 'quotation.ppt', url: '#' },
+  { name: 'specifications.pdf', url: '#' },
 ];
 
 const BASE_SUPPLIERS: RfqSupplier[] = [

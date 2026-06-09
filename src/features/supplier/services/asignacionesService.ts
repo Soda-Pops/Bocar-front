@@ -4,7 +4,7 @@ import { mapDetailToFormValues } from '@/features/rfq/services/rfqDetailToFormVa
 import { mapRfqDetail } from '@/features/rfq/services/rfqMappers';
 import type { RfqDetail } from '@/features/rfq/services/rfqDetailService';
 import {
-  asignacionDetalleDto,
+  asignacionDetalleConBorradorDto,
   costBreakdownDto,
   misAsignacionesDto,
   quotationResponseDto,
@@ -34,19 +34,35 @@ export async function misAsignaciones(signal?: AbortSignal): Promise<{
 export async function detalleAsignacion(tipo: RfqTipo, id: number, signal?: AbortSignal): Promise<RfqDetail> {
   const dto = await request(`${BASE}/detalle/${id}/${tipoQ(tipo)}`, {
     method: 'GET',
-    schema: asignacionDetalleDto,
+    schema: asignacionDetalleConBorradorDto,
     signal,
   });
-  return mapRfqDetail(dto, tipo);
+  return mapRfqDetail(dto.rfq, tipo, { forSupplier: true, isAnswered: dto.is_answered });
 }
 
 export async function detalleAsignacionFormValues(tipo: RfqTipo, id: number, signal?: AbortSignal) {
   const dto = await request(`${BASE}/detalle/${id}/${tipoQ(tipo)}`, {
     method: 'GET',
-    schema: asignacionDetalleDto,
+    schema: asignacionDetalleConBorradorDto,
     signal,
   });
-  return mapDetailToFormValues(tipo, dto);
+  return mapDetailToFormValues(tipo, dto.rfq);
+}
+
+export async function detalleAsignacionParaCotizar(
+  tipo: RfqTipo,
+  id: number,
+  signal?: AbortSignal,
+): Promise<{ formValues: ReturnType<typeof mapDetailToFormValues>; tiene_borrador: boolean }> {
+  const dto = await request(`${BASE}/detalle/${id}/${tipoQ(tipo)}`, {
+    method: 'GET',
+    schema: asignacionDetalleConBorradorDto,
+    signal,
+  });
+  return {
+    formValues: mapDetailToFormValues(tipo, dto.rfq),
+    tiene_borrador: dto.tiene_borrador,
+  };
 }
 
 export async function responderCotizacion(tipo: RfqTipo, id: number, values: unknown): Promise<void> {

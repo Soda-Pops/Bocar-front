@@ -11,8 +11,8 @@ import {
   dashboardTabs,
   getDateOptions,
   getFilteredDashboardRows,
-  monthlyRfqSeries,
 } from '@/features/analytics/services/analyticsService';
+import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
 import type { DashboardMetric, DashboardRow } from '@/features/analytics/types';
 import type { SortOption } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
@@ -46,6 +46,13 @@ function RfqStatusBadge({ status }: { status?: string }) {
       </span>
     );
   }
+  if (status === 'Benchmark Ready') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-[rgba(0,120,180,0.35)] bg-[rgba(0,120,180,0.12)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#005f8e]">
+        {status}
+      </span>
+    );
+  }
   return <span className="text-[13px] text-[var(--bocar-text)]">{status}</span>;
 }
 
@@ -66,6 +73,7 @@ function getNextSortOption(value: string): SortOption {
 function DashboardPage() {
   const navigate = useNavigate();
   const rfqs = useRfqList();
+  const rfqHistogram = useRfqHistogramSeries();
   const [activeTab, setActiveTab] = useState<'borradores' | 'activas' | 'historicas'>(
     'borradores',
   );
@@ -115,7 +123,10 @@ function DashboardPage() {
             ))}
           </div>
 
-          <MonthlyRfqChart series={monthlyRfqSeries} />
+          <MonthlyRfqChart
+            series={rfqHistogram.series}
+            statusText={getChartStatusText(rfqHistogram.status)}
+          />
         </section>
 
         <section className="mt-8 border-b border-[rgba(217,222,229,0.9)]">
@@ -314,14 +325,24 @@ function groupRowsByTab(rows: DashboardRow[]) {
   return {
     borradores: rows.filter((row) => row.status === 'Draft'),
     activas: rows.filter((row) => row.status === 'Active'),
-    historicas: rows.filter((row) => row.status === 'Done'),
+    // Benchmark Ready y Done comparten el tab histórico
+    historicas: rows.filter((row) => row.status === 'Done' || row.status === 'Benchmark Ready'),
   };
 }
 
+function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['status']) {
+  if (status === 'loading') return 'Loading';
+  if (status === 'error') return 'Unavailable';
+  return 'Live';
+}
+
 function buildMetrics(rowsByTab: ReturnType<typeof groupRowsByTab>): DashboardMetric[] {
+  const benchmarkReady = rowsByTab.historicas.filter((r) => r.status === 'Benchmark Ready').length;
+  const closed = rowsByTab.historicas.filter((r) => r.status === 'Done').length;
   return [
     { key: 'borradores', label: 'DRAFT RFQs', value: String(rowsByTab.borradores.length), valueColor: 'var(--bocar-blue-100)' },
     { key: 'activas', label: 'ACTIVE RFQs', value: String(rowsByTab.activas.length), valueColor: '#5a8a1f' },
-    { key: 'historicas', label: 'HISTORICAL RFQs', value: String(rowsByTab.historicas.length), valueColor: 'var(--bocar-blue-50)' },
+    { key: 'historicas', label: 'BENCHMARK READY', value: String(benchmarkReady), valueColor: '#005f8e' },
+    { key: 'historicas', label: 'CLOSED RFQs', value: String(closed), valueColor: 'var(--bocar-blue-50)' },
   ];
 }

@@ -1,7 +1,14 @@
+import { useEffect, useRef } from 'react';
+
 import type { RfqTipo } from '@/features/analytics/types';
 import type { MoldFormValues } from '@/features/rfq/components/RfqForm/definitions/moldDefinition';
 import type { TrimmingFormValues } from '@/features/rfq/components/RfqForm/definitions/trimmingDefinition';
-import { createRfq, getRfqFormValues, updateRfq } from '@/features/rfq/services/rfqLifecycleService';
+import {
+  createRfq,
+  getRfqFormValues,
+  sendRfqToCom,
+  updateRfq,
+} from '@/features/rfq/services/rfqLifecycleService';
 import { detalleAsignacionFormValues } from '@/features/supplier/services/asignacionesService';
 import { useResource } from '@/shared/hooks/useResource';
 import { parseId } from '@/shared/utils/rfqId';
@@ -20,6 +27,17 @@ type RfqWorkspaceProps = {
   detailSource?: 'rfq' | 'assignment';
 };
 
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error && 'body' in error) {
+    const body = (error as { body?: unknown }).body;
+    if (typeof body === 'object' && body && 'detail' in body) {
+      return String((body as { detail: unknown }).detail);
+    }
+  }
+  if (error instanceof Error) return error.message;
+  return 'Unexpected error.';
+}
+
 export function RfqWorkspace({
   mode,
   onBack,
@@ -29,6 +47,7 @@ export function RfqWorkspace({
   areaPrefix,
   detailSource = 'rfq',
 }: RfqWorkspaceProps) {
+  const workingRfqIdRef = useRef<number | null>(rfqId ? parseId(rfqId) : null);
   const shouldLoadInitialValues = Boolean(rfqId) && (mode === 'view' || mode === 'edit');
   const initialValuesResource = useResource(
     (signal) =>
@@ -40,14 +59,51 @@ export function RfqWorkspace({
     [shouldLoadInitialValues, rfqId, tipo, detailSource],
   );
 
-  async function handleSubmit(values: Parameters<typeof createRfq>[1]) {
-    if (mode === 'edit' && rfqId) {
-      await updateRfq(tipo, parseId(rfqId), values);
-      onBack();
-      return;
+  useEffect(() => {
+    workingRfqIdRef.current = rfqId ? parseId(rfqId) : null;
+  }, [rfqId]);
+
+  useEffect(() => {
+    if (mode !== 'edit' || initialValuesResource.state.status !== 'success' || !rfqId) return;
+    workingRfqIdRef.current = parseId(rfqId);
+  }, [initialValuesResource.state.status, mode, rfqId]);
+
+  async function handleSaveDraft(values: Parameters<typeof createRfq>[1]) {
+    const currentId = workingRfqIdRef.current;
+    if (currentId) {
+      const updated = await updateRfq(tipo, currentId, values);
+      return { detail: updated.detail };
     }
-    await createRfq(tipo, values);
-    return { created: true };
+    const created = await createRfq(tipo, values);
+    workingRfqIdRef.current = created.id;
+    return { created: true, detail: created.detail, id: created.id };
+  }
+
+  async function handleSubmit(values: Parameters<typeof createRfq>[1]) {
+    const currentId = workingRfqIdRef.current;
+    if (currentId) {
+      const id = currentId;
+      await updateRfq(tipo, id, values);
+      try {
+        await sendRfqToCom(tipo, id);
+      } catch (error) {
+        throw new Error(
+          `RFQ-${String(id).padStart(4, '0')} was saved as a draft, but was not sent to Commercialization. ${getErrorMessage(error)}`,
+        );
+      }
+      return { submitted: true };
+    }
+
+    const created = await createRfq(tipo, values);
+    workingRfqIdRef.current = created.id;
+    try {
+      await sendRfqToCom(tipo, created.id);
+    } catch (error) {
+      throw new Error(
+        `RFQ-${String(created.id).padStart(4, '0')} was saved as a draft, but was not sent to Commercialization. ${getErrorMessage(error)}`,
+      );
+    }
+    return { created: true, submitted: true, id: created.id };
   }
 
   if (shouldLoadInitialValues && initialValuesResource.state.status === 'loading') {
@@ -76,6 +132,7 @@ export function RfqWorkspace({
         mode={mode}
         onBack={onBack}
         onCreatedDashboard={onCreatedDashboard}
+        onSaveDraft={mode === 'view' ? undefined : handleSaveDraft}
         onSubmit={mode === 'view' ? undefined : handleSubmit}
         rfqId={rfqId}
         tipo={tipo}
@@ -91,6 +148,7 @@ export function RfqWorkspace({
       mode={mode}
       onBack={onBack}
       onCreatedDashboard={onCreatedDashboard}
+      onSaveDraft={mode === 'view' ? undefined : handleSaveDraft}
       onSubmit={mode === 'view' ? undefined : handleSubmit}
       rfqId={rfqId}
       tipo={tipo}

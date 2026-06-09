@@ -17,10 +17,14 @@ import {
 import {
   getDashboardCardStatusClass,
   getFilteredDashboardRows,
-  purchasingMonthlySeries,
   unlockRequests,
   urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
+import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
+import {
+  usePurchasingDashboardCounts,
+  type PurchasingStatusCounts,
+} from '@/features/purchasing/hooks/usePurchasingDashboardCounts';
 import { usePurchasingRfqList } from '@/features/purchasing/hooks/usePurchasingRfqList';
 import type { PurchasingDashboardMetric, PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -43,14 +47,6 @@ function ArrowRightIcon() {
         strokeWidth="1.5"
       />
     </svg>
-  );
-}
-
-function HistoricalStatusBadge() {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
-      Done
-    </span>
   );
 }
 
@@ -196,6 +192,8 @@ function WidgetPanel({
 function DashboardPage() {
   const navigate = useNavigate();
   const rfqs = usePurchasingRfqList();
+  const rfqHistogram = useRfqHistogramSeries();
+  const dashboardCounts = usePurchasingDashboardCounts();
   const [activeTab, setActiveTab] = useState<DashboardTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
@@ -205,9 +203,15 @@ function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
-  const purchasingQueueRows = allRows.filter((row) => row.status !== 'CLOSED' && row.status !== 'CANCELLED');
-  const historicalRows = allRows.filter((row) => row.status === 'CLOSED' || row.status === 'CANCELLED');
-  const purchasingMetrics = useMemo(() => buildPurchasingMetrics(allRows), [allRows]);
+  const purchasingQueueRows = allRows.filter((row) => row.status !== 'CLOSED' && row.status !== 'CANCELLED' && row.status !== 'BENCHMARK_READY');
+  const historicalRows = allRows.filter((row) => row.status === 'CLOSED' || row.status === 'CANCELLED' || row.status === 'BENCHMARK_READY');
+  const purchasingMetrics = useMemo(
+    () =>
+      buildPurchasingMetrics(
+        dashboardCounts.state.status === 'success' ? dashboardCounts.state.data.estatus : undefined,
+      ),
+    [dashboardCounts.state],
+  );
   const sourceRows = activeTab === 'pending' ? purchasingQueueRows : historicalRows;
 
   const filteredRows = useMemo(() => {
@@ -245,8 +249,9 @@ function DashboardPage() {
       setActiveTab('pending');
       setActiveStatusFilter((prev) => (prev === metric.status ? '' : metric.status));
       setCurrentPage(1);
-    } else if (metric.status === 'BENCHMARK_READY') {
+    } else if (metric.status === 'BENCHMARK_READY' || metric.status === 'CLOSED') {
       handleTabChange('historical');
+      setActiveStatusFilter(metric.status);
     }
   }
 
@@ -288,7 +293,10 @@ function DashboardPage() {
               />
             ))}
           </div>
-          <MonthlyRfqChart series={purchasingMonthlySeries} />
+          <MonthlyRfqChart
+            series={rfqHistogram.series}
+            statusText={getChartStatusText(rfqHistogram.status)}
+          />
         </section>
 
         {/* Tabs */}
@@ -454,7 +462,7 @@ function DashboardPage() {
                         {row.machineType}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
-                        <HistoricalStatusBadge />
+                        <DashboardStatusBadge status={row.status} />
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.createdAt}
@@ -539,13 +547,19 @@ function DashboardPage() {
 
 export default DashboardPage;
 
-function buildPurchasingMetrics(rows: PurchasingDashboardRow[]): PurchasingDashboardMetric[] {
-  const count = (status: PurchasingRfqStatus) => rows.filter((row) => row.status === status).length;
+function buildPurchasingMetrics(counts?: PurchasingStatusCounts): PurchasingDashboardMetric[] {
+  const count = (status: keyof PurchasingStatusCounts) => counts?.[status]?.total ?? 0;
   return [
     { key: 'pending', label: 'PENDING', status: 'PENDING', value: String(count('PENDING')), valueColor: 'var(--bocar-blue-100)' },
-    { key: 'quoting', label: 'QUOTING', status: 'QUOTING', value: String(count('QUOTING') + count('PARTIALLY_QUOTED')), valueColor: '#5a8a1f' },
-    { key: 'benchmark_ready', label: 'READY', status: 'BENCHMARK_READY', value: '0', valueColor: 'var(--bocar-blue-50)' },
+    { key: 'quoting', label: 'QUOTING', status: 'QUOTING', value: String(count('QUOTING')), valueColor: '#5a8a1f' },
+    { key: 'benchmark_ready', label: 'BENCHMARK READY', status: 'BENCHMARK_READY', value: String(count('BENCHMARK_READY')), valueColor: '#005f8e' },
+    { key: 'closed', label: 'CLOSED RFQs', status: 'CLOSED', value: String(count('CLOSED')), valueColor: 'var(--bocar-blue-50)' },
     { key: 'expired', label: 'EXPIRED', status: 'EXPIRED', value: String(count('EXPIRED')), valueColor: 'var(--bocar-error)' },
-    { key: 'eliminated', label: 'ELIMINATED', status: 'CANCELLED', value: String(count('CANCELLED')), valueColor: 'var(--bocar-blue-30)' },
   ];
+}
+
+function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['status']) {
+  if (status === 'loading') return 'Loading';
+  if (status === 'error') return 'Unavailable';
+  return 'Live';
 }

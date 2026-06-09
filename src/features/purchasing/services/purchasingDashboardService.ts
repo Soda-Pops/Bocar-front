@@ -47,9 +47,16 @@ export const purchasingMetrics: PurchasingDashboardMetric[] = [
   },
   {
     key: 'benchmark_ready',
-    label: 'HISTORICAL RFQs',
+    label: 'BENCHMARK READY',
     status: 'BENCHMARK_READY',
-    value: '10',
+    value: '5',
+    valueColor: '#005f8e',
+  },
+  {
+    key: 'closed',
+    label: 'CLOSED RFQs',
+    status: 'CLOSED',
+    value: '5',
     valueColor: 'var(--bocar-blue-50)',
   },
 ];
@@ -85,9 +92,16 @@ export const superuserPurchasingMetrics: PurchasingDashboardMetric[] = [
   },
   {
     key: 'benchmark_ready',
-    label: 'HISTORICAL RFQs',
+    label: 'BENCHMARK READY',
     status: 'BENCHMARK_READY',
-    value: '10',
+    value: '5',
+    valueColor: '#005f8e',
+  },
+  {
+    key: 'closed',
+    label: 'CLOSED RFQs',
+    status: 'CLOSED',
+    value: '5',
     valueColor: 'var(--bocar-blue-50)',
   },
 ];

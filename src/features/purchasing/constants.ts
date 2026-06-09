@@ -34,7 +34,7 @@ export const purchasingStatusMeta: Record<
   },
   BENCHMARK_READY: {
     label: 'Benchmark ready',
-    className: 'border-[rgba(141,198,63,0.28)] bg-[rgba(141,198,63,0.18)] text-[var(--bocar-blue-100)]',
+    className: 'border-[rgba(0,120,180,0.35)] bg-[rgba(0,120,180,0.12)] text-[#005f8e]',
   },
   EXPIRED: {
     label: 'Expired',

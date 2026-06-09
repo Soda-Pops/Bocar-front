@@ -3,13 +3,25 @@ import { useController, useFormContext } from 'react-hook-form';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type FileInfo = { name: string; size: number; type: string; file?: File };
+export type FileInfo = {
+  name: string;
+  size: number;
+  type: string;
+  /** Present for files freshly picked in the browser (pending upload). */
+  file?: File;
+  /** Present for files already stored on the backend (existing attachments). */
+  id?: number;
+  url?: string;
+  uploadedAt?: string;
+};
 
 type MultiFileUploadFieldProps = {
   name: string;
   accept?: string;
   acceptLabel?: string;
   maxSizeMb?: number;
+  /** When true, only the existing files are shown — no drop zone, no removal. */
+  readOnly?: boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -91,6 +103,21 @@ function UploadIcon() {
   );
 }
 
+function formatUploadedAt(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
+function DownloadIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="14" viewBox="0 0 14 14" width="14">
+      <path d="M7 1.5v7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+      <path d="M4.25 6.25 7 9l2.75-2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M2 11.5h10" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 function FileRow({
   file,
   onRemove,
@@ -98,6 +125,10 @@ function FileRow({
   file: FileInfo;
   onRemove: () => void;
 }) {
+  // Existing backend attachments carry a `url` and no local `File`; they can be
+  // downloaded but not removed (anchors stay clickable even inside a disabled fieldset).
+  const isExisting = Boolean(file.url) && !file.file;
+
   return (
     <div className="flex items-center gap-3 rounded-[8px] border border-[rgba(217,222,229,0.7)] bg-[#f5f7fa] px-3 py-2.5">
       {/* ext badge */}
@@ -114,26 +145,43 @@ function FileRow({
           {file.name}
         </p>
         <p className="m-0 text-[11px] leading-[1.4] text-[var(--bocar-blue-50)]">
-          {formatSize(file.size)}
+          {isExisting
+            ? file.uploadedAt
+              ? `Uploaded ${formatUploadedAt(file.uploadedAt)}`
+              : 'Uploaded'
+            : formatSize(file.size)}
         </p>
       </div>
 
-      {/* remove */}
-      <button
-        aria-label={`Remove ${file.name}`}
-        className="shrink-0 rounded p-0.5 text-[var(--bocar-blue-30)] transition hover:text-[var(--bocar-error)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--bocar-error)]"
-        type="button"
-        onClick={onRemove}
-      >
-        <svg fill="none" height="14" viewBox="0 0 14 14" width="14">
-          <path
-            d="M1 1l12 12M13 1L1 13"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="1.6"
-          />
-        </svg>
-      </button>
+      {isExisting ? (
+        <a
+          aria-label={`Download ${file.name}`}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-[var(--bocar-blue-30)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--bocar-blue-70)]"
+          download={file.name}
+          href={file.url}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <DownloadIcon />
+          Download
+        </a>
+      ) : (
+        <button
+          aria-label={`Remove ${file.name}`}
+          className="shrink-0 rounded p-0.5 text-[var(--bocar-blue-30)] transition hover:text-[var(--bocar-error)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--bocar-error)]"
+          type="button"
+          onClick={onRemove}
+        >
+          <svg fill="none" height="14" viewBox="0 0 14 14" width="14">
+            <path
+              d="M1 1l12 12M13 1L1 13"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.6"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -145,6 +193,7 @@ export function MultiFileUploadField({
   accept,
   acceptLabel,
   maxSizeMb = 25,
+  readOnly = false,
 }: MultiFileUploadFieldProps) {
   const { control } = useFormContext();
   const { field } = useController({ control, name, defaultValue: [] });
@@ -181,8 +230,8 @@ export function MultiFileUploadField({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Two-panel layout */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(0,2fr)]">
+      {/* In read-only mode only the file list is shown — no drop zone. */}
+      <div className={readOnly ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(0,2fr)]'}>
 
         {/* ── Left: file list ── */}
         <div className="min-h-[200px] rounded-[12px] border border-[#d9dee5] bg-white p-4">
@@ -208,17 +257,17 @@ export function MultiFileUploadField({
                 />
               </svg>
               <p className="m-0 text-center text-[12px] leading-[1.5] text-[var(--bocar-blue-30)]">
-                No files attached yet
+                {readOnly ? 'No files uploaded.' : 'No files attached yet'}
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               <p className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                {files.length} file{files.length !== 1 ? 's' : ''} attached
+                {files.length} file{files.length !== 1 ? 's' : ''} {readOnly ? 'uploaded' : 'attached'}
               </p>
               {files.map((file, i) => (
                 <FileRow
-                  key={`${file.name}-${file.size}`}
+                  key={file.id ?? file.url ?? `${file.name}-${file.size}`}
                   file={file}
                   onRemove={() => handleRemove(i)}
                 />
@@ -227,7 +276,8 @@ export function MultiFileUploadField({
           )}
         </div>
 
-        {/* ── Right: drop zone ── */}
+        {/* ── Right: drop zone (hidden in read-only mode) ── */}
+        {!readOnly && (
         <div
           className={[
             'flex min-h-[200px] cursor-pointer select-none flex-col items-center justify-center gap-4 rounded-[12px] border-2 border-dashed bg-white px-6 py-10 text-center transition',
@@ -267,6 +317,7 @@ export function MultiFileUploadField({
             }}
           />
         </div>
+        )}
       </div>
 
       {/* Validation errors */}

@@ -16,6 +16,7 @@ import { useRfqDetail } from '@/features/rfq/hooks/useRfqDetail';
 import { useAssignSuppliers } from '@/features/purchasing/hooks/useAssignSuppliers';
 import { useProveedores } from '@/features/purchasing/hooks/useProveedores';
 import {
+  closeRfq,
   deleteRfq,
   requestEdit,
   sendRfqToCom,
@@ -23,6 +24,8 @@ import {
   rejectEditRequest,
   getPendingEditRequestId,
 } from '@/features/rfq/services/rfqLifecycleService';
+import { CloseRfqModal } from '@/features/rfq/components/RfqDetail/CloseRfqModal';
+import type { RfqUploadedFile } from '@/features/rfq/services/rfqDetailService';
 import type { RfqActionKey, RfqBannerConfig, UserRole } from '@/features/rfq/state/rfqStateMachine';
 import { HttpError } from '@/shared/http/errors';
 import { parseId } from '@/shared/utils/rfqId';
@@ -54,6 +57,70 @@ function DocumentIcon() {
       <path d="M4.75 2.5h4.1l2.4 2.45v8.55h-6.5v-11Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.25" />
       <path d="M8.75 2.75V5.2h2.35" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.25" />
     </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16">
+      <path d="M8 2.5v7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+      <path d="M5.25 7.25 8 10l2.75-2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M3 12.75h10" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+async function downloadFile(file: RfqUploadedFile): Promise<void> {
+  try {
+    const response = await fetch(file.url, { credentials: 'include' });
+    if (!response.ok) throw new Error('Download failed');
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(file.url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function UploadedFilesList({ files }: { files: RfqUploadedFile[] }) {
+  if (files.length === 0) {
+    return (
+      <p className="m-0 mt-3 rounded-[8px] border border-dashed border-[var(--bocar-border)] px-4 py-3 text-[13px] text-[var(--bocar-blue-50)]">
+        No files uploaded.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 grid gap-3">
+      {files.map((file) => (
+        <div
+          key={`${file.id ?? file.name}-${file.url}`}
+          className="flex min-h-11 items-center justify-between gap-4 rounded-[8px] border border-transparent bg-[var(--bocar-blue-100)] px-5 py-2 text-white transition hover:border-[var(--bocar-blue-30)] hover:bg-[var(--bocar-blue-70)]"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <DocumentIcon />
+            <span className="truncate text-[13px] font-medium">{file.name}</span>
+          </div>
+          <button
+            aria-label={`Download ${file.name}`}
+            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[6px] border border-white/35 bg-white/10 px-3 text-[11px] font-semibold uppercase text-white transition hover:border-white hover:bg-white hover:text-[var(--bocar-blue-100)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bocar-blue-100)]"
+            type="button"
+            onClick={() => void downloadFile(file)}
+          >
+            <DownloadIcon />
+            Download
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -95,6 +162,7 @@ export function RfqDetailWorkspace({
   const [isMutating, setIsMutating] = useState(false);
   const [showEditRequestModal, setShowEditRequestModal] = useState(false);
   const [confirmEditVariant, setConfirmEditVariant] = useState<'approve' | 'reject' | null>(null);
+  const [showCloseRfqModal, setShowCloseRfqModal] = useState(false);
   const assignmentRef = useRef<HTMLDivElement>(null);
   const assignSuppliers = useAssignSuppliers();
   const proveedores = useProveedores();
@@ -239,6 +307,9 @@ export function RfqDetailWorkspace({
       case 'reject_edit_request':
         setConfirmEditVariant('reject');
         break;
+      case 'close_rfq':
+        setShowCloseRfqModal(true);
+        break;
       case 'create_quotation':
         navigate(
           `${ROUTES.SUPPLIER.QUOTATION_CREATE.replace(':rfqId', isSupplierPath ? referenceId : rfqId)}?tipo=${tipo}`,
@@ -324,7 +395,7 @@ export function RfqDetailWorkspace({
             </div>
             <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
               {rfq.specs.map((field) => (
-                <div key={field.code} className="flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4">
+                <div key={field.code} className={['flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4', field.code === 'comments' ? 'sm:col-span-2 lg:col-span-4' : ''].join(' ').trim()}>
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center rounded-[4px] bg-[var(--bocar-blue-100)] px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                       {field.code}
@@ -340,19 +411,7 @@ export function RfqDetailWorkspace({
           {/* Files */}
           <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
             <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Uploaded Files</h2>
-            <div className="mt-3 grid gap-3">
-              {rfq.files.map((file) => (
-                <div key={file.name} className="flex min-h-10 items-center justify-between rounded-[8px] bg-[var(--bocar-blue-100)] px-6 text-white">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <DocumentIcon />
-                    <span className="truncate text-[13px] font-medium">{file.name}</span>
-                  </div>
-                  <span className="rounded-[4px] px-2 py-1 text-[11px] font-semibold uppercase text-white/80">
-                    Read only
-                  </span>
-                </div>
-              ))}
-            </div>
+            <UploadedFilesList files={rfq.files} />
           </div>
 
           {/* Supplier assignment panel */}
@@ -377,8 +436,10 @@ export function RfqDetailWorkspace({
   const showEditRequestsPanel =
     isPurchasingRole &&
     (rfq.status === 'PENDING' || rfq.status === 'PENDING_EDIT_REQUEST');
+  // La lista de proveedores seleccionados es solo para Compras; ni Industrialización ni
+  // Proveedores deben verla.
   const showSuppliers =
-    !isIndustrializacionRole &&
+    isPurchasingRole &&
     rfq.suppliers.length > 0 &&
     rfq.status !== 'PENDING' &&
     rfq.status !== 'PENDING_EDIT_REQUEST';
@@ -452,7 +513,7 @@ export function RfqDetailWorkspace({
           </div>
           <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
             {rfq.specs.map((field) => (
-              <div key={field.code} className="flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4">
+              <div key={field.code} className={['flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4', field.code === 'comments' ? 'sm:col-span-2 lg:col-span-4' : ''].join(' ').trim()}>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center rounded-[4px] bg-[var(--bocar-blue-100)] px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                     {field.code}
@@ -468,19 +529,7 @@ export function RfqDetailWorkspace({
         {/* Files */}
         <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
           <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Uploaded Files</h2>
-          <div className="mt-4 grid gap-3">
-            {rfq.files.map((file) => (
-              <div key={file.name} className="flex min-h-10 items-center justify-between rounded-[8px] bg-[var(--bocar-blue-100)] px-6 text-white">
-                <div className="flex min-w-0 items-center gap-3">
-                  <DocumentIcon />
-                  <span className="truncate text-[13px] font-medium">{file.name}</span>
-                </div>
-                <span className="rounded-[4px] px-2 py-1 text-[11px] font-semibold uppercase text-white/80">
-                  Read only
-                </span>
-              </div>
-            ))}
-          </div>
+          <UploadedFilesList files={rfq.files} />
         </div>
 
         {/* Inline supplier assignment (revealed from the action menu) */}
@@ -655,6 +704,24 @@ export function RfqDetailWorkspace({
               icon: 'check',
               message: 'Solicitud de edición enviada. Comercialización recibirá tu petición.',
             });
+          }}
+        />
+      ) : null}
+
+      {/* Modal: cerrar RFQ formalmente */}
+      {showCloseRfqModal ? (
+        <CloseRfqModal
+          rfqId={rfq.id}
+          onClose={() => setShowCloseRfqModal(false)}
+          onConfirm={async (formData) => {
+            await closeRfq(tipo, parseId(rfq.id), formData);
+            setShowCloseRfqModal(false);
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'RFQ cerrado formalmente. Redirigiendo...',
+            });
+            setTimeout(() => navigate(backHref), 2500);
           }}
         />
       ) : null}

@@ -4,6 +4,7 @@ export const RfqStatus = {
   PENDING_EDIT_REQUEST: 'PENDING_EDIT_REQUEST',
   QUOTING: 'QUOTING',
   PARTIALLY_QUOTED: 'PARTIALLY_QUOTED',
+  ANSWERED: 'ANSWERED',
   BENCHMARK_READY: 'BENCHMARK_READY',
   EXPIRED: 'EXPIRED',
   CLOSED: 'CLOSED',
@@ -178,6 +179,7 @@ export function resolveIsAccessible(
       return !isSupplier;
     case 'QUOTING':
     case 'PARTIALLY_QUOTED':
+    case 'ANSWERED':
     case 'BENCHMARK_READY':
     case 'EXPIRED':
       return true;
@@ -220,6 +222,9 @@ export function resolveAllowedActions(input: {
     }
 
     case 'PENDING': {
+      if (isIndustrialization) {
+        actions.push({ ...A.open_rfq, label: 'View RFQ' });
+      }
       if (isPurchasing) {
         actions.push({ ...A.view_full_detail });
         actions.push({ ...A.assign_suppliers });
@@ -266,18 +271,23 @@ export function resolveAllowedActions(input: {
       break;
     }
 
+    case 'ANSWERED': {
+      // El proveedor ya envió su cotización — vista de solo lectura, sin acciones
+      break;
+    }
+
     case 'BENCHMARK_READY': {
       if (!isSupplier) {
         actions.push({ ...A.view_benchmark });
       }
-      if (isSuperUser) {
+      if (isPurchasing) {
         actions.push({ ...A.close_rfq });
       }
       break;
     }
 
     case 'EXPIRED': {
-      if (isSuperUser) {
+      if (isPurchasing) {
         // close_rfq is the primary CTA in EXPIRED (no competing primary action)
         actions.push({ ...A.close_rfq, tone: 'primary' });
         if (isPurchasingAdmin) {

@@ -3,10 +3,12 @@ import type { RfqTipo } from '@/features/analytics/types';
 import type { MoldFormValues } from '@/features/rfq/components/RfqForm/definitions/moldDefinition';
 import type { TrimmingFormValues } from '@/features/rfq/components/RfqForm/definitions/trimmingDefinition';
 import {
+  createRfqResponseDto,
   dashboardCountDto,
   detailMsgDto,
   rfqDetailDto,
   rfqIndustrializacionListResponseDto,
+  type CreateRfqResponseDto,
   type DashboardCountDto,
 } from '@/features/rfq/services/rfqDtos';
 import { rfqFormToFormData } from '@/features/rfq/services/rfqFormToDto';
@@ -48,11 +50,11 @@ export async function fetchDashboardCounts(userId?: number, signal?: AbortSignal
 export async function createRfq(
   tipo: RfqTipo,
   values: MoldFormValues | TrimmingFormValues,
-): Promise<void> {
-  await request(`${INDUSTRIALIZACION_BASE}/rfq/${tipoQ(tipo)}`, {
+): Promise<CreateRfqResponseDto> {
+  return request(`${INDUSTRIALIZACION_BASE}/rfq/${tipoQ(tipo)}`, {
     method: 'POST',
     body: rfqFormToFormData(tipo, values),
-    schema: detailMsgDto,
+    schema: createRfqResponseDto,
   });
 }
 
@@ -60,8 +62,8 @@ export async function updateRfq(
   tipo: RfqTipo,
   id: number,
   values: MoldFormValues | TrimmingFormValues,
-): Promise<void> {
-  await request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
+): Promise<{ detail: string }> {
+  return request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
     method: 'PATCH',
     body: rfqFormToFormData(tipo, values),
     schema: detailMsgDto,
@@ -127,6 +129,18 @@ export async function approveEditRequest(tipo: RfqTipo, editRequestId: number): 
 export async function rejectEditRequest(tipo: RfqTipo, editRequestId: number): Promise<void> {
   await request(`${COMERCIALIZACION_BASE}/edit-requests/${editRequestId}/rechazar/${tipoQ(tipo)}`, {
     method: 'PATCH',
+    schema: detailMsgDto,
+  });
+}
+
+export async function closeRfq(
+  tipo: RfqTipo,
+  id: number,
+  body: { closure_reason: string },
+): Promise<void> {
+  await request(`${COMERCIALIZACION_BASE}/rfq/${id}/cerrar/${tipoQ(tipo)}`, {
+    method: 'POST',
+    body,
     schema: detailMsgDto,
   });
 }

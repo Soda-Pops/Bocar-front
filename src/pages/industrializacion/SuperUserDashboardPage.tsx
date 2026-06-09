@@ -10,11 +10,11 @@ import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/Da
 import {
   getDateOptions,
   getFilteredDashboardRows,
-  monthlyRfqSeries,
   superuserMetrics,
   superuserRowsByTab,
   superuserTabs,
 } from '@/features/analytics/services/analyticsService';
+import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
 import type { SuperUserTabKey, SortOption } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -71,6 +71,7 @@ function RfqStatusBadge({ status }: { status?: string }) {
 
 function SuperUserDashboardPage() {
   const navigate = useNavigate();
+  const rfqHistogram = useRfqHistogramSeries();
   const [activeTab, setActiveTab] = useState<SuperUserTabKey>('borradores');
   const [searchValue, setSearchValue] = useState('');
   const [sortValue, setSortValue] = useState<SortOption>('');
@@ -116,7 +117,10 @@ function SuperUserDashboardPage() {
             ))}
           </div>
 
-          <MonthlyRfqChart series={monthlyRfqSeries} />
+          <MonthlyRfqChart
+            series={rfqHistogram.series}
+            statusText={getChartStatusText(rfqHistogram.status)}
+          />
         </section>
 
         <section className="mt-8 border-b border-[rgba(217,222,229,0.9)]">
@@ -303,6 +307,12 @@ function SuperUserDashboardPage() {
       </div>
     </MainLayout>
   );
+}
+
+function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['status']) {
+  if (status === 'loading') return 'Loading';
+  if (status === 'error') return 'Unavailable';
+  return 'Live';
 }
 
 export default SuperUserDashboardPage;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type BaseSyntheticEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FormProvider,
   type DefaultValues,
@@ -161,6 +161,9 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
+  const [actionPending, setActionPending] = useState(false);
+  const actionPendingRef = useRef(false);
+  const [createdSuccessfully, setCreatedSuccessfully] = useState(false);
   const currentPageRef = useRef<string>(definition.pages[0] ?? 'basic');
   const skipNextEmptyPageErrorSyncRef = useRef(false);
 
@@ -197,6 +200,9 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     setFeedback(getInitialFeedback(mode, rfqId, quotationId));
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
+    setActionPending(false);
+    setCreatedSuccessfully(false);
+    actionPendingRef.current = false;
   }, [mode, reset, rfqId, quotationId, tipo, definition]);
 
   currentPageRef.current = currentPage;
@@ -266,48 +272,92 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     if (prev) setCurrentPage(prev);
   }
 
-  async function handleSaveDraft() {
-    if (onSaveDraft) {
-      try {
-        await onSaveDraft(form.getValues());
-      } catch (error) {
-        setFeedback({
-          text: error instanceof Error ? error.message : 'The draft could not be saved.',
-          tone: 'error',
-        });
+  function lockAction() {
+    actionPendingRef.current = true;
+    setActionPending(true);
+  }
+
+  function unlockAction() {
+    actionPendingRef.current = false;
+    setActionPending(false);
+  }
+
+  function submitOnce(validHandler: (values: TValues) => Promise<void>) {
+    return (event?: BaseSyntheticEvent) => {
+      if (actionPendingRef.current) {
+        event?.preventDefault();
         return;
       }
+      lockAction();
+      void handleSubmit(
+        async (values) => {
+          try {
+            await validHandler(values);
+          } finally {
+            unlockAction();
+          }
+        },
+        (fieldErrors) => {
+          try {
+            handleInvalidSubmit(fieldErrors);
+          } finally {
+            unlockAction();
+          }
+        },
+      )(event);
+    };
+  }
+
+  async function handleSaveDraft() {
+    if (actionPendingRef.current) return;
+    lockAction();
+    try {
+      if (onSaveDraft) {
+        await onSaveDraft(form.getValues());
+      }
+      setFeedback({
+        text:
+          mode === 'edit'
+            ? `${(quotationId ?? 'COT-001').toUpperCase()} was saved as an editable draft.`
+            : `Quotation draft saved for ${rfqId.toUpperCase()}.`,
+        tone: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : 'The draft could not be saved.',
+        tone: 'error',
+      });
+    } finally {
+      unlockAction();
     }
-    setFeedback({
-      text:
-        mode === 'edit'
-          ? `${(quotationId ?? 'COT-001').toUpperCase()} was saved as an editable draft.`
-          : `Quotation draft saved for ${rfqId.toUpperCase()}.`,
-      tone: 'success',
-    });
   }
 
   async function handleValidSubmit(values: TValues) {
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
-    let rfqCompleted = false;
     if (onSubmit) {
       try {
         const result = await onSubmit(values);
-        rfqCompleted = Boolean(result && 'rfqCompleted' in result && result.rfqCompleted);
+        const rfqCompleted = Boolean(result && 'rfqCompleted' in result && result.rfqCompleted);
+        setCreatedSuccessfully(true);
+        setFeedback({
+          text: rfqCompleted
+            ? 'Quotation submitted. RFQ closed.'
+            : mode === 'edit'
+              ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
+              : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,
+          tone: 'success',
+        });
       } catch (error) {
         setFeedback({
           text: error instanceof Error ? error.message : 'The quotation could not be submitted.',
           tone: 'error',
         });
-        return;
       }
+      return;
     }
     setFeedback({
       text:
-        rfqCompleted
-          ? 'Quotation submitted. RFQ closed.'
-          : 
         mode === 'edit'
           ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
           : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,
@@ -330,8 +380,9 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   };
 
   const progressPercent = ((currentIndex + 1) / definition.pages.length) * 100;
-  const currentPageHasError = attemptedSubmit && Boolean(visiblePageErrors[currentPage]);
-  const showFeedback = feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
+  const disableWorkspace = createdSuccessfully;
+  const disableActions = isSubmitting || actionPending;
+  const showFeedback = createdSuccessfully || feedback.tone === 'success' || feedback.tone === 'error';
 
   return (
     <FormProvider {...form}>
@@ -395,16 +446,29 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                     className={`mt-5 rounded-[12px] border px-4 py-3 text-[13px] leading-[1.55] ${getFeedbackClasses(feedback.tone)}`}
                     role={feedback.tone === 'error' ? 'alert' : 'status'}
                   >
-                    {feedback.text}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span>{feedback.text}</span>
+                      {createdSuccessfully ? (
+                        <button
+                          className="inline-flex h-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b3b6b]"
+                          type="button"
+                          onClick={onBack}
+                        >
+                          Back to dashboard
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
 
                 <form
                   className="mt-8"
                   noValidate
-                  onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+                  onSubmit={submitOnce(handleValidSubmit)}
                 >
-                  {definition.renderPage(currentPage)}
+                  <fieldset disabled={disableWorkspace} className="m-0 min-w-0 border-0 p-0">
+                    {definition.renderPage(currentPage)}
+                  </fieldset>
 
                   <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     {currentIndex === 0 ? (
@@ -420,27 +484,31 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                     )}
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                      <button
-                        className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
-                        disabled={isSubmitting}
-                        type="button"
-                        onClick={handleSaveDraft}
-                      >
-                        Save Draft
-                      </button>
+                      {!disableWorkspace ? (
+                        <button
+                          className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
+                          disabled={disableActions}
+                          type="button"
+                          onClick={() => { void handleSaveDraft(); }}
+                        >
+                          {disableActions && !isSubmitting ? 'Saving...' : 'Save Draft'}
+                        </button>
+                      ) : null}
 
                       {currentIndex === definition.pages.length - 1 ? (
-                        <Button
-                          className="h-11 min-w-[200px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
-                          disabled={isSubmitting}
-                          type="submit"
-                        >
-                          {isSubmitting
-                            ? 'Submitting...'
-                            : mode === 'edit'
-                              ? 'Update Quotation'
-                              : 'Submit Quotation'}
-                        </Button>
+                        disableWorkspace ? null : (
+                          <Button
+                            className="h-11 min-w-[200px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
+                            disabled={disableActions}
+                            type="submit"
+                          >
+                            {isSubmitting
+                              ? 'Submitting...'
+                              : mode === 'edit'
+                                ? 'Update Quotation'
+                                : 'Submit Quotation'}
+                          </Button>
+                        )
                       ) : (
                         <Button
                           className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b]"

@@ -24,7 +24,7 @@ export async function listRfqsComercializacion(
   return [
     ...dto.mold.map((item) => mapComercializacionRow(item, 'Mold')),
     ...dto.trimming.map((item) => mapComercializacionRow(item, 'Trimming')),
-  ];
+  ].filter((row) => row.status !== 'DRAFT');
 }
 
 export async function createAsignaciones(
@@ -96,4 +96,3 @@ export async function listEditRequests(signal?: AbortSignal): Promise<EditReques
   }));
   return [...mold, ...trimming].sort((a, b) => b.id - a.id);
 }
-

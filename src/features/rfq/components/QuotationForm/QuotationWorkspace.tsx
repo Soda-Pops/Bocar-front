@@ -5,10 +5,9 @@ import type { MoldFormValues } from '@/features/rfq/components/RfqForm/definitio
 import type { TrimmingFormValues } from '@/features/rfq/components/RfqForm/definitions/trimmingDefinition';
 import {
   actualizarCotizacion,
-  detalleAsignacionFormValues,
+  detalleAsignacionParaCotizar,
   enviarCotizacion,
   responderCotizacion,
-  verRespuesta,
 } from '@/features/supplier/services/asignacionesService';
 import { useResource } from '@/shared/hooks/useResource';
 import { parseId } from '@/shared/utils/rfqId';
@@ -31,6 +30,17 @@ type QuotationWorkspaceProps = {
   tipo: RfqTipo;
 };
 
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error && 'body' in error) {
+    const body = (error as { body?: unknown }).body;
+    if (typeof body === 'object' && body && 'detail' in body) {
+      return String((body as { detail: unknown }).detail);
+    }
+  }
+  if (error instanceof Error) return error.message;
+  return 'Unexpected error.';
+}
+
 export function QuotationWorkspace({
   mode,
   onBack,
@@ -38,20 +48,38 @@ export function QuotationWorkspace({
   rfqId,
   tipo,
 }: QuotationWorkspaceProps) {
-  const [hasDraft, setHasDraft] = useState(mode === 'edit');
   const inheritedResource = useResource(
-    (signal) => detalleAsignacionFormValues(tipo, parseId(rfqId), signal),
+    (signal) => detalleAsignacionParaCotizar(tipo, parseId(rfqId), signal),
     [tipo, rfqId],
   );
-  const inheritedValues = inheritedResource.state.status === 'success' ? inheritedResource.state.data : null;
-  const trimmingInherited =
-    tipo === 'Trimming' && inheritedValues
-      ? trimmingFormToInherited(inheritedValues as TrimmingFormValues)
-      : undefined;
-  const moldInherited =
-    tipo === 'Mold' && inheritedValues
-      ? moldFormToInherited(inheritedValues as MoldFormValues)
-      : undefined;
+  const resourceData = inheritedResource.state.status === 'success' ? inheritedResource.state.data : null;
+  const inheritedValues = resourceData?.formValues ?? null;
+
+  // hasDraftUser: se activa en esta sesión cuando el proveedor crea un borrador nuevo.
+  // tiene_borrador: viene del backend — true si ya existe un borrador guardado previamente.
+  // hasDraft = cualquiera de los dos → usar PATCH en lugar de POST.
+  const [hasDraftUser, setHasDraftUser] = useState(false);
+  const hasDraft = hasDraftUser || (resourceData?.tiene_borrador ?? false);
+
+  useEffect(() => {
+    setHasDraftUser(false);
+  }, [mode, rfqId, tipo]);
+  // Memoizados: el shell resetea el formulario cuando cambia la definición, y
+  // la definición se reconstruye cuando cambia el objeto heredado.
+  const trimmingInherited = useMemo(
+    () =>
+      tipo === 'Trimming' && inheritedValues
+        ? trimmingFormToInherited(inheritedValues as TrimmingFormValues)
+        : undefined,
+    [tipo, inheritedValues],
+  );
+  const moldInherited = useMemo(
+    () =>
+      tipo === 'Mold' && inheritedValues
+        ? moldFormToInherited(inheritedValues as MoldFormValues)
+        : undefined,
+    [tipo, inheritedValues],
+  );
 
   const trimmingDef = useMemo(
     () => buildTrimmingQuotationDefinition(rfqId, trimmingInherited),
@@ -62,9 +90,6 @@ export function QuotationWorkspace({
     [rfqId, moldInherited],
   );
 
-  useEffect(() => {
-    setHasDraft(mode === 'edit');
-  }, [mode, rfqId, tipo]);
 
   async function handleSaveDraft(values: unknown) {
     const assignmentId = parseId(rfqId);
@@ -73,26 +98,25 @@ export function QuotationWorkspace({
       return;
     }
     await responderCotizacion(tipo, assignmentId, values);
-    setHasDraft(true);
+    setHasDraftUser(true);
   }
 
   async function handleSubmit(values: unknown) {
     const assignmentId = parseId(rfqId);
     if (hasDraft) {
       await actualizarCotizacion(tipo, assignmentId, values);
-    } else if (mode === 'edit') {
-      const existing = await verRespuesta(tipo, assignmentId);
-      if (existing?.status === 'draft') {
-        await actualizarCotizacion(tipo, assignmentId, values);
-      } else {
-        await responderCotizacion(tipo, assignmentId, values);
-      }
     } else {
       await responderCotizacion(tipo, assignmentId, values);
+      setHasDraftUser(true);
     }
-    setHasDraft(true);
-    const result = await enviarCotizacion(tipo, assignmentId);
-    return { rfqCompleted: 'rfq_completed' in result ? Boolean(result.rfq_completed) : false };
+    try {
+      const result = await enviarCotizacion(tipo, assignmentId);
+      return { rfqCompleted: 'rfq_completed' in result ? Boolean(result.rfq_completed) : false };
+    } catch (error) {
+      throw new Error(
+        `Quotation was saved as a draft, but could not be sent to Purchasing. ${getErrorMessage(error)}`,
+      );
+    }
   }
 
   if (inheritedResource.state.status === 'loading') {
@@ -171,6 +195,15 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
     dcm_shot_weight: '',
     dcm_platen_dimension: '',
     dcm_tie_bar: '',
+    // SPECS del DCM capturados por Industrialización (claves ofuscadas en el
+    // backend: No_ofHS, Jco, Ihtcs, Spin, VacV, ChillBl, Oth).
+    dcm_no_hs: c.no_hs?.notes || values.hydr_slides,
+    dcm_jco: c.jco?.notes ?? '',
+    dcm_ihtcs: c.ihtcs?.notes ?? '',
+    dcm_spin: c.spin?.notes ?? '',
+    dcm_vac_v: c.vac_v?.notes ?? '',
+    dcm_chill_bl: c.chill_bl?.notes ?? '',
+    dcm_oth: c.ctbd?.notes ?? '',
     diritpotd: [
       item('3D', c.d_3d?.checked, c.d_3d?.notes ?? ''),
       item('FiAn', c.flan?.checked, c.flan?.notes ?? ''),

@@ -101,8 +101,14 @@ function moldToFormData(values: MoldFormValues): FormData {
   appendIfPresent(fd, 'ELAB', values.elab);
   appendIfPresent(fd, 'SMACH', values.buhler);
   appendIfPresent(fd, 'No_CAV', values.num_cav);
-  appendNumber(fd, 'No_ofHS', values.hydr_slides);
+  appendNumber(fd, 'No_ofHS', values.hydr_slides || values.considerations.no_hs?.notes);
   appendNumber(fd, 'No_ofMS', values.mech_slides);
+  appendIfPresent(fd, 'Jco', values.considerations.jco?.notes);
+  appendIfPresent(fd, 'Ihtcs', values.considerations.ihtcs?.notes);
+  appendIfPresent(fd, 'Spin', values.considerations.spin?.notes);
+  appendIfPresent(fd, 'VacV', values.considerations.vac_v?.notes);
+  appendIfPresent(fd, 'ChillBl', values.considerations.chill_bl?.notes);
+  appendIfPresent(fd, 'Oth', values.considerations.ctbd?.notes);
   appendIfPresent(fd, 'alloy', values.alloy);
   appendNumber(fd, 'min_wall_thickness_mm', values.wall_min);
   appendNumber(fd, 'max_wall_thickness_mm', values.wall_max);

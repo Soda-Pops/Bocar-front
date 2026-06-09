@@ -51,6 +51,15 @@ export type InheritedMoldRfq = {
   dcm_shot_weight: string;
   dcm_platen_dimension: string;
   dcm_tie_bar: string;
+  // DCM SPECS captured by Industrialization (obfuscated keys), carried into the
+  // Cost Breakdown Unit column as readonly values.
+  dcm_no_hs: string; // No.ofHS (C15)
+  dcm_jco: string; // Jco (C19)
+  dcm_ihtcs: string; // Ihtcs (C21)
+  dcm_spin: string; // Spin (C22)
+  dcm_vac_v: string; // VacV (C27)
+  dcm_chill_bl: string; // ChillBl (C28)
+  dcm_oth: string; // Oth (C30)
   // Data Information Required in the Price of the Die
   diritpotd: ConsiderationItem[];
   // Other items
@@ -105,6 +114,13 @@ function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
     dcm_shot_weight: '4.2 kg',
     dcm_platen_dimension: '1,100 × 950 mm',
     dcm_tie_bar: '730 × 730 mm',
+    dcm_no_hs: '2',
+    dcm_jco: '4',
+    dcm_ihtcs: '3',
+    dcm_spin: '1',
+    dcm_vac_v: '2',
+    dcm_chill_bl: '0',
+    dcm_oth: '',
     diritpotd: [
       { label: 'Design 3D model', checked: 'yes', notes: 'Native CATIA V5 format.' },
       { label: 'Design 2D data', checked: 'yes', notes: 'PDF + DXF.' },
@@ -1300,16 +1316,17 @@ function MoldAccessoriesCostsPage() {
       <CostTable
         basePath="accessories_costs"
         columns={['unit', 'price_unit', 'total', 'weeks']}
+        hint="Unit values marked as readonly were captured by Industrialization in the RFQ (DCM) and cannot be edited."
         rows={[
-          { key: 'parker_hydraulic', label: '1. Parker Hydraulic Cylinders & Square D limit switches' },
-          { key: 'jet_cooling', label: '2. Jet cooling' },
-          { key: 'squeeze_pin', label: '3. Squeeze pin' },
-          { key: 'interchangeable_inserts', label: '4. Interchangeable inserts' },
-          { key: 'chill_blocks', label: '5. Chill Blocks / Vacuum Valves' },
+          { key: 'parker_hydraulic', label: '1. Parker Hydraulic Cylinders & Square D limit switches', unitReadOnly: true },
+          { key: 'jet_cooling', label: '2. Jet cooling', unitReadOnly: true },
+          { key: 'squeeze_pin', label: '3. Squeeze pin', unitReadOnly: true },
+          { key: 'interchangeable_inserts', label: '4. Interchangeable inserts', unitReadOnly: true },
+          { key: 'chill_blocks', label: '5. Chill Blocks / Vacuum Valves', unitReadOnly: true },
           { key: 'eyebolts', label: '6. Eyebolts' },
           { key: 'oil_water_connectors', label: '7. Oil and Water Connectors' },
           { key: 'lethiguel_distributor', label: '8. Lethiguel Distributor' },
-          { key: 'others', label: '9. Others' },
+          { key: 'others', label: '9. Others', unitReadOnly: true },
         ]}
         totalLabel="10. Total Accesories Cost Σ"
       />
@@ -1527,11 +1544,12 @@ function MoldSparePartsPage() {
       <CostTable
         basePath="spare_parts"
         columns={['unit', 'price_unit', 'total', 'weeks']}
+        hint="Unit values marked as readonly were captured by Industrialization in the RFQ (DCM) and cannot be edited."
         rows={[
-          { key: 'interchangeable_inserts', label: '1. Interchangeable inserts' },
-          { key: 'core_pins', label: '2. Core Pins' },
+          { key: 'interchangeable_inserts', label: '1. Interchangeable inserts', unitReadOnly: true },
+          { key: 'core_pins', label: '2. Core Pins', unitReadOnly: true },
           { key: 'inserts_spare', label: '3. Inserts as spare parts' },
-          { key: 'others', label: '4. Others' },
+          { key: 'others', label: '4. Others', unitReadOnly: true },
         ]}
         totalLabel="5. Grand total Σ"
       />
@@ -1730,11 +1748,51 @@ function SocSparePartsPage() {
 
 // ─── Definition factory ───────────────────────────────────────────────────────
 
+/** A DCM spec counts as "filled" when it is non-empty and not numerically zero. */
+function isNonZeroSpec(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const n = Number(trimmed);
+  return Number.isNaN(n) ? true : n !== 0;
+}
+
 export function buildMoldQuotationDefinition(
   rfqId: string,
   inheritedOverride?: InheritedMoldRfq,
 ): RfqWorkspaceDefinition<MoldQuotationValues> {
   const inherited = inheritedOverride ?? getInheritedMoldRfqMock(rfqId);
+
+  // Chill Blocks / Vacuum Valves is a single Cost Breakdown row: only one of
+  // VacV (C27) / ChillBl (C28) comes filled (≠ 0) from Industrialization.
+  const chillOrVac = isNonZeroSpec(inherited.dcm_vac_v)
+    ? inherited.dcm_vac_v
+    : isNonZeroSpec(inherited.dcm_chill_bl)
+      ? inherited.dcm_chill_bl
+      : '';
+
+  // Pre-fills the Unit cells that the supplier no longer captures: their value
+  // comes from the DCM SPECS entered by Industrialization in the RFQ. The
+  // matching rows are rendered readonly (`unitReadOnly`) in the pages above.
+  function withInheritedUnits(values: MoldQuotationValues): MoldQuotationValues {
+    return {
+      ...values,
+      accessories_costs: {
+        ...values.accessories_costs,
+        parker_hydraulic: { ...values.accessories_costs.parker_hydraulic, unit: inherited.dcm_no_hs },
+        jet_cooling: { ...values.accessories_costs.jet_cooling, unit: inherited.dcm_jco },
+        squeeze_pin: { ...values.accessories_costs.squeeze_pin, unit: inherited.dcm_spin },
+        interchangeable_inserts: { ...values.accessories_costs.interchangeable_inserts, unit: inherited.dcm_ihtcs },
+        chill_blocks: { ...values.accessories_costs.chill_blocks, unit: chillOrVac },
+        others: { ...values.accessories_costs.others, unit: inherited.dcm_oth },
+      },
+      spare_parts: {
+        ...values.spare_parts,
+        interchangeable_inserts: { ...values.spare_parts.interchangeable_inserts, unit: inherited.dcm_ihtcs },
+        core_pins: { ...values.spare_parts.core_pins, unit: inherited.dcm_jco },
+        others: { ...values.spare_parts.others, unit: inherited.dcm_oth },
+      },
+    };
+  }
 
   function renderPage(page: string): ReactNode {
     if (page === 'rfq') return <MoldRfqPage inherited={inherited} />;
@@ -1768,8 +1826,8 @@ export function buildMoldQuotationDefinition(
 
   return {
     resolver: zodResolver(moldQuotationSchema),
-    getCreateDefaultValues,
-    getEditDefaultValues,
+    getCreateDefaultValues: () => withInheritedUnits(getCreateDefaultValues()),
+    getEditDefaultValues: (id?: string) => withInheritedUnits(getEditDefaultValues(id)),
     pages: PAGES,
     navGroups: NAV_GROUPS,
     pageMeta: PAGE_META,

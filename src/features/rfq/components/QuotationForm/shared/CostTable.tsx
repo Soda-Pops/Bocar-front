@@ -10,6 +10,8 @@ export type CostTableColumns = readonly [CostColumnKey, CostColumnKey, CostColum
 export type CostTableRow = {
   key: string;
   label: string;
+  /** Left column (Unit) is pre-filled from the RFQ by Industrialization and not editable by the supplier. */
+  unitReadOnly?: boolean;
 };
 
 export type CostTableProps = {
@@ -95,11 +97,13 @@ export function CostTable({
 
   return (
     <div className="space-y-3">
-      {title ? (
+      {title || hint ? (
         <div className="flex flex-col gap-1">
-          <h4 className="m-0 text-[14px] font-semibold leading-[1.4] text-[var(--bocar-blue-100)]">
-            {title}
-          </h4>
+          {title ? (
+            <h4 className="m-0 text-[14px] font-semibold leading-[1.4] text-[var(--bocar-blue-100)]">
+              {title}
+            </h4>
+          ) : null}
           {hint ? (
             <p className="m-0 text-[12px] leading-[1.5] text-[var(--bocar-blue-50)]">{hint}</p>
           ) : null}
@@ -130,13 +134,25 @@ export function CostTable({
           return (
             <div key={row.key} className={`py-3 ${GRID_CLASS}`}>
               <div className={ROW_LABEL_CLASS}>{row.label}</div>
-              <input
-                className={inputBaseClasses(false)}
-                placeholder="0"
-                step="0.01"
-                type="number"
-                {...register(leftName)}
-              />
+              {row.unitReadOnly ? (
+                <input
+                  aria-label={`${COLUMN_LABELS[columns[0]]} ${row.label} (from RFQ)`}
+                  className={READONLY_INPUT_CLASS}
+                  readOnly
+                  tabIndex={-1}
+                  title="Pre-filled by Industrialization from the RFQ."
+                  type="text"
+                  {...register(leftName)}
+                />
+              ) : (
+                <input
+                  className={inputBaseClasses(false)}
+                  placeholder="0"
+                  step="0.01"
+                  type="number"
+                  {...register(leftName)}
+                />
+              )}
               <input
                 className={inputBaseClasses(false)}
                 placeholder="0.00"

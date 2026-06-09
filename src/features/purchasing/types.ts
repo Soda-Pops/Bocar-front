@@ -11,7 +11,13 @@ export type PurchasingRfqStatus =
   | 'CLOSED'
   | 'CANCELLED';
 
-export type PurchasingDashboardMetricKey = 'pending' | 'quoting' | 'benchmark_ready' | 'expired' | 'eliminated';
+export type PurchasingDashboardMetricKey =
+  | 'pending'
+  | 'quoting'
+  | 'benchmark_ready'
+  | 'closed'
+  | 'expired'
+  | 'eliminated';
 
 export type PurchasingPriority = 'High' | 'Medium' | 'Low';
 
@@ -36,7 +42,10 @@ export type PurchasingUser = {
 export type PurchasingDashboardMetric = {
   key: PurchasingDashboardMetricKey;
   label: string;
-  status: Extract<PurchasingRfqStatus, 'PENDING' | 'QUOTING' | 'BENCHMARK_READY' | 'EXPIRED' | 'CANCELLED'>;
+  status: Extract<
+    PurchasingRfqStatus,
+    'PENDING' | 'QUOTING' | 'BENCHMARK_READY' | 'CLOSED' | 'EXPIRED' | 'CANCELLED'
+  >;
   value: string;
   valueColor: string;
 };

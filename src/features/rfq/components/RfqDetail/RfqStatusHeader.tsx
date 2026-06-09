@@ -29,18 +29,6 @@ export function RfqStatusHeader({ rfq, status, statusMeta }: RfqStatusHeaderProp
         <div className="flex flex-wrap gap-x-6 gap-y-1">
           <span className="text-[12px] text-[var(--bocar-blue-70)]">
             <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-              Material
-            </span>
-            {rfq.material}
-          </span>
-          <span className="text-[12px] text-[var(--bocar-blue-70)]">
-            <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
-              Customer
-            </span>
-            {rfq.client}
-          </span>
-          <span className="text-[12px] text-[var(--bocar-blue-70)]">
-            <span className="font-semibold text-[var(--bocar-blue-50)] uppercase tracking-[0.06em] mr-1.5">
               Created by
             </span>
             {rfq.createdBy}

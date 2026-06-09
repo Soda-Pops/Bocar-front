@@ -19,12 +19,12 @@ import {
   getDashboardCardStatusClass,
   getFilteredDashboardRows,
   historicalRows,
-  purchasingMonthlySeries,
   purchasingQueueRows,
   superuserPurchasingMetrics,
   unlockRequests,
   urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
+import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
 import type { PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
@@ -46,14 +46,6 @@ function ArrowRightIcon() {
         strokeWidth="1.5"
       />
     </svg>
-  );
-}
-
-function HistoricalStatusBadge() {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
-      Done
-    </span>
   );
 }
 
@@ -214,6 +206,7 @@ function WidgetPanel({
 
 function AdminDashboardPage() {
   const navigate = useNavigate();
+  const rfqHistogram = useRfqHistogramSeries();
   const [activeTab, setActiveTab] = useState<AdminTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
@@ -264,8 +257,9 @@ function AdminDashboardPage() {
       handleTabChange('eliminated');
     } else if (metric.status === 'PENDING') {
       handleTabChange('pending');
-    } else if (metric.status === 'BENCHMARK_READY') {
+    } else if (metric.status === 'BENCHMARK_READY' || metric.status === 'CLOSED') {
       handleTabChange('historical');
+      setActiveStatusFilter(metric.status);
     }
   }
 
@@ -317,7 +311,10 @@ function AdminDashboardPage() {
               />
             ))}
           </div>
-          <MonthlyRfqChart series={purchasingMonthlySeries} />
+          <MonthlyRfqChart
+            series={rfqHistogram.series}
+            statusText={getChartStatusText(rfqHistogram.status)}
+          />
         </section>
 
         {/* Tabs */}
@@ -461,7 +458,7 @@ function AdminDashboardPage() {
                         {row.machineType}
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
-                        <HistoricalStatusBadge />
+                        <DashboardStatusBadge status={row.status} />
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.createdAt}
@@ -541,6 +538,12 @@ function AdminDashboardPage() {
       </div>
     </MainLayout>
   );
+}
+
+function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['status']) {
+  if (status === 'loading') return 'Loading';
+  if (status === 'error') return 'Unavailable';
+  return 'Live';
 }
 
 export default AdminDashboardPage;

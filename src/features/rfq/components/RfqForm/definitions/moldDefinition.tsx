@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
+import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
 import { FileUploadField } from '@shared/components/ui/FileUploadField';
@@ -14,6 +16,7 @@ import {
   inputBaseClasses,
   type ConsiderationGroupConfig,
 } from '../shell/primitives';
+import { buildPageErrorMap, goToFirstRequiredError } from '../shell/requiredFields';
 import type { NavGroup, PageMeta, RfqWorkspaceDefinition } from '../shell/types';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -52,7 +55,7 @@ const moldSchema = z
     projected: z.string(),
     rfq_name: z.string().trim().min(1, 'Enter the RFQ name to continue.'),
     sk_part: z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() }).nullable(),
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })),
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional(), id: z.number().optional(), url: z.string().optional(), uploadedAt: z.string().optional() })),
     surface: z.string(),
     three_plate: z.string(),
     tt: z.string(),
@@ -62,8 +65,13 @@ const moldSchema = z
     weight: z.string(),
   })
   .superRefine((values, ctx) => {
-    Object.entries(values.considerations).forEach(([key, value]) => {
-      if (TOGGLE_REQUIRED_CONSIDERATIONS.has(key) && !value.checked?.trim()) {
+    // Iterate the required set (not the entries present in the form): the
+    // validation result must be identical no matter which pages were visited.
+    // Visiting a page registers its inputs and creates `considerations`
+    // entries — iterating entries made fields required as a side effect of
+    // navigation, with errors invisible in the sidebar.
+    TOGGLE_REQUIRED_CONSIDERATIONS.forEach((key) => {
+      if (!values.considerations[key]?.checked?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Select whether it applies.',
@@ -140,11 +148,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
 ];
-
-const REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly (keyof MoldFormValues)[]>> = {
-  basic: ['rfq_name'],
-  geometry: ['part_name', 'part_number'],
-};
 
 // ─── Consideration groups ─────────────────────────────────────────────────────
 
@@ -231,6 +234,25 @@ const CONSIDERATION_GROUPS: readonly MoldConsiderationGroup[] = [
   },
 ];
 
+// ─── Required fields (single source of truth) ─────────────────────────────────
+
+/** Paths of the yes/no toggles required on a consideration page, derived from
+ * the group config + TOGGLE_REQUIRED_CONSIDERATIONS so both stay in sync. */
+function requiredTogglePaths(page: MoldPageKey): readonly FieldPath<MoldFormValues>[] {
+  const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
+  return (group?.items ?? [])
+    .filter((item) => TOGGLE_REQUIRED_CONSIDERATIONS.has(item.id))
+    .map((item) => `considerations.${item.id}.checked` as FieldPath<MoldFormValues>);
+}
+
+const REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly FieldPath<MoldFormValues>[]>> = {
+  basic: ['rfq_name'],
+  geometry: ['part_name', 'part_number'],
+  diritpotd: requiredTogglePaths('diritpotd'),
+  other_cons: requiredTogglePaths('other_cons'),
+  ot_inf: requiredTogglePaths('ot_inf'),
+};
+
 // ─── Default values ───────────────────────────────────────────────────────────
 
 function getCreateDefaultValues(): MoldFormValues {
@@ -298,19 +320,75 @@ function getCompletedMap(values: MoldFormValues): Partial<Record<string, boolean
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<MoldFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
-  return {
-    basic: Boolean(errors.rfq_name),
-    geometry: Boolean(errors.part_name || errors.part_number),
-  };
+  return buildPageErrorMap(REQUIRED_FIELDS_BY_PAGE, errors);
 }
 
 // ─── Page components ──────────────────────────────────────────────────────────
 
+/** A spec counts as "filled" when it is non-empty and not numerically zero. */
+function isNonZeroSpec(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  const n = Number(trimmed);
+  return Number.isNaN(n) ? true : n !== 0;
+}
+
+const EXCLUSIVE_NOTE =
+  'VacV (Vacuum Valves) and ChillBl (Chill Blocks) are mutually exclusive: only one of them can be captured per RFQ. Filling one with a value other than 0 locks the other at 0 until it is cleared back to 0.';
+
+/**
+ * VacV (C27) and ChillBl (C28) are mutually exclusive: the first one filled
+ * with a value ≠ 0 disables the other and forces it to 0. Clearing it back to
+ * 0 re-enables the other.
+ */
+function useVacChillExclusion() {
+  const { setValue } = useFormContext();
+  const vacV = useWatch({ name: 'considerations.vac_v.notes' }) as string | undefined;
+  const chillBl = useWatch({ name: 'considerations.chill_bl.notes' }) as string | undefined;
+
+  const vacVFilled = isNonZeroSpec(vacV);
+  const chillBlFilled = isNonZeroSpec(chillBl);
+
+  // VacV wins ties (only one of the two should ever come filled from the RFQ).
+  const chillBlDisabled = vacVFilled;
+  const vacVDisabled = chillBlFilled && !vacVFilled;
+
+  useEffect(() => {
+    if (vacVFilled && isNonZeroSpec(chillBl)) {
+      setValue('considerations.chill_bl.notes', '0', { shouldDirty: true });
+    }
+  }, [vacVFilled, chillBl, setValue]);
+
+  useEffect(() => {
+    if (chillBlFilled && !vacVFilled && isNonZeroSpec(vacV)) {
+      setValue('considerations.vac_v.notes', '0', { shouldDirty: true });
+    }
+  }, [chillBlFilled, vacVFilled, vacV, setValue]);
+
+  return { vacVDisabled, chillBlDisabled };
+}
+
 function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
   const { register } = useFormContext();
+  const { vacVDisabled, chillBlDisabled } = useVacChillExclusion();
+
+  function isItemDisabled(id: string): boolean {
+    if (id === 'vac_v') return vacVDisabled;
+    if (id === 'chill_bl') return chillBlDisabled;
+    return false;
+  }
+
+  const hasExclusivePair =
+    group.items.some((item) => item.id === 'vac_v') &&
+    group.items.some((item) => item.id === 'chill_bl');
 
   return (
     <SectionCard subtitle={group.subtitle} title={group.title}>
+      {hasExclusivePair ? (
+        <div className="mb-4 rounded-[10px] border border-[rgba(0,46,93,0.18)] bg-[rgba(0,46,93,0.05)] px-4 py-3 text-[12px] leading-[1.5] text-[var(--bocar-blue-70)]">
+          {EXCLUSIVE_NOTE}
+        </div>
+      ) : null}
       <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)] gap-5 border-b border-[rgba(217,222,229,0.86)] pb-3 md:grid">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
           Deliverable / requirement
@@ -320,21 +398,30 @@ function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
         </div>
       </div>
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
-        {group.items.map((item) => (
-          <div
-            key={item.id}
-            className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)] md:items-center md:gap-5"
-          >
-            <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
-              {item.label}
+        {group.items.map((item) => {
+          const disabled = isItemDisabled(item.id);
+          return (
+            <div
+              key={item.id}
+              className="grid gap-3 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)] md:items-center md:gap-5"
+            >
+              <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
+                {item.label}
+              </div>
+              <input
+                className={
+                  disabled
+                    ? 'w-full rounded-[10px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-3.5 py-2.5 text-[14px] text-[var(--bocar-blue-30)] outline-none cursor-not-allowed'
+                    : inputBaseClasses(false)
+                }
+                disabled={disabled}
+                placeholder={item.noteExample ?? 'Specifications / notes'}
+                title={disabled ? 'Locked: the other exclusive field has a value other than 0.' : undefined}
+                {...register(`considerations.${item.id}.notes`)}
+              />
             </div>
-            <input
-              className={inputBaseClasses(false)}
-              placeholder={item.noteExample ?? 'Specifications / notes'}
-              {...register(`considerations.${item.id}.notes`)}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </SectionCard>
   );
@@ -435,7 +522,7 @@ function CommentsPage() {
   );
 }
 
-function FilesPage() {
+function FilesPage({ readOnly }: { readOnly?: boolean }) {
   return (
     <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
       <MultiFileUploadField
@@ -443,19 +530,20 @@ function FilesPage() {
         acceptLabel="PPT, STP, PDF"
         maxSizeMb={25}
         name="files"
+        readOnly={readOnly}
       />
     </SectionCard>
   );
 }
 
-function renderPage(page: string): ReactNode {
+function renderPage(page: string, readOnly?: boolean): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'tool_eng') return <ToolEngineeringPage />;
   if (page === 'spareparts') return <SparePartsPage />;
   if (page === 'geometry') return <GeometryPage />;
   if (page === 'tool_spec') return <ToolSpecificationPage />;
   if (page === 'comments') return <CommentsPage />;
-  if (page === 'files') return <FilesPage />;
+  if (page === 'files') return <FilesPage readOnly={readOnly} />;
 
   if (page === 'dcm') {
     const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
@@ -483,15 +571,7 @@ export const moldDefinition: RfqWorkspaceDefinition<MoldFormValues> = {
   renderPage,
   getCompletedMap,
   getPageErrorMap,
-  onInvalidSubmit: (fieldErrors, { setCurrentPage, setFocus }) => {
-    if (fieldErrors.rfq_name) {
-      setCurrentPage('basic');
-      setFocus('rfq_name');
-      return;
-    }
-    if (fieldErrors.part_name || fieldErrors.part_number) {
-      setCurrentPage('geometry');
-      setFocus(fieldErrors.part_name ? 'part_name' : 'part_number');
-    }
+  onInvalidSubmit: (fieldErrors, ctx) => {
+    goToFirstRequiredError(PAGES, REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
   },
 };

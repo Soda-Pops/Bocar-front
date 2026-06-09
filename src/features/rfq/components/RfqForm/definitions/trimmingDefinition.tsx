@@ -16,6 +16,7 @@ import {
   inputBaseClasses,
   type ConsiderationGroupConfig,
 } from '../shell/primitives';
+import { buildPageErrorMap, goToFirstRequiredError } from '../shell/requiredFields';
 import type { NavGroup, PageMeta, RfqWorkspaceDefinition } from '../shell/types';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ const trimmingSchema = z
     // Section 8 — Comments
     comments: z.string(), // optional · free-form text (textarea, no length limit)
     // Section 9 — Files
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
+    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional(), id: z.number().optional(), url: z.string().optional(), uploadedAt: z.string().optional() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
@@ -388,18 +389,7 @@ function getCompletedMap(values: TrimmingFormValues): Partial<Record<string, boo
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<TrimmingFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
-  const cons = errors.considerations as Record<string, unknown> | undefined;
-
-  function groupHasErrors(group: ConsiderationGroupConfig): boolean {
-    if (!cons) return false;
-    return group.items.some((item) => TRIMMING_TOGGLE_REQUIRED.has(item.id) && Boolean(cons[item.id]));
-  }
-
-  return {
-    basic: Boolean(errors.description || errors.part_number),
-    data_info: groupHasErrors(DATA_INFO_GROUP),
-    other_info: groupHasErrors(OTHER_INFO_GROUP),
-  };
+  return buildPageErrorMap(REQUIRED_FIELDS_BY_PAGE, errors);
 }
 
 // ─── Page components ──────────────────────────────────────────────────────────
@@ -739,7 +729,7 @@ function CommentsPage() {
   );
 }
 
-function FilesPage() {
+function FilesPage({ readOnly }: { readOnly?: boolean }) {
   return (
     <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
       <MultiFileUploadField
@@ -747,12 +737,13 @@ function FilesPage() {
         acceptLabel="PPT, STP, PDF"
         maxSizeMb={25}
         name="files"
+        readOnly={readOnly}
       />
     </SectionCard>
   );
 }
 
-function renderPage(page: string): ReactNode {
+function renderPage(page: string, readOnly?: boolean): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'trim_die') return <TrimDiePage />;
   if (page === 'data_info') return <DataInfoPage />;
@@ -761,7 +752,7 @@ function renderPage(page: string): ReactNode {
   if (page === 'part_geometry') return <PartGeometryPage />;
   if (page === 'tool_spec') return <ToolSpecPage />;
   if (page === 'comments') return <CommentsPage />;
-  if (page === 'files') return <FilesPage />;
+  if (page === 'files') return <FilesPage readOnly={readOnly} />;
   return null;
 }
 
@@ -778,15 +769,7 @@ export const trimmingDefinition: RfqWorkspaceDefinition<TrimmingFormValues> = {
   renderPage,
   getCompletedMap,
   getPageErrorMap,
-  onInvalidSubmit: (fieldErrors, { setCurrentPage, setFocus }) => {
-    if (fieldErrors.description) {
-      setCurrentPage('basic');
-      setFocus('description');
-      return;
-    }
-    if (fieldErrors.part_number) {
-      setCurrentPage('basic');
-      setFocus('part_number');
-    }
+  onInvalidSubmit: (fieldErrors, ctx) => {
+    goToFirstRequiredError(PAGES, REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
   },
 };

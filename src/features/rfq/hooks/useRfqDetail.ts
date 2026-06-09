@@ -82,6 +82,13 @@ function resolveBanner(
         icon: 'clock',
       };
 
+    case 'ANSWERED':
+      return {
+        tone: 'success',
+        message: 'You have already submitted your quotation for this RFQ. No further action is required.',
+        icon: 'check',
+      };
+
     case 'BENCHMARK_READY':
       return {
         tone: 'success',
@@ -138,6 +145,7 @@ const VALID_STATUSES: RfqStatus[] = [
   'PENDING_EDIT_REQUEST',
   'QUOTING',
   'PARTIALLY_QUOTED',
+  'ANSWERED',
   'BENCHMARK_READY',
   'EXPIRED',
   'CLOSED',

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type BaseSyntheticEvent } from 'react';
 import {
   FormProvider,
   type DefaultValues,
@@ -132,7 +132,8 @@ type RfqWorkspaceShellProps<TValues extends FieldValues> = {
   mode: 'create' | 'edit' | 'view';
   onBack: () => void;
   onCreatedDashboard?: () => void;
-  onSubmit?: (values: TValues) => Promise<{ created?: boolean } | void>;
+  onSaveDraft?: (values: TValues) => Promise<{ created?: boolean; detail?: string; id?: number } | void>;
+  onSubmit?: (values: TValues) => Promise<{ created?: boolean; submitted?: boolean; id?: number } | void>;
   rfqId?: string;
   tipo: RfqTipo;
   areaPrefix?: string;
@@ -144,6 +145,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   mode,
   onBack,
   onCreatedDashboard,
+  onSaveDraft,
   onSubmit,
   rfqId,
   tipo,
@@ -155,8 +157,10 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     getInitialFeedback(mode, rfqId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
   const [createdSuccessfully, setCreatedSuccessfully] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
+  const actionPendingRef = useRef(false);
   const currentPageRef = useRef<string>(definition.pages[0] ?? 'basic');
   const skipNextEmptyPageErrorSyncRef = useRef(false);
 
@@ -189,6 +193,8 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     setCurrentPage(definition.pages[0] ?? 'basic');
     setFeedback(getInitialFeedback(mode, rfqId));
     setAttemptedSubmit(false);
+    setActionPending(false);
+    actionPendingRef.current = false;
     setCreatedSuccessfully(false);
     setVisiblePageErrors({});
   }, [mode, reset, rfqId, tipo, definition, initialValues]);
@@ -266,14 +272,41 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     if (prev) setCurrentPage(prev);
   }
 
-  function handleSaveDraft() {
-    setFeedback({
-      text:
-        mode === 'edit'
-          ? `${(rfqId ?? 'RFQ-021').toUpperCase()} was saved as an editable draft.`
-          : 'Draft saved.',
-      tone: 'success',
-    });
+  async function handleValidSaveDraft(values: TValues) {
+    setAttemptedSubmit(false);
+    setVisiblePageErrors({});
+    setCreatedSuccessfully(false);
+
+    if (!onSaveDraft) {
+      setFeedback({
+        text:
+          mode === 'edit'
+            ? `${(rfqId ?? 'RFQ-021').toUpperCase()} was saved as an editable draft.`
+            : 'Draft saved.',
+        tone: 'success',
+      });
+      return;
+    }
+
+    try {
+      const result = await onSaveDraft(values);
+      if (result?.created) {
+        setCreatedSuccessfully(true);
+      }
+      setFeedback({
+        text:
+          result?.detail ??
+          (mode === 'edit'
+            ? `${(rfqId ?? 'RFQ-021').toUpperCase()} was saved in Industrialization.`
+            : 'RFQ saved as draft in Industrialization.'),
+        tone: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : 'The RFQ draft could not be saved.',
+        tone: 'error',
+      });
+    }
   }
 
   async function handleValidSubmit(values: TValues) {
@@ -283,10 +316,12 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     if (onSubmit) {
       try {
         const result = await onSubmit(values);
-        if (result?.created) {
+        if (result?.created || result?.submitted) {
           setCreatedSuccessfully(true);
           setFeedback({
-            text: 'RFQ created successfully. The draft is now available in the Industrialization dashboard.',
+            text: result.submitted
+              ? 'RFQ submitted to Commercialization successfully.'
+              : 'RFQ created successfully. The draft is now available in the Industrialization dashboard.',
             tone: 'success',
           });
           return;
@@ -322,11 +357,43 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     definition.onInvalidSubmit?.(fieldErrors, { setCurrentPage, setFocus });
   };
 
+  function unlockAction() {
+    actionPendingRef.current = false;
+    setActionPending(false);
+  }
+
+  function submitOnce(validHandler: (values: TValues) => Promise<void>) {
+    return (event?: BaseSyntheticEvent) => {
+      if (actionPendingRef.current) {
+        event?.preventDefault();
+        return;
+      }
+
+      actionPendingRef.current = true;
+      setActionPending(true);
+      void handleSubmit(
+        async (values) => {
+          try {
+            await validHandler(values);
+          } finally {
+            unlockAction();
+          }
+        },
+        (fieldErrors) => {
+          try {
+            handleInvalidSubmit(fieldErrors);
+          } finally {
+            unlockAction();
+          }
+        },
+      )(event);
+    };
+  }
+
   const progressPercent = ((currentIndex + 1) / definition.pages.length) * 100;
-  const currentPageHasError = attemptedSubmit && Boolean(visiblePageErrors[currentPage]);
-  const showFeedback =
-    readOnly || feedback.tone === 'success' || (feedback.tone === 'error' && currentPageHasError);
+  const showFeedback = readOnly || feedback.tone === 'success' || feedback.tone === 'error';
   const disableWorkspace = readOnly || createdSuccessfully;
+  const disableActions = isSubmitting || actionPending;
 
   return (
     <FormProvider {...form}>
@@ -400,10 +467,10 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                 <form
                   className="mt-8"
                   noValidate
-                  onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+                  onSubmit={submitOnce(handleValidSubmit)}
                 >
                   <fieldset disabled={disableWorkspace} className="m-0 min-w-0 border-0 p-0">
-                    {definition.renderPage(currentPage)}
+                    {definition.renderPage(currentPage, readOnly)}
                   </fieldset>
 
                   <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -423,11 +490,11 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                       {!disableWorkspace ? (
                         <button
                           className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
-                          disabled={isSubmitting}
+                          disabled={disableActions}
                           type="button"
-                          onClick={handleSaveDraft}
+                          onClick={submitOnce(handleValidSaveDraft)}
                         >
-                          Save Draft
+                          {disableActions ? 'Saving...' : 'Save Draft'}
                         </button>
                       ) : null}
 
@@ -435,10 +502,10 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                         disableWorkspace ? null : (
                           <Button
                             className="h-11 min-w-[180px] rounded-[10px] bg-[var(--bocar-blue-100)] px-5 text-[13px] font-semibold text-white hover:bg-[#0b3b6b] disabled:cursor-not-allowed disabled:opacity-70"
-                            disabled={isSubmitting}
+                            disabled={disableActions}
                             type="submit"
                           >
-                            {isSubmitting ? 'Submitting...' : mode === 'edit' ? 'Update RFQ' : 'Submit RFQ'}
+                            {disableActions ? 'Submitting...' : 'Submit RFQ'}
                           </Button>
                         )
                       ) : (

@@ -27,6 +27,12 @@ export const misAsignacionesDto = z.object({
 
 export const asignacionDetalleDto = rfqDetailDto;
 
+export const asignacionDetalleConBorradorDto = z.object({
+  rfq: rfqDetailDto,
+  tiene_borrador: z.boolean(),
+  is_answered: z.boolean().default(false),
+});
+
 export const quotationResponseDto = z.object({
   assignment_closed: z.boolean().optional(),
   rfq_completed: z.boolean().optional(),

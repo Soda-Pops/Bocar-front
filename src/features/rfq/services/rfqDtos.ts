@@ -6,6 +6,10 @@ export const detailMsgDto = z.object({
   detail: z.string(),
 });
 
+export const createRfqResponseDto = detailMsgDto.extend({
+  id: z.number(),
+});
+
 export const uploadedFileDto = z.object({
   id: z.number(),
   archivo: z.string(),
@@ -22,6 +26,8 @@ export const rfqListItemDto = z.object({
   complete: z.boolean().default(false),
   logical_delete: z.boolean().default(false),
   rfq_type: z.string().optional(),
+  all_assignments_closed: z.boolean().default(false),
+  has_received_quote: z.boolean().default(false),
 });
 
 export const rfqIndustrializacionListResponseDto = z.object({
@@ -33,6 +39,7 @@ export const rfqComercializacionListItemDto = z.object({
   id: z.number(),
   nombre_pieza: z.string().nullable().optional(),
   status: backendRfqStatusDto,
+  complete: z.boolean().default(false),
   tipo: z.string().optional(),
   deadline: z.string(),
   fecha_creacion: z.string(),
@@ -43,6 +50,11 @@ export const rfqComercializacionListItemDto = z.object({
 export const rfqComercializacionListResponseDto = z.object({
   mold: z.array(rfqComercializacionListItemDto),
   trimming: z.array(rfqComercializacionListItemDto),
+});
+
+export const assignedSupplierDto = z.object({
+  id_Proveedor__id: z.number(),
+  id_Proveedor__company_name: z.string(),
 });
 
 export const rfqDetailDto = z
@@ -56,19 +68,41 @@ export const rfqDetailDto = z
     complete: z.boolean().default(false),
     logical_delete: z.boolean().default(false),
     archivos: z.array(uploadedFileDto).optional(),
+    all_assignments_closed: z.boolean().default(false),
+    has_received_quote: z.boolean().default(false),
+    assigned_suppliers: z.array(assignedSupplierDto).default([]),
   })
   .passthrough();
 
+export type AssignedSupplierDto = z.infer<typeof assignedSupplierDto>;
+
+const dashboardCountGroupDto = z.object({
+  molds: z.number(),
+  trimmings: z.number(),
+  total: z.number(),
+});
+
 export const dashboardCountDto = z.object({
-  completados: z.number(),
-  en_comercializacion: z.number(),
-  borradores: z.number(),
+  completados: dashboardCountGroupDto,
+  en_comercializacion: dashboardCountGroupDto,
+  borradores: dashboardCountGroupDto.extend({
+    user_id: z.number().optional(),
+  }),
+  estatus: z
+    .object({
+      PENDING: dashboardCountGroupDto,
+      QUOTING: dashboardCountGroupDto,
+      BENCHMARK_READY: dashboardCountGroupDto,
+      CLOSED: dashboardCountGroupDto,
+      EXPIRED: dashboardCountGroupDto,
+    })
+    .optional(),
   histograma: z.record(z.string(), z.number()).or(z.array(z.unknown())).optional(),
 });
 
 export type BackendRfqStatusDto = z.infer<typeof backendRfqStatusDto>;
+export type CreateRfqResponseDto = z.infer<typeof createRfqResponseDto>;
 export type RfqListItemDto = z.infer<typeof rfqListItemDto>;
 export type RfqComercializacionListItemDto = z.infer<typeof rfqComercializacionListItemDto>;
 export type RfqDetailDto = z.infer<typeof rfqDetailDto>;
 export type DashboardCountDto = z.infer<typeof dashboardCountDto>;
-

@@ -37,11 +37,17 @@ export const rfqStatusMeta: Record<RfqStatus, RfqStatusMeta> = {
       'border-[rgba(255,242,0,0.44)] bg-[rgba(255,242,0,0.2)] text-[var(--bocar-blue-100)]',
     dotClass: 'bg-[#c8b800]',
   },
-  BENCHMARK_READY: {
-    label: 'Benchmark ready',
+  ANSWERED: {
+    label: 'Answered',
     badgeClass:
       'border-[rgba(141,198,63,0.4)] bg-[rgba(141,198,63,0.24)] text-[#3a6310]',
     dotClass: 'bg-[var(--bocar-done)]',
+  },
+  BENCHMARK_READY: {
+    label: 'Benchmark ready',
+    badgeClass:
+      'border-[rgba(0,120,180,0.35)] bg-[rgba(0,120,180,0.12)] text-[#005f8e]',
+    dotClass: 'bg-[#0078b4]',
   },
   EXPIRED: {
     label: 'Expired',

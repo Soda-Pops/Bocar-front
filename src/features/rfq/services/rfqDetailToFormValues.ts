@@ -2,8 +2,25 @@ import type { RfqTipo } from '@/features/analytics/types';
 import type { MoldFormValues } from '@/features/rfq/components/RfqForm/definitions/moldDefinition';
 import type { TrimmingFormValues } from '@/features/rfq/components/RfqForm/definitions/trimmingDefinition';
 import type { RfqDetailDto } from '@/features/rfq/services/rfqDtos';
+import { resolveFileUrl } from '@/features/rfq/services/rfqMappers';
+import type { FileInfo } from '@/shared/components/ui/MultiFileUploadField';
 
 type RawRfq = Record<string, unknown>;
+
+/** Maps backend `archivos` (already uploaded) into the form's file field shape. */
+function mapUploadedFiles(dto: RfqDetailDto): FileInfo[] {
+  return (dto.archivos ?? []).map((file) => {
+    const parts = file.archivo.split(/[\\/]/);
+    return {
+      id: file.id,
+      name: parts[parts.length - 1] ?? file.archivo,
+      size: 0,
+      type: '',
+      url: resolveFileUrl(file.archivo),
+      uploadedAt: file.uploaded_at,
+    };
+  });
+}
 
 function text(raw: RawRfq, key: string): string {
   const value = raw[key];
@@ -107,7 +124,7 @@ export function mapDetailToMoldFormValues(dto: RfqDetailDto): MoldFormValues {
     projected: text(raw, 'projected_area_cm2'),
     rfq_name: text(raw, 'DESC') || `RFQ-${dto.id}`,
     sk_part: null,
-    files: [],
+    files: mapUploadedFiles(dto),
     surface: text(raw, 'surface_cm2'),
     three_plate: text(raw, 'ThirdPSupp'),
     tt: text(raw, 'TT'),
@@ -185,7 +202,7 @@ export function mapDetailToTrimmingFormValues(dto: RfqDetailDto): TrimmingFormVa
     ts_num_parts_per_stroke: '',
     ts_num_tools: '',
     comments: text(raw, 'comments'),
-    files: [],
+    files: mapUploadedFiles(dto),
   };
 }
 

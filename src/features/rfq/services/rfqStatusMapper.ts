@@ -16,6 +16,8 @@ export function mapBackendStatus(input: {
   progreso?: string;
   deadlineExpired?: boolean;
   logicalDelete?: boolean;
+  allAssignmentsClosed?: boolean;
+  hasReceivedQuote?: boolean;
 }): RfqStatus {
   if (input.logicalDelete) return 'CANCELLED';
   if (input.complete) return 'CLOSED';
@@ -26,10 +28,11 @@ export function mapBackendStatus(input: {
     case 'En_Com':
       return input.hasPendingEditRequest ? 'PENDING_EDIT_REQUEST' : 'PENDING';
     case 'En_Pro': {
-      if (input.deadlineExpired) return 'EXPIRED';
       const { quoted } = parseProgreso(input.progreso);
-      return quoted > 0 ? 'PARTIALLY_QUOTED' : 'QUOTING';
+      if (input.hasReceivedQuote || quoted > 0) return 'BENCHMARK_READY';
+      if (input.deadlineExpired) return 'EXPIRED';
+      if (input.allAssignmentsClosed) return 'EXPIRED';
+      return 'QUOTING';
     }
   }
 }
-
