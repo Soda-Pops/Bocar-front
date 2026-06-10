@@ -5,6 +5,7 @@ import { detailMsgDto, rfqDetailDto } from '@/features/rfq/services/rfqDtos';
 export const asignacionDto = z.object({
   id: z.number(),
   rfq_nombre: z.string().nullable().optional(),
+  DESC: z.string().nullable().optional(),
   fecha_de_asignacion: z.string(),
   due_date: z.string(),
   deadline: z.string(),

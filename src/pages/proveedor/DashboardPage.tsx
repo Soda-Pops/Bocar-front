@@ -77,7 +77,7 @@ function RfqTable({
       <table className="w-full border-separate border-spacing-0">
         <thead>
           <tr className="bg-[#eef1f5]">
-            {['ID', 'STATUS', 'TYPE', dateHeader, 'ACTION'].map((h) => (
+            {['ID', 'DESC', 'STATUS', 'TYPE', dateHeader, 'ACTION'].map((h) => (
               <th
                 key={h}
                 className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
@@ -90,7 +90,7 @@ function RfqTable({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
+              <td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
                 No RFQs match the filters.
               </td>
             </tr>
@@ -99,6 +99,12 @@ function RfqTable({
               <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.8)]">
                 <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
                   {row.id}
+                </td>
+                <td
+                  className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 text-[13px] text-[var(--bocar-text)]"
+                  title={row.desc ?? '-'}
+                >
+                  <span className="block truncate">{row.desc ?? '-'}</span>
                 </td>
                 <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5">
                   <StatusBadge status={row.status} />

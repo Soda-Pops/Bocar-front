@@ -389,9 +389,12 @@ function AdminDashboardPage() {
                       <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
                         {row.id}
                       </p>
+                      <p className="m-0 mt-1 line-clamp-2 max-w-[240px] text-[13px] text-[var(--bocar-text)]" title={row.desc ?? '-'}>
+                        {row.desc ?? '-'}
+                      </p>
                       <p className="m-0 mt-1 text-[13px] text-[var(--bocar-text)]">{row.project}</p>
                       <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">
-                        {row.material} · {row.machineType}
+                        {row.machineType}
                       </p>
                     </div>
                     <ActionMenu dark actions={getRowActions(row, navigate)} />
@@ -427,8 +430,8 @@ function AdminDashboardPage() {
               <thead>
                 <tr className="bg-[#eef1f5]">
                   {(activeTab === 'historical'
-                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
-                    : ['ID', 'STATUS', 'TYPE', 'DEADLINE', 'CREATION DATE', 'CREATED BY', 'SUPPLIER PROGRESS', 'ACTIONS']
+                    ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                    : ['ID', 'DESC', 'STATUS', 'TYPE', 'DEADLINE', 'CREATION DATE', 'CREATED BY', 'SUPPLIER PROGRESS', 'ACTIONS']
                   ).map((header) => (
                     <th
                       key={header}
@@ -442,7 +445,7 @@ function AdminDashboardPage() {
               <tbody>
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={activeTab === 'historical' ? 6 : 8} className="px-6 py-12 text-center">
+                    <td colSpan={activeTab === 'historical' ? 7 : 9} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
                         No RFQs match the current filters.
                       </p>
@@ -453,6 +456,12 @@ function AdminDashboardPage() {
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
                         {row.id}
+                      </td>
+                      <td
+                        className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-text)] lg:px-4 lg:py-4"
+                        title={row.desc ?? '-'}
+                      >
+                        <span className="block truncate">{row.desc ?? '-'}</span>
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.machineType}
@@ -482,6 +491,12 @@ function AdminDashboardPage() {
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.8)]">
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 align-middle text-[13px] font-semibold text-[var(--bocar-blue-100)]">
                         {row.id}
+                      </td>
+                      <td
+                        className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 align-middle text-[13px] text-[var(--bocar-text)]"
+                        title={row.desc ?? '-'}
+                      >
+                        <span className="block truncate">{row.desc ?? '-'}</span>
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 align-middle">
                         <DashboardStatusBadge status={row.status} />

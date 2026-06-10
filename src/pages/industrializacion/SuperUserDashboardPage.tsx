@@ -182,6 +182,9 @@ function SuperUserDashboardPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
+                      <p className="mt-1 line-clamp-2 max-w-[220px] text-[13px] text-[var(--bocar-text)]" title={row.desc ?? '-'}>
+                        {row.desc ?? '-'}
+                      </p>
                       <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
                       <div className="mt-2"><RfqStatusBadge status={row.status} /></div>
                     </div>
@@ -224,8 +227,8 @@ function SuperUserDashboardPage() {
               <thead>
                 <tr className="bg-[#eef1f5]">
                   {(activeTab === 'borradores'
-                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'ACTION']
-                    : ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                    ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'ACTION']
+                    : ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
                   ).map((header) => (
                     <th
                       key={header}
@@ -242,6 +245,12 @@ function SuperUserDashboardPage() {
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
                         {row.id}
+                      </td>
+                      <td
+                        className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-text)] lg:px-4 lg:py-4"
+                        title={row.desc ?? '-'}
+                      >
+                        <span className="block truncate">{row.desc ?? '-'}</span>
                       </td>
                       {activeTab === 'borradores' ? (
                         <>
@@ -285,7 +294,7 @@ function SuperUserDashboardPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={activeTab === 'borradores' ? 5 : 6}
+                      colSpan={activeTab === 'borradores' ? 6 : 7}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
                       No RFQs match the current filters.

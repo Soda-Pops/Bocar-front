@@ -118,7 +118,6 @@ export const purchasingMonthlySeries: ChartPoint[] = [
 export const purchasingQueueRows: PurchasingDashboardRow[] = [
   {
     id: 'RFQ-1021',
-    material: 'PA66 GF30',
     project: 'EV box sensor cover',
     supplierSuggestion: 'PLASTIMEX',
     region: 'North America',
@@ -133,7 +132,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-1018',
-    material: 'Aluminum ADC12',
     project: 'Inverter housing bracket',
     supplierSuggestion: 'FUNDIMEX',
     region: 'Europe',
@@ -148,7 +146,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-1009',
-    material: 'Steel HSS',
     project: 'Front reinforcement bracket',
     supplierSuggestion: 'STAMPFORGE',
     region: 'North America',
@@ -163,7 +160,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-1003',
-    material: 'PP 20% talc',
     project: 'HVAC duct housing',
     supplierSuggestion: 'INYECTA BAJIO',
     region: 'Latam',
@@ -178,7 +174,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0996',
-    material: 'Steel SAE 1045',
     project: 'Pedal support base',
     supplierSuggestion: 'MECANIZADOS DEL NORTE',
     region: 'Asia',
@@ -193,7 +188,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0991',
-    material: 'ABS FR',
     project: 'Center console frame',
     supplierSuggestion: 'RAMCO',
     region: 'North America',
@@ -211,7 +205,6 @@ export const purchasingQueueRows: PurchasingDashboardRow[] = [
 export const historicalRows: PurchasingDashboardRow[] = [
   {
     id: 'RFQ-0979',
-    material: 'ABS FR',
     project: 'Center console frame',
     supplierSuggestion: 'RAMCO',
     region: 'Europe',
@@ -226,7 +219,6 @@ export const historicalRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0974',
-    material: 'Zamak 5',
     project: 'Fixed latch insert',
     supplierSuggestion: 'FUNDICION GLOBAL',
     region: 'Latam',
@@ -241,7 +233,6 @@ export const historicalRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0968',
-    material: 'PA12',
     project: 'Lateral air duct cover',
     supplierSuggestion: 'PLASTIMEX',
     region: 'North America',
@@ -256,7 +247,6 @@ export const historicalRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0955',
-    material: 'Galvanized steel',
     project: 'HEV battery bracket',
     supplierSuggestion: 'STAMPFORGE',
     region: 'Latam',
@@ -271,7 +261,6 @@ export const historicalRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0941',
-    material: 'Steel SAE 1018',
     project: 'Turbo hose bracket',
     supplierSuggestion: 'MECANIZADOS DEL NORTE',
     region: 'Asia',
@@ -289,7 +278,6 @@ export const historicalRows: PurchasingDashboardRow[] = [
 export const eliminatedRows: PurchasingDashboardRow[] = [
   {
     id: 'RFQ-0968',
-    material: 'PA12',
     project: 'Lateral air duct cover',
     supplierSuggestion: 'PLASTIMEX',
     region: 'North America',
@@ -304,7 +292,6 @@ export const eliminatedRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0952',
-    material: 'ABS FR',
     project: 'BCM module cover',
     supplierSuggestion: 'RAMCO',
     region: 'North America',
@@ -319,7 +306,6 @@ export const eliminatedRows: PurchasingDashboardRow[] = [
   },
   {
     id: 'RFQ-0940',
-    material: 'PP Impact',
     project: 'Rear door panel',
     supplierSuggestion: 'INYECTA BAJIO',
     region: 'Latam',
@@ -396,7 +382,7 @@ export function getFilteredDashboardRows(
   return rows.filter((row) => {
     if (
       normalized &&
-      ![row.id, row.material, row.project, row.owner, row.supplierSuggestion].some((field) =>
+      ![row.id, row.desc ?? '', row.project, row.machineType, row.owner, row.supplierSuggestion].some((field) =>
         field.toLowerCase().includes(normalized),
       )
     ) {
@@ -425,7 +411,7 @@ function matchesSearch(row: PurchasingDashboardRow, searchValue: string) {
     return true;
   }
 
-  return [row.id, row.material, row.project, row.owner, row.supplierSuggestion].some((field) =>
+  return [row.id, row.desc ?? '', row.project, row.machineType, row.owner, row.supplierSuggestion].some((field) =>
     field.toLowerCase().includes(normalizedSearch),
   );
 }
@@ -439,7 +425,7 @@ export function getFilteredPurchasingQueueRows(
   searchValue = '',
   statusValue: PurchasingRfqStatus | '' = '',
   supplierValue = '',
-  sortValue: 'deadline' | 'priority' | 'material' = 'deadline',
+  sortValue: 'deadline' | 'priority' = 'deadline',
 ) {
   const normalizedSupplier = supplierValue.trim().toLowerCase();
 
@@ -458,10 +444,6 @@ export function getFilteredPurchasingQueueRows(
     .sort((leftRow, rightRow) => {
       if (sortValue === 'priority') {
         return getPriorityRank(leftRow.priority) - getPriorityRank(rightRow.priority);
-      }
-
-      if (sortValue === 'material') {
-        return leftRow.material.localeCompare(rightRow.material, 'es');
       }
 
       return leftRow.hoursToDeadline - rightRow.hoursToDeadline;

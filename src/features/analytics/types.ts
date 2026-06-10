@@ -2,7 +2,7 @@ export type DashboardTabKey = 'borradores' | 'activas' | 'historicas';
 
 export type SuperUserTabKey = 'borradores' | 'eliminadas' | 'activas' | 'historicas';
 
-export type SortOption = '' | 'recent' | 'material' | 'creator';
+export type SortOption = '' | 'recent' | 'creator';
 
 export type DashboardMetric = {
   key: DashboardTabKey;
@@ -15,7 +15,7 @@ export type RfqTipo = 'Trimming' | 'Mold';
 
 export type DashboardRow = {
   id: string;
-  material: string;
+  desc?: string;
   createdBy: string;
   date: string;
   supplier: string;

@@ -19,7 +19,6 @@ import { listRfqsComercializacion } from '@/features/purchasing/services/comerci
 export const purchasingRfqRows: PurchasingRfqRow[] = [
   {
     id: 'RFQ-1021',
-    material: 'PA66 GF30',
     project: 'EV box sensor cover',
     region: 'North America',
     machineType: 'Injection',
@@ -32,7 +31,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-1018',
-    material: 'Aluminum ADC12',
     project: 'Inverter housing bracket',
     region: 'Europe',
     machineType: 'Die Casting',
@@ -45,7 +43,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-1012',
-    material: 'PC ABS',
     project: 'HVAC motor plastic connector',
     region: 'North America',
     machineType: 'Injection',
@@ -62,7 +59,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-1005',
-    material: 'Galvanized steel',
     project: 'HEV battery bracket',
     region: 'Latam',
     machineType: 'Stamping',
@@ -79,7 +75,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-0998',
-    material: 'Steel SAE 1045',
     project: 'Pedal support base',
     region: 'Asia',
     machineType: 'Machining',
@@ -96,7 +91,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-0988',
-    material: 'Steel HSS',
     project: 'Lateral bracket die',
     region: 'North America',
     machineType: 'Stamping',
@@ -113,7 +107,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-0979',
-    material: 'ABS FR',
     project: 'Center console frame',
     region: 'Europe',
     machineType: 'Injection',
@@ -130,7 +123,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-0974',
-    material: 'Zamak 5',
     project: 'Fixed latch insert',
     region: 'Latam',
     machineType: 'Die Casting',
@@ -143,7 +135,6 @@ export const purchasingRfqRows: PurchasingRfqRow[] = [
   },
   {
     id: 'RFQ-0968',
-    material: 'PA12',
     project: 'Lateral air duct cover',
     region: 'North America',
     machineType: 'Injection',
@@ -253,7 +244,7 @@ function matchesSearch(row: PurchasingRfqRow, searchValue: string) {
     return true;
   }
 
-  return [row.id, row.material, row.project, row.region, row.owner].some((field) =>
+  return [row.id, row.desc ?? '', row.project, row.region, row.owner].some((field) =>
     field.toLowerCase().includes(normalizedSearch),
   );
 }

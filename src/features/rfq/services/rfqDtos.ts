@@ -18,6 +18,7 @@ export const uploadedFileDto = z.object({
 
 export const rfqListItemDto = z.object({
   id: z.number(),
+  DESC: z.string().nullable().optional(),
   status: backendRfqStatusDto,
   created_by: z.number().nullable().optional(),
   created_by_name: z.string().nullable().optional(),
@@ -37,6 +38,7 @@ export const rfqIndustrializacionListResponseDto = z.object({
 
 export const rfqComercializacionListItemDto = z.object({
   id: z.number(),
+  DESC: z.string().nullable().optional(),
   nombre_pieza: z.string().nullable().optional(),
   status: backendRfqStatusDto,
   complete: z.boolean().default(false),

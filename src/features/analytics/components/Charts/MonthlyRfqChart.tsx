@@ -9,17 +9,29 @@ function buildChartPath(points: string[]) {
   return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point}`).join(' ');
 }
 
+// Returns a "nice" max and 5 evenly-spaced tick values (top → bottom) with integer steps.
+function niceYAxis(rawMax: number): { max: number; ticks: number[] } {
+  if (rawMax <= 0) return { max: 4, ticks: [4, 3, 2, 1, 0] };
+  const approxStep = Math.max(rawMax / 4, 1);
+  const magnitude = Math.pow(10, Math.floor(Math.log10(approxStep)));
+  const n = approxStep / magnitude;
+  const niceStep = n <= 1 ? magnitude : n <= 2 ? 2 * magnitude : n <= 5 ? 5 * magnitude : 10 * magnitude;
+  const max = niceStep * 4;
+  return { max, ticks: [max, max * 0.75, max * 0.5, max * 0.25, 0] };
+}
+
 export function MonthlyRfqChart({ series, statusText }: MonthlyRfqChartProps) {
   const width = 540;
   const height = 140;
   const topPadding = 10;
   const bottomPadding = 22;
-  const leftPadding = 24;
+  const leftPadding = 36;
   const rightPadding = 20;
   const chartWidth = width - leftPadding - rightPadding;
   const chartHeight = height - topPadding - bottomPadding;
   const safeSeries = series.length > 0 ? series : [{ month: 'Jan', value: 0 }];
-  const maxValue = Math.max(...safeSeries.map((point) => point.value), 0) + 1;
+  const rawMax = Math.max(...safeSeries.map((p) => p.value), 0);
+  const { max: maxValue, ticks } = niceYAxis(rawMax);
   const points = safeSeries.map((point, index) => {
     const step = safeSeries.length > 1 ? chartWidth / (safeSeries.length - 1) : 0;
     const x = leftPadding + step * index;
@@ -40,19 +52,30 @@ export function MonthlyRfqChart({ series, statusText }: MonthlyRfqChartProps) {
       </div>
 
       <svg aria-hidden="true" className="mt-3 h-auto w-full lg:mt-1" viewBox={`0 0 ${width} ${height}`} fill="none">
-        {Array.from({ length: 5 }).map((_, index) => {
+        {ticks.map((tickValue, index) => {
           const y = topPadding + (chartHeight / 4) * index;
 
           return (
-            <line
-              key={`grid-${index}`}
-              x1={leftPadding}
-              x2={width - rightPadding}
-              y1={y}
-              y2={y}
-              stroke="rgba(167, 177, 194, 0.48)"
-              strokeWidth="1"
-            />
+            <g key={`grid-${index}`}>
+              <line
+                x1={leftPadding}
+                x2={width - rightPadding}
+                y1={y}
+                y2={y}
+                stroke="rgba(167, 177, 194, 0.48)"
+                strokeWidth="1"
+              />
+              <text
+                x={leftPadding - 4}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fontSize="9"
+                fill="rgba(100, 116, 139, 0.8)"
+              >
+                {tickValue}
+              </text>
+            </g>
           );
         })}
 

@@ -52,7 +52,7 @@ export type PurchasingDashboardMetric = {
 
 export type PurchasingDashboardRow = {
   id: string;
-  material: string;
+  desc?: string;
   project: string;
   supplierSuggestion: string;
   region: string;
@@ -84,7 +84,7 @@ export type PurchasingSupplierProgress = {
 
 export type PurchasingRfqRow = {
   id: string;
-  material: string;
+  desc?: string;
   project: string;
   region: string;
   machineType: PurchasingMachineType;

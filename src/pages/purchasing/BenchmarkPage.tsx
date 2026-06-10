@@ -60,7 +60,7 @@ function BenchmarkPage() {
           </div>
           <h2 className="m-0 mt-4 text-[22px] font-semibold text-[var(--bocar-text)]">{rfq.project}</h2>
           <p className="m-0 mt-2 text-[14px] text-[var(--bocar-blue-70)]">
-            {rfq.material} · {rfq.region} · {rfq.machineType}
+            {rfq.region} · {rfq.machineType}
           </p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-3">

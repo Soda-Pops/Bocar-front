@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
@@ -92,6 +92,20 @@ function DashboardPage() {
     () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
     [rows, searchValue, sortValue, tipoValue, dateValue],
   );
+  // Al cambiar cualquier filtro, regresamos a la primera página.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, sortValue, tipoValue, dateValue]);
+  // Cambiar de tab limpia los filtros: las opciones de Date dependen del tab,
+  // así que un valor heredado dejaría la tabla vacía.
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setSearchValue('');
+    setSortValue('');
+    setTipoValue('');
+    setDateValue('');
+    setCurrentPage(1);
+  };
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -112,14 +126,18 @@ function DashboardPage() {
         <DashboardHeader />
 
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(405px,0.9fr)] lg:items-stretch xl:grid-cols-[minmax(0,1fr)_minmax(470px,0.96fr)]">
-          <div className="grid gap-3 sm:grid-cols-2 lg:gap-3">
+          <div className="grid grid-cols-2 grid-rows-2 gap-3 lg:h-full lg:min-h-[190px]">
             {dashboardMetrics.map((metric) => (
-              <DashboardMetricCard
-                key={metric.key}
-                isActive={metric.key === activeTab}
-                metric={metric}
-                onSelect={(key) => setActiveTab(key as typeof activeTab)}
-              />
+              <div
+                key={metric.label}
+                className={['h-full', metric.key === 'borradores' ? 'col-span-2' : ''].join(' ').trim()}
+              >
+                <DashboardMetricCard
+                  isActive={metric.key === activeTab}
+                  metric={metric}
+                  onSelect={(key) => handleTabChange(key as typeof activeTab)}
+                />
+              </div>
             ))}
           </div>
 
@@ -138,7 +156,7 @@ function DashboardPage() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={[
                     'shrink-0 border-b-2 px-4 pb-2 text-[14px] font-medium transition lg:flex-1 lg:px-0 lg:pb-1 lg:text-[12px] lg:text-center',
                     isActive
@@ -199,6 +217,9 @@ function DashboardPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
+                      <p className="mt-1 line-clamp-2 max-w-[220px] text-[13px] text-[var(--bocar-text)]" title={row.desc ?? '-'}>
+                        {row.desc ?? '-'}
+                      </p>
                       <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
                     </div>
                     <button
@@ -246,8 +267,8 @@ function DashboardPage() {
               <thead>
                 <tr className="bg-[#eef1f5]">
                   {(activeTab === 'borradores'
-                    ? ['ID', 'TYPE', 'STATUS', 'DATE', 'ACTION']
-                    : ['ID', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                    ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'ACTION']
+                    : ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
                   ).map((header) => (
                     <th
                       key={header}
@@ -264,6 +285,12 @@ function DashboardPage() {
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
                         {row.id}
+                      </td>
+                      <td
+                        className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-text)] lg:px-4 lg:py-4"
+                        title={row.desc ?? '-'}
+                      >
+                        <span className="block truncate">{row.desc ?? '-'}</span>
                       </td>
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
                         {row.tipo ?? '—'}
@@ -293,7 +320,7 @@ function DashboardPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={activeTab === 'borradores' ? 5 : 6}
+                      colSpan={activeTab === 'borradores' ? 6 : 7}
                       className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
                     >
                       No RFQs match the current filters.
@@ -337,12 +364,10 @@ function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['st
 }
 
 function buildMetrics(rowsByTab: ReturnType<typeof groupRowsByTab>): DashboardMetric[] {
-  const benchmarkReady = rowsByTab.historicas.filter((r) => r.status === 'Benchmark Ready').length;
   const closed = rowsByTab.historicas.filter((r) => r.status === 'Done').length;
   return [
     { key: 'borradores', label: 'DRAFT RFQs', value: String(rowsByTab.borradores.length), valueColor: 'var(--bocar-blue-100)' },
     { key: 'activas', label: 'ACTIVE RFQs', value: String(rowsByTab.activas.length), valueColor: '#5a8a1f' },
-    { key: 'historicas', label: 'BENCHMARK READY', value: String(benchmarkReady), valueColor: '#005f8e' },
     { key: 'historicas', label: 'CLOSED RFQs', value: String(closed), valueColor: 'var(--bocar-blue-50)' },
   ];
 }

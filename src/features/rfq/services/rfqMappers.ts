@@ -56,7 +56,7 @@ export function mapIndustrializacionRow(dto: RfqListItemDto, tipo: RfqTipo): Das
 
   return {
     id: formatId(dto.id),
-    material: tipo,
+    desc: dto.DESC?.trim() || '-',
     createdBy: dto.created_by_name ?? '-',
     date: formatDateForDisplay(dto.created_date),
     supplier: '-',
@@ -99,7 +99,7 @@ export function mapComercializacionRow(
 
   return {
     id: formatId(dto.id),
-    material: tipo,
+    desc: dto.DESC?.trim() || '-',
     project: dto.nombre_pieza ?? formatId(dto.id),
     supplierSuggestion: '',
     region: 'N/A',

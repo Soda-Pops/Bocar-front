@@ -19,13 +19,21 @@ const MONTH_LABELS: Record<string, string> = {
 
 const MONTH_ORDER = Object.keys(MONTH_LABELS);
 
+// Rotate months so the current month is always the last (rightmost) element.
+function orderedMonthsToCurrentMonth(): string[] {
+  const currentMonthIndex = new Date().getMonth(); // 0 = January
+  return [...MONTH_ORDER.slice(currentMonthIndex + 1), ...MONTH_ORDER.slice(0, currentMonthIndex + 1)];
+}
+
 function histogramToSeries(histograma: unknown): ChartPoint[] {
+  const orderedMonths = orderedMonthsToCurrentMonth();
+
   if (!histograma || typeof histograma !== 'object' || Array.isArray(histograma)) {
-    return MONTH_ORDER.map((month) => ({ month: MONTH_LABELS[month], value: 0 }));
+    return orderedMonths.map((month) => ({ month: MONTH_LABELS[month], value: 0 }));
   }
 
   const values = histograma as Record<string, unknown>;
-  return MONTH_ORDER.map((month) => {
+  return orderedMonths.map((month) => {
     const value = values[month];
     return {
       month: MONTH_LABELS[month],

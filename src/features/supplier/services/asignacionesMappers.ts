@@ -7,6 +7,7 @@ import { formatId } from '@/shared/utils/rfqId';
 function mapAssignment(dto: AsignacionDto, tipo: RfqTipo, answered: boolean): SupplierRfqRow {
   return {
     id: formatId(dto.id),
+    desc: dto.DESC?.trim() || '-',
     assignmentId: dto.id,
     status: answered ? 'DONE' : dto.tiene_borrador ? 'QUOTED' : 'PENDING',
     tipo,
@@ -41,4 +42,3 @@ export function mapMisAsignaciones(dto: MisAsignacionesDto): {
     ],
   };
 }
-

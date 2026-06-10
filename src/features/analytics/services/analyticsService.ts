@@ -41,30 +41,30 @@ export const monthlyRfqSeries: ChartPoint[] = [
 
 export const dashboardRowsByTab: Record<DashboardTabKey, DashboardRow[]> = {
   borradores: [
-    { id: 'RFQ-004', material: 'Steel', createdBy: 'Ricardo Soto', date: '20/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Draft' },
-    { id: 'RFQ-006', material: 'Aluminum', createdBy: 'Ricardo Soto', date: '17/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Draft' },
-    { id: 'RFQ-009', material: 'Plastic', createdBy: 'Ricardo Soto', date: '17/06/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Draft' },
-    { id: 'RFQ-001', material: 'Steel', createdBy: 'Ricardo Soto', date: '20/06/2024', supplier: 'Magna', tipo: 'Mold', status: 'Draft' },
-    { id: 'RFQ-011', material: 'Steel', createdBy: 'Gabriela Ruiz', date: '14/06/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Draft' },
-    { id: 'RFQ-013', material: 'Resin', createdBy: 'Laura Flores', date: '13/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Draft' },
+    { id: 'RFQ-004', createdBy: 'Ricardo Soto', date: '20/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Draft' },
+    { id: 'RFQ-006', createdBy: 'Ricardo Soto', date: '17/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Draft' },
+    { id: 'RFQ-009', createdBy: 'Ricardo Soto', date: '17/06/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Draft' },
+    { id: 'RFQ-001', createdBy: 'Ricardo Soto', date: '20/06/2024', supplier: 'Magna', tipo: 'Mold', status: 'Draft' },
+    { id: 'RFQ-011', createdBy: 'Gabriela Ruiz', date: '14/06/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Draft' },
+    { id: 'RFQ-013', createdBy: 'Laura Flores', date: '13/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Draft' },
   ],
   activas: [
-    { id: 'RFQ-021', material: 'Steel', createdBy: 'Ricardo Soto', date: '22/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Active' },
-    { id: 'RFQ-022', material: 'Plastic', createdBy: 'Karina Diaz', date: '18/06/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Active' },
-    { id: 'RFQ-023', material: 'Aluminum', createdBy: 'Jorge Pineda', date: '15/06/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Active' },
-    { id: 'RFQ-024', material: 'Steel', createdBy: 'Laura Flores', date: '11/06/2024', supplier: 'Metalsa', tipo: 'Mold', status: 'Active' },
+    { id: 'RFQ-021', createdBy: 'Ricardo Soto', date: '22/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Active' },
+    { id: 'RFQ-022', createdBy: 'Karina Diaz', date: '18/06/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Active' },
+    { id: 'RFQ-023', createdBy: 'Jorge Pineda', date: '15/06/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Active' },
+    { id: 'RFQ-024', createdBy: 'Laura Flores', date: '11/06/2024', supplier: 'Metalsa', tipo: 'Mold', status: 'Active' },
   ],
   historicas: [
-    { id: 'RFQ-031', material: 'Steel', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-032', material: 'Aluminum', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-033', material: 'Plastic', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-034', material: 'Steel', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-035', material: 'Resin', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-036', material: 'Steel', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-037', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-038', material: 'Plastic', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-039', material: 'Steel', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-040', material: 'Resin', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-031', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-032', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-033', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-034', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-035', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-036', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-037', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-038', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-039', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
+    { id: 'RFQ-040', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
   ],
 };
 
@@ -85,10 +85,10 @@ export const superuserMetrics: SuperUserMetric[] = [
 export const superuserRowsByTab: Record<SuperUserTabKey, DashboardRow[]> = {
   borradores: dashboardRowsByTab.borradores,
   eliminadas: [
-    { id: 'RFQ-051', material: 'Steel', createdBy: 'Ricardo Soto', date: '19/06/2024', supplier: 'Magna', status: 'Deleted', tipo: 'Mold' },
-    { id: 'RFQ-052', material: 'Aluminum', createdBy: 'Sofia Lara', date: '15/06/2024', supplier: 'Nemak', status: 'Deleted', tipo: 'Trimming' },
-    { id: 'RFQ-053', material: 'Plastic', createdBy: 'Antonio Leon', date: '10/06/2024', supplier: 'Bosch', status: 'Deleted', tipo: 'Mold' },
-    { id: 'RFQ-054', material: 'Resin', createdBy: 'Karina Diaz', date: '08/06/2024', supplier: 'Metalsa', status: 'Deleted', tipo: 'Trimming' },
+    { id: 'RFQ-051', createdBy: 'Ricardo Soto', date: '19/06/2024', supplier: 'Magna', status: 'Deleted', tipo: 'Mold' },
+    { id: 'RFQ-052', createdBy: 'Sofia Lara', date: '15/06/2024', supplier: 'Nemak', status: 'Deleted', tipo: 'Trimming' },
+    { id: 'RFQ-053', createdBy: 'Antonio Leon', date: '10/06/2024', supplier: 'Bosch', status: 'Deleted', tipo: 'Mold' },
+    { id: 'RFQ-054', createdBy: 'Karina Diaz', date: '08/06/2024', supplier: 'Metalsa', status: 'Deleted', tipo: 'Trimming' },
   ],
   activas: dashboardRowsByTab.activas,
   historicas: dashboardRowsByTab.historicas,
@@ -134,10 +134,11 @@ export function getFilteredDashboardRows(
   const normalizedSearch = searchValue.trim().toLowerCase();
 
   const filteredRows = rows.filter((row) => {
+    // Busca sobre los campos reales del backend: ID, DESC, TYPE, STATUS, DATE, CREATED BY.
     const matchesSearch =
       normalizedSearch.length === 0 ||
-      [row.id, row.material, row.createdBy].some((field) =>
-        field.toLowerCase().includes(normalizedSearch),
+      [row.id, row.desc ?? '', row.tipo ?? '', row.status ?? '', row.date, row.createdBy].some(
+        (field) => field.toLowerCase().includes(normalizedSearch),
       );
     const matchesSupplier = supplierValue.length === 0 || row.supplier === supplierValue;
     const matchesTipo = !tipoValue || tipoValue.length === 0 || row.tipo === tipoValue;
@@ -150,10 +151,6 @@ export function getFilteredDashboardRows(
   });
 
   return [...filteredRows].sort((leftRow, rightRow) => {
-    if (sortValue === 'material') {
-      return leftRow.material.localeCompare(rightRow.material, 'es');
-    }
-
     if (sortValue === 'creator') {
       return leftRow.createdBy.localeCompare(rightRow.createdBy, 'es');
     }
