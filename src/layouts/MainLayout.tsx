@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ChatbotWidget } from '@features/chatbot/ChatbotWidget';
 
 type MainLayoutProps = {
   children: ReactNode;
@@ -17,6 +18,7 @@ export function MainLayout({ children, header, sidebar }: MainLayoutProps) {
             <main className="flex-1">{children}</main>
           </div>
         </div>
+        <ChatbotWidget />
       </div>
     );
   }
@@ -25,6 +27,7 @@ export function MainLayout({ children, header, sidebar }: MainLayoutProps) {
     <div className="min-h-screen bg-[var(--bocar-bg)] text-[var(--bocar-text)]">
       {header}
       <main>{children}</main>
+      <ChatbotWidget />
     </div>
   );
 }
