@@ -78,7 +78,7 @@ export async function sendRfqToCom(tipo: RfqTipo, id: number): Promise<void> {
 }
 
 export async function deleteRfq(tipo: RfqTipo, id: number): Promise<void> {
-  await request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
+  await request(`${GENERAL_BASE}/rfq/${id}/borrador/${tipoQ(tipo)}`, {
     method: 'DELETE',
   });
 }
