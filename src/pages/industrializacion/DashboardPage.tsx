@@ -39,16 +39,9 @@ function RfqStatusBadge({ status }: { status?: string }) {
       </span>
     );
   }
-  if (status === 'Done') {
+  if (status === 'Closed') {
     return (
       <span className="inline-flex items-center rounded-full border border-[rgba(174,179,184,0.4)] bg-[rgba(174,179,184,0.15)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[var(--bocar-blue-70)]">
-        {status}
-      </span>
-    );
-  }
-  if (status === 'Benchmark Ready') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-[rgba(0,120,180,0.35)] bg-[rgba(0,120,180,0.12)] px-3 py-1 text-[11px] font-semibold tracking-[0.01em] text-[#005f8e]">
         {status}
       </span>
     );
@@ -352,8 +345,7 @@ function groupRowsByTab(rows: DashboardRow[]) {
   return {
     borradores: rows.filter((row) => row.status === 'Draft'),
     activas: rows.filter((row) => row.status === 'Active'),
-    // Benchmark Ready y Done comparten el tab histórico
-    historicas: rows.filter((row) => row.status === 'Done' || row.status === 'Benchmark Ready'),
+    historicas: rows.filter((row) => row.status === 'Closed'),
   };
 }
 
@@ -364,7 +356,7 @@ function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['st
 }
 
 function buildMetrics(rowsByTab: ReturnType<typeof groupRowsByTab>): DashboardMetric[] {
-  const closed = rowsByTab.historicas.filter((r) => r.status === 'Done').length;
+  const closed = rowsByTab.historicas.filter((r) => r.status === 'Closed').length;
   return [
     { key: 'borradores', label: 'DRAFT RFQs', value: String(rowsByTab.borradores.length), valueColor: 'var(--bocar-blue-100)' },
     { key: 'activas', label: 'ACTIVE RFQs', value: String(rowsByTab.activas.length), valueColor: '#5a8a1f' },

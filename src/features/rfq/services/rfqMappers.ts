@@ -22,8 +22,10 @@ function spec(dto: Record<string, unknown>, code: string, label: string): RfqSpe
 }
 
 function inferTitle(dto: Record<string, unknown>, tipo: RfqTipo): string {
-  if (tipo === 'Mold') return valueOf(dto, 'PT') !== '-' ? valueOf(dto, 'PT') : valueOf(dto, 'DESC');
-  return valueOf(dto, 'part_name') !== '-' ? valueOf(dto, 'part_name') : valueOf(dto, 'DESC');
+  const desc = valueOf(dto, 'DESC');
+  if (desc !== '-') return desc;
+  if (tipo === 'Mold') return valueOf(dto, 'PT');
+  return valueOf(dto, 'part_name');
 }
 
 function inferMaterial(dto: Record<string, unknown>): string {
@@ -49,9 +51,7 @@ export function mapIndustrializacionRow(dto: RfqListItemDto, tipo: RfqTipo): Das
     status === 'DRAFT'
       ? 'Draft'
       : status === 'CLOSED'
-      ? 'Done'
-      : status === 'BENCHMARK_READY'
-      ? 'Benchmark Ready'
+      ? 'Closed'
       : 'Active';
 
   return {

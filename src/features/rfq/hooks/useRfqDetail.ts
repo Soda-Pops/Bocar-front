@@ -160,6 +160,21 @@ function isValidStatus(value: string | null): value is RfqStatus {
   return VALID_STATUSES.includes(value as RfqStatus);
 }
 
+function parseStatusOverride(value: string | null): RfqStatus | null {
+  if (!value) return null;
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return isValidStatus(normalized) ? normalized : null;
+}
+
+function isIndustrializacionRole(role: UserRole) {
+  return role === 'industrializacion' || role === 'industrializacion_admin';
+}
+
+function normalizeStatusForRole(status: RfqStatus, role: UserRole): RfqStatus {
+  if (isIndustrializacionRole(role) && status === 'BENCHMARK_READY') return 'QUOTING';
+  return status;
+}
+
 export function useRfqDetail(
   rfqId: string,
   defaultRole: UserRole,
@@ -175,8 +190,7 @@ export function useRfqDetail(
 
   // Status hint: the originating list (e.g. the Purchasing dashboard) tells the detail
   // which status to render. With no backend yet, this is the mock's source of truth.
-  const paramStatus = searchParams.get('status');
-  const statusOverride: RfqStatus | null = isValidStatus(paramStatus) ? paramStatus : null;
+  const statusOverride = parseStatusOverride(searchParams.get('status'));
 
   // DEV-only query param overrides for QA and Playwright validation
   if (import.meta.env.DEV) {
@@ -223,7 +237,11 @@ export function useRfqDetail(
     };
   }
 
-  const rfq: RfqDetail = statusOverride ? { ...state.data, status: statusOverride } : state.data;
+  const rawRfq: RfqDetail = statusOverride ? { ...state.data, status: statusOverride } : state.data;
+  const rfq: RfqDetail = {
+    ...rawRfq,
+    status: normalizeStatusForRole(rawRfq.status, role),
+  };
   if (auth.status === 'authenticated') {
     isCreator = rfq.createdById === String(auth.user.id);
   }
@@ -241,7 +259,10 @@ export function useRfqDetail(
   });
 
   const banner = resolveBanner(rfq, role, isCreator);
-  const statusMeta = rfqStatusMeta[rfq.status];
+  const statusMeta =
+    isIndustrializacionRole(role) && rawRfq.status === 'BENCHMARK_READY'
+      ? { ...rfqStatusMeta[rfq.status], label: 'Active' }
+      : rfqStatusMeta[rfq.status];
 
   return {
     rfq,

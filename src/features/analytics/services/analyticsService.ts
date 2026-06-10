@@ -21,13 +21,13 @@ export const dashboardUser: DashboardUser = {
 export const dashboardTabs: DashboardTab[] = [
   { key: 'borradores', label: 'Drafts' },
   { key: 'activas', label: 'Active' },
-  { key: 'historicas', label: 'Historical' },
+  { key: 'historicas', label: 'Closed' },
 ];
 
 export const dashboardMetrics: DashboardMetric[] = [
   { key: 'borradores', label: 'RFQs Drafts', value: '2', valueColor: 'var(--bocar-blue-100)' },
   { key: 'activas', label: 'RFQs Active', value: '3', valueColor: 'var(--bocar-done)' },
-  { key: 'historicas', label: 'RFQs Historical', value: '10', valueColor: 'var(--bocar-neutral)' },
+  { key: 'historicas', label: 'RFQs Closed', value: '10', valueColor: 'var(--bocar-neutral)' },
 ];
 
 export const monthlyRfqSeries: ChartPoint[] = [
@@ -55,16 +55,16 @@ export const dashboardRowsByTab: Record<DashboardTabKey, DashboardRow[]> = {
     { id: 'RFQ-024', createdBy: 'Laura Flores', date: '11/06/2024', supplier: 'Metalsa', tipo: 'Mold', status: 'Active' },
   ],
   historicas: [
-    { id: 'RFQ-031', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-032', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-033', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-034', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-035', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-036', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-037', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-038', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Done' },
-    { id: 'RFQ-039', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Done' },
-    { id: 'RFQ-040', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Done' },
+    { id: 'RFQ-031', createdBy: 'Ricardo Soto', date: '05/06/2024', supplier: 'Magna', tipo: 'Trimming', status: 'Closed' },
+    { id: 'RFQ-032', createdBy: 'Karina Diaz', date: '03/06/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Closed' },
+    { id: 'RFQ-033', createdBy: 'Ricardo Soto', date: '29/05/2024', supplier: 'Bosch', tipo: 'Trimming', status: 'Closed' },
+    { id: 'RFQ-034', createdBy: 'Jorge Pineda', date: '28/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Closed' },
+    { id: 'RFQ-035', createdBy: 'Laura Flores', date: '22/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Closed' },
+    { id: 'RFQ-036', createdBy: 'Ana Campos', date: '18/05/2024', supplier: 'Magna', tipo: 'Mold', status: 'Closed' },
+    { id: 'RFQ-037', createdBy: 'Sofia Lara', date: '15/05/2024', supplier: 'Nemak', tipo: 'Trimming', status: 'Closed' },
+    { id: 'RFQ-038', createdBy: 'Antonio Leon', date: '13/05/2024', supplier: 'Bosch', tipo: 'Mold', status: 'Closed' },
+    { id: 'RFQ-039', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Closed' },
+    { id: 'RFQ-040', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Closed' },
   ],
 };
 
