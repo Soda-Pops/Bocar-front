@@ -16,6 +16,7 @@ import type {
   PageMeta,
   RfqWorkspaceDefinition,
 } from '../../RfqForm/shell/types';
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum } from '../shared/formulas';
 
@@ -326,6 +327,17 @@ const moldQuotationSchema = z.object({
   soc_corrections_optimizations: correctionsOptimizationsSchema,
   soc_logistics: socLogisticsSchema,
   soc_spare_parts: socSparePartsSchema,
+  files: z.array(
+    z.object({
+      name: z.string(),
+      size: z.number(),
+      type: z.string(),
+      file: z.instanceof(File).optional(),
+      id: z.number().optional(),
+      url: z.string().optional(),
+      uploadedAt: z.string().optional(),
+    }),
+  ),
 });
 
 type MoldQuotationValues = z.infer<typeof moldQuotationSchema>;
@@ -358,7 +370,8 @@ type PageKey =
   | 'soc_manufacturing_costs'
   | 'soc_corrections_optimizations'
   | 'soc_logistics'
-  | 'soc_spare_parts';
+  | 'soc_spare_parts'
+  | 'files';
 
 const PAGES: readonly PageKey[] = [
   'rfq',
@@ -387,6 +400,7 @@ const PAGES: readonly PageKey[] = [
   'soc_corrections_optimizations',
   'soc_logistics',
   'soc_spare_parts',
+  'files',
 ];
 
 const PAGE_META: Record<PageKey, PageMeta> = {
@@ -520,6 +534,11 @@ const PAGE_META: Record<PageKey, PageMeta> = {
     subtitle: 'Spare part costs for the cavity set.',
     title: '6. Spare Parts',
   },
+  files: {
+    navLabel: 'FILES',
+    subtitle: 'Attach supporting files for this quotation (PPT, STP, PDF).',
+    title: 'Files',
+  },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -566,6 +585,11 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'soc_logistics', label: 'LOGISTICS' },
       { key: 'soc_spare_parts', label: 'SPARE PARTS' },
     ],
+  },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [{ key: 'files', label: 'FILES' }],
   },
 ];
 
@@ -732,6 +756,7 @@ function getCreateDefaultValues(): MoldQuotationValues {
       core_pins: emptyUnitRow(),
       others: emptyUnitRow(),
     },
+    files: [],
   };
 }
 
@@ -1794,6 +1819,19 @@ export function buildMoldQuotationDefinition(
     };
   }
 
+  function FilesPage() {
+    return (
+      <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+        <MultiFileUploadField
+          accept=".ppt,.pptx,.stp,.pdf"
+          acceptLabel="PPT, STP, PDF"
+          maxSizeMb={25}
+          name="files"
+        />
+      </SectionCard>
+    );
+  }
+
   function renderPage(page: string): ReactNode {
     if (page === 'rfq') return <MoldRfqPage inherited={inherited} />;
     if (page === 'tool_eng') return <ToolEngPage inherited={inherited} />;
@@ -1821,6 +1859,7 @@ export function buildMoldQuotationDefinition(
     if (page === 'soc_corrections_optimizations') return <SocCorrectionsOptimizationsPage />;
     if (page === 'soc_logistics') return <SocLogisticsPage />;
     if (page === 'soc_spare_parts') return <SocSparePartsPage />;
+    if (page === 'files') return <FilesPage />;
     return null;
   }
 

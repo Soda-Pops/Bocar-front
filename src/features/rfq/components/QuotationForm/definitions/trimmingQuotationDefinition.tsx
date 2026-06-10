@@ -16,6 +16,7 @@ import type {
   PageMeta,
   RfqWorkspaceDefinition,
 } from '../../RfqForm/shell/types';
+import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum, mul, parseNum } from '../shared/formulas';
 
@@ -246,6 +247,17 @@ const trimmingQuotationSchema = z.object({
   logistics: logisticsSchema,
   tool_replacement: toolReplacementSchema,
   spare_parts: z.array(sparePartSchema),
+  files: z.array(
+    z.object({
+      name: z.string(),
+      size: z.number(),
+      type: z.string(),
+      file: z.instanceof(File).optional(),
+      id: z.number().optional(),
+      url: z.string().optional(),
+      uploadedAt: z.string().optional(),
+    }),
+  ),
 });
 
 type TrimmingQuotationValues = z.infer<typeof trimmingQuotationSchema>;
@@ -269,7 +281,8 @@ type PageKey =
   | 'trim_die_adjustment'
   | 'logistics'
   | 'tool_replacement'
-  | 'spare_parts';
+  | 'spare_parts'
+  | 'files';
 
 const PAGES: readonly PageKey[] = [
   'basic',
@@ -289,6 +302,7 @@ const PAGES: readonly PageKey[] = [
   'logistics',
   'tool_replacement',
   'spare_parts',
+  'files',
 ];
 
 const PAGE_META: Record<PageKey, PageMeta> = {
@@ -377,6 +391,11 @@ const PAGE_META: Record<PageKey, PageMeta> = {
     subtitle: 'Required spare part costs for the trim die.',
     title: '11. Spare Parts',
   },
+  files: {
+    navLabel: 'FILES',
+    subtitle: 'Attach supporting documents for this quotation.',
+    title: '12. Files',
+  },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -408,6 +427,11 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'tool_replacement', label: 'TOOL REPLACEMENT' },
       { key: 'spare_parts', label: 'SPARE PARTS' },
     ],
+  },
+  {
+    key: 'FILES',
+    label: 'FILES',
+    items: [{ key: 'files', label: 'FILES' }],
   },
 ];
 
@@ -497,6 +521,7 @@ function getCreateDefaultValues(): TrimmingQuotationValues {
       { concept: 'Spare Parts (Punch pins)', unit: '', price_unit: '', weeks: '' },
       { concept: 'Other', unit: '', price_unit: '', weeks: '' },
     ],
+    files: [],
   };
 }
 
@@ -1472,6 +1497,14 @@ function CostAndTimingBreakdownPage() {
   );
 }
 
+function FilesPage() {
+  return (
+    <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+      <MultiFileUploadField name="files" />
+    </SectionCard>
+  );
+}
+
 // ─── Definition factory ───────────────────────────────────────────────────────
 
 export function buildTrimmingQuotationDefinition(
@@ -1498,6 +1531,7 @@ export function buildTrimmingQuotationDefinition(
     if (page === 'logistics') return <LogisticsPage />;
     if (page === 'tool_replacement') return <ToolReplacementPage />;
     if (page === 'spare_parts') return <SparePartsPage />;
+    if (page === 'files') return <FilesPage />;
     return null;
   }
 
