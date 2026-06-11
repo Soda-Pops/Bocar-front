@@ -16,7 +16,7 @@ const WELCOME: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Hola, soy el asistente de BOCAR. Puedes preguntarme sobre tus RFQs, por ejemplo:\n• "¿Cuántos RFQs tengo en borrador?"\n• "¿Qué proveedores están asignados al RFQ 5?"\n• "Lista mis RFQs en proceso de cotización."',
+    'Hi, I\'m the BOCAR assistant. You can ask me about your RFQs, for example:\n• "How many RFQs do I have in draft?"\n• "Which suppliers are assigned to RFQ 5?"\n• "List my RFQs in the quoting process."',
 };
 
 function buildHistorial(messages: ChatMessage[]): HistorialItem[] {
@@ -146,8 +146,8 @@ export function ChatbotWidget() {
           if (err instanceof DOMException && err.name === 'AbortError') return;
           const msg =
             err instanceof NetworkError
-              ? 'No se pudo conectar con el servidor. Verifica tu conexión.'
-              : 'Ocurrió un error al procesar tu consulta. Intenta de nuevo.';
+              ? 'Could not connect to the server. Check your connection.'
+              : 'An error occurred while processing your query. Please try again.';
           setMessages(cur => [
             ...cur,
             { id: `e-${Date.now()}`, role: 'error', content: msg },
@@ -182,7 +182,7 @@ export function ChatbotWidget() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white">
               <BotIcon />
             </div>
-            <p className="text-sm font-semibold text-white">Asistente BOCAR</p>
+            <p className="text-sm font-semibold text-white">BOCAR Assistant</p>
           </div>
           <button
             onClick={() => setIsOpen(false)}
@@ -218,7 +218,7 @@ export function ChatbotWidget() {
                   {msg.content}
                   {msg.sources && msg.sources.length > 0 && (
                     <p className="mt-1.5 text-[11px] opacity-50">
-                      fuente: {msg.sources.join(', ')}
+                      source: {msg.sources.join(', ')}
                     </p>
                   )}
                 </div>
@@ -239,7 +239,7 @@ export function ChatbotWidget() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Escribe tu consulta..."
+              placeholder="Type your query..."
               disabled={isLoading}
               className="flex-1 bg-transparent text-sm text-[var(--bocar-text)] placeholder:text-[var(--bocar-blue-50)] outline-none disabled:opacity-60"
             />
@@ -252,7 +252,7 @@ export function ChatbotWidget() {
             </button>
           </div>
           <p className="mt-1.5 text-center text-[10px] text-[var(--bocar-blue-50)]">
-            Presiona Enter para enviar
+            Press Enter to send
           </p>
         </div>
       </div>
@@ -260,7 +260,7 @@ export function ChatbotWidget() {
       {/* ── Floating Button ── */}
       <button
         onClick={() => setIsOpen(prev => !prev)}
-        aria-label="Abrir asistente BOCAR"
+        aria-label="Open BOCAR assistant"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bocar-blue-100)] text-white shadow-[0px_8px_24px_#00000040] transition-all duration-200 hover:bg-[var(--bocar-blue-90)] hover:scale-110"
       >
         {isOpen ? <XIcon /> : <ChatIcon />}
