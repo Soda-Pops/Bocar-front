@@ -12,6 +12,7 @@ import {
 import type { RfqTipo } from '@/features/analytics/types';
 import { Header } from '@/layouts/components/Header';
 import { Button } from '@/shared/components/ui/Button';
+import { extractApiError } from '@/shared/utils/extractApiError';
 
 import { BackArrowIcon, ChevronDownIcon, getFeedbackClasses } from './primitives';
 import type { FeedbackTone, NavGroup, RfqWorkspaceDefinition } from './types';
@@ -311,7 +312,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
       });
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : 'The RFQ draft could not be saved.',
+        text: extractApiError(error),
         tone: 'error',
       });
     }
@@ -337,7 +338,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
         }
       } catch (error) {
         setFeedback({
-          text: error instanceof Error ? error.message : 'The RFQ could not be saved.',
+          text: extractApiError(error),
           tone: 'error',
         });
         return;

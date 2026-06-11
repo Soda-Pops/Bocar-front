@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { RfqSupplier } from '@/features/rfq/services/rfqDetailService';
+import { extractApiError } from '@/shared/utils/extractApiError';
 
 type SupplierAssignmentPanelProps = {
   suppliers: RfqSupplier[];
@@ -74,7 +75,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref, onSubmit }: Suppl
       } catch (error) {
         setFeedback({
           tone: 'error',
-          text: error instanceof Error ? error.message : 'Supplier assignment failed.',
+          text: extractApiError(error),
         });
         return;
       }

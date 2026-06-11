@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { extractApiError } from '@/shared/utils/extractApiError';
+
 type ConfirmEditModalProps = {
   variant: 'approve' | 'reject';
   rfqId: string;
@@ -46,7 +48,7 @@ export function ConfirmEditModal({ variant, rfqId, onConfirm, onClose }: Confirm
     try {
       await onConfirm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocurrió un error. Intenta de nuevo.');
+      setError(extractApiError(err));
       setIsSubmitting(false);
     }
   }

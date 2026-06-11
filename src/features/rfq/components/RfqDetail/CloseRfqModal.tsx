@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { extractApiError } from '@/shared/utils/extractApiError';
+
 type CloseRfqFormData = {
   closure_reason: string;
 };
@@ -37,7 +39,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
     try {
       await onConfirm({ closure_reason: closureReason.trim() });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocurrió un error. Intenta de nuevo.');
+      setError(extractApiError(err));
       setIsSubmitting(false);
     }
   }

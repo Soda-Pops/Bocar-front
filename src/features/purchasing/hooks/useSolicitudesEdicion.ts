@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { approveEdit, listEditRequests, rejectEdit } from '@/features/purchasing/services/comercializacionService';
+import { extractApiError } from '@/shared/utils/extractApiError';
 import type { EditRequestItem } from '@/features/purchasing/services/comercializacionService';
 import type { RfqTipo } from '@/features/analytics/types';
 
@@ -23,7 +24,7 @@ export function useSolicitudesEdicion() {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         setState({
           status: 'error',
-          error: err instanceof Error ? err.message : 'Error al cargar solicitudes.',
+          error: extractApiError(err),
         });
       });
   }, []);
@@ -54,7 +55,7 @@ export function useSolicitudesEdicion() {
     } catch (err) {
       setMutation(id, {
         status: 'error',
-        message: err instanceof Error ? err.message : 'Error al aprobar.',
+        message: extractApiError(err),
       });
     }
   }
@@ -74,7 +75,7 @@ export function useSolicitudesEdicion() {
     } catch (err) {
       setMutation(id, {
         status: 'error',
-        message: err instanceof Error ? err.message : 'Error al rechazar.',
+        message: extractApiError(err),
       });
     }
   }

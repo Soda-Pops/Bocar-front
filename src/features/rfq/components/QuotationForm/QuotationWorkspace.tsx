@@ -10,6 +10,7 @@ import {
   responderCotizacion,
 } from '@/features/supplier/services/asignacionesService';
 import { useResource } from '@/shared/hooks/useResource';
+import { extractApiError } from '@/shared/utils/extractApiError';
 import { parseId } from '@/shared/utils/rfqId';
 
 import {
@@ -30,16 +31,6 @@ type QuotationWorkspaceProps = {
   tipo: RfqTipo;
 };
 
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'object' && error && 'body' in error) {
-    const body = (error as { body?: unknown }).body;
-    if (typeof body === 'object' && body && 'detail' in body) {
-      return String((body as { detail: unknown }).detail);
-    }
-  }
-  if (error instanceof Error) return error.message;
-  return 'Unexpected error.';
-}
 
 export function QuotationWorkspace({
   mode,
@@ -114,7 +105,7 @@ export function QuotationWorkspace({
       return { rfqCompleted: 'rfq_completed' in result ? Boolean(result.rfq_completed) : false };
     } catch (error) {
       throw new Error(
-        `Quotation was saved as a draft, but could not be sent to Purchasing. ${getErrorMessage(error)}`,
+        `Quotation was saved as a draft, but could not be sent to Purchasing. ${extractApiError(error)}`,
       );
     }
   }
@@ -130,7 +121,7 @@ export function QuotationWorkspace({
   if (inheritedResource.state.status === 'error') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f5f7fa] px-6 text-[14px] text-[var(--bocar-error)]">
-        {inheritedResource.state.error.message}
+        {extractApiError(inheritedResource.state.error)}
       </div>
     );
   }

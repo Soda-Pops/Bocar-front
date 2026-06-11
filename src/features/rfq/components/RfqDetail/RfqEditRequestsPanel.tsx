@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { listEditRequests, approveEdit, rejectEdit } from '@/features/purchasing/services/comercializacionService';
+import { extractApiError } from '@/shared/utils/extractApiError';
 import type { EditRequestItem } from '@/features/purchasing/services/comercializacionService';
 import type { RfqTipo } from '@/features/analytics/types';
 
@@ -68,7 +69,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
     } catch (err) {
       setMut({
         status: 'error',
-        message: err instanceof Error ? err.message : 'Error al aprobar.',
+        message: extractApiError(err),
       });
     }
   }
@@ -82,7 +83,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
     } catch (err) {
       setMut({
         status: 'error',
-        message: err instanceof Error ? err.message : 'Error al rechazar.',
+        message: extractApiError(err),
       });
     }
   }

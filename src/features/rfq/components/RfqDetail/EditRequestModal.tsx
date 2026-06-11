@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { extractApiError } from '@/shared/utils/extractApiError';
+
 type EditRequestModalProps = {
   rfqId: string;
   onConfirm: (reason: string) => Promise<void>;
@@ -34,7 +36,7 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
     try {
       await onConfirm(trimmed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al enviar la solicitud.');
+      setError(extractApiError(err));
       setIsSubmitting(false);
     }
   }

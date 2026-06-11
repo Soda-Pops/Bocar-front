@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 
+import { extractApiError } from '@/shared/utils/extractApiError';
+
 import { ROUTES } from '@/app/config/routes';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { AppRole } from '@/features/auth/types';
@@ -28,7 +30,6 @@ import { CloseRfqModal } from '@/features/rfq/components/RfqDetail/CloseRfqModal
 import { BenchmarkComparativaChart } from '@/features/rfq/components/RfqDetail/BenchmarkComparativaChart';
 import type { RfqUploadedFile } from '@/features/rfq/services/rfqDetailService';
 import type { RfqActionKey, RfqBannerConfig, UserRole } from '@/features/rfq/state/rfqStateMachine';
-import { HttpError } from '@/shared/http/errors';
 import { parseId } from '@/shared/utils/rfqId';
 
 type RfqDetailWorkspaceProps = {
@@ -215,23 +216,6 @@ export function RfqDetailWorkspace({
     );
   }
 
-  function extractErrorMessage(err: unknown): string {
-    if (err instanceof HttpError) {
-      const body = err.body;
-      if (body && typeof body === 'object') {
-        const b = body as Record<string, unknown>;
-        if (b.code === 'rfq_incompleto') {
-          return 'Este RFQ tiene campos faltantes. Ábrelo en edición y complétalos antes de enviarlo a Comercialización.';
-        }
-        if (typeof b.detail === 'string') return b.detail;
-        if (typeof b.message === 'string') return b.message;
-        if (typeof b.error === 'string') return b.error;
-      }
-      return `Error ${err.status}`;
-    }
-    if (err instanceof Error) return err.message;
-    return 'Ocurrió un error inesperado.';
-  }
 
   function handleAction(key: RfqActionKey) {
     const rfqId = rfq!.id;
@@ -271,7 +255,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'danger',
               icon: 'alert',
-              message: extractErrorMessage(err),
+              message: extractApiError(err),
             });
           })
           .finally(() => setIsMutating(false));
@@ -293,7 +277,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'danger',
               icon: 'alert',
-              message: extractErrorMessage(err),
+              message: extractApiError(err),
             });
           })
           .finally(() => setIsMutating(false));
