@@ -56,7 +56,6 @@ export type InheritedRfq = {
   shot_sketch_file: { name: string; size: number; type: string } | null;
   // Section 6 — Part Geometry
   pg_part_name: string;
-  pg_alloy: string;
   pg_part_number_geom: string;
   pg_part_dimension: string;
   pg_min_wall_thickness: string;
@@ -66,14 +65,11 @@ export type InheritedRfq = {
   pg_volume: string;
   pg_gross_weight: string;
   // Section 7 — Tool Specification
-  ts_buhler_machine_ton: string;
-  ts_num_cavities_sets: string;
-  ts_three_plate_mold: string;
-  ts_num_gates_per_part: string;
-  ts_num_mech_slides: string;
-  ts_num_hydr_slides: string;
-  ts_num_parts_per_stroke: string;
-  ts_num_tools: string;
+  ts_intro_extraction: string;
+  ts_biscuit_position: string;
+  ts_qty_punch_pins: string;
+  ts_temp_trimmed: string;
+  ts_ejector_fixed_side: string;
 };
 
 function getInheritedRfqMock(rfqId: string): InheritedRfq {
@@ -124,7 +120,6 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
     ],
     shot_sketch_file: { name: 'Shot_Sketch_SoporteLateral_v3.pdf', size: 2_340_000, type: 'application/pdf' },
     pg_part_name: 'Lateral door support',
-    pg_alloy: 'AlSi10MgMn',
     pg_part_number_geom: '0',
     pg_part_dimension: '320 × 180 × 75 mm',
     pg_min_wall_thickness: '3 mm',
@@ -133,14 +128,11 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
     pg_surface: '1,180.00 cm²',
     pg_volume: '285.30 cm³',
     pg_gross_weight: '780.00 g',
-    ts_buhler_machine_ton: '900',
-    ts_num_cavities_sets: '2',
-    ts_three_plate_mold: '0',
-    ts_num_gates_per_part: '2',
-    ts_num_mech_slides: '3',
-    ts_num_hydr_slides: '1',
-    ts_num_parts_per_stroke: '2',
-    ts_num_tools: '1',
+    ts_intro_extraction: 'Manual extraction',
+    ts_biscuit_position: 'Left side',
+    ts_qty_punch_pins: '8',
+    ts_temp_trimmed: '200°C',
+    ts_ejector_fixed_side: 'Yes — 4 pins',
   };
 }
 
@@ -843,7 +835,6 @@ function BasicDataPage() {
 function PartGeometryPage({ inherited }: { inherited: InheritedRfq }) {
   const rows: { label: string; value: ReactNode }[] = [
     { label: 'Part Name', value: inherited.pg_part_name },
-    { label: 'Alloy', value: inherited.pg_alloy },
     { label: 'Part number', value: inherited.pg_part_number_geom },
     { label: 'Part dimension in mm', value: inherited.pg_part_dimension },
     { label: 'Min. wall thickness in mm', value: inherited.pg_min_wall_thickness },
@@ -873,14 +864,16 @@ function ToolSpecPage({ inherited }: { inherited: InheritedRfq }) {
   return (
     <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
       <FormGrid>
-        <ReadOnlyField label="Bühler Machine Ton" value={inherited.ts_buhler_machine_ton} />
-        <ReadOnlyField label="Number of cavities/sets" value={inherited.ts_num_cavities_sets} />
-        <ReadOnlyField label="Three plate mold" value={inherited.ts_three_plate_mold} />
-        <ReadOnlyField label="Number of gates per part" value={inherited.ts_num_gates_per_part} />
-        <ReadOnlyField label="Number of mech. slides" value={inherited.ts_num_mech_slides} />
-        <ReadOnlyField label="Number of hydr. slides" value={inherited.ts_num_hydr_slides} />
-        <ReadOnlyField label="Number of parts per stroke" value={inherited.ts_num_parts_per_stroke} />
-        <ReadOnlyField label="Number of tools" value={inherited.ts_num_tools} />
+        <ReadOnlyField label="Press Type" value={inherited.press} />
+        <ReadOnlyField label="Number of cavities" value={inherited.num_cavities} />
+        <ReadOnlyField label="Introduction / Extraction Process" value={inherited.ts_intro_extraction} />
+        <ReadOnlyField label="Biscuit Position" value={inherited.ts_biscuit_position} />
+        <ReadOnlyField label="Number of hydr. slides" value={inherited.num_hydraulic_slides} />
+        <ReadOnlyField label="Quantity of punch pins" value={inherited.ts_qty_punch_pins} />
+        <ReadOnlyField label="Admissible residual Burr in mm" value={inherited.residual_burr_mm} />
+        <ReadOnlyField label="Temperature of part when trimmed" value={inherited.ts_temp_trimmed} />
+        <ReadOnlyField label="Gas Springs" value={inherited.gas_springs} />
+        <ReadOnlyField label="Ejector system in fixed side" value={inherited.ts_ejector_fixed_side} />
         <TextField
           hint="Maximum weight capacity supported by the proposed trim die."
           label="MAXIMUM WEIGHT FOR THE TRIM DIE"
@@ -1149,7 +1142,7 @@ function ToolReplacementPage() {
 
 function SparePartsPage() {
   const { control, register } = useFormContext<TrimmingQuotationValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: 'spare_parts' });
+  const { fields } = useFieldArray({ control, name: 'spare_parts' });
   const watched = useWatch({ control, name: 'spare_parts' }) as
     | Array<{ unit?: string; price_unit?: string; weeks?: string }>
     | undefined;
@@ -1173,7 +1166,7 @@ function SparePartsPage() {
   const totalsInputClass = `${readonlyInputClass} font-semibold`;
 
   const gridClass =
-    'grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.6fr)_36px] md:items-center';
+    'grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.6fr)] md:items-center';
   const headerLabelClass =
     'text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]';
 
@@ -1192,7 +1185,6 @@ function SparePartsPage() {
           <div className={headerLabelClass}>Price/u</div>
           <div className={headerLabelClass}>Total</div>
           <div className={headerLabelClass}>Weeks</div>
-          <div />
         </div>
 
         <div className="divide-y divide-[rgba(236,240,245,0.9)]">
@@ -1203,15 +1195,9 @@ function SparePartsPage() {
             return (
               <div key={field.id} className={`py-3 ${gridClass}`}>
                 {isFixed ? (
-                  <input
-                    aria-label="Concept"
-                    className={readonlyInputClass}
-                    disabled
-                    tabIndex={-1}
-                    type="text"
-                    value={field.concept}
-                    readOnly
-                  />
+                  <span className="text-[13px] font-medium text-[var(--bocar-text)]">
+                    {index + 1}. {field.concept}
+                  </span>
                 ) : (
                   <input
                     className={inputBaseClasses(false)}
@@ -1249,34 +1235,11 @@ function SparePartsPage() {
                   type="number"
                   {...register(`spare_parts.${index}.weeks` as const)}
                 />
-                <button
-                  aria-label={`Delete row ${index + 1}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[#d9dee5] bg-white text-[var(--bocar-blue-50)] transition hover:border-[var(--bocar-error)] hover:text-[var(--bocar-error)] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={isFixed}
-                  type="button"
-                  onClick={() => remove(index)}
-                >
-                  <svg fill="none" height="14" viewBox="0 0 14 14" width="14">
-                    <path
-                      d="M1 1l12 12M13 1L1 13"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="1.6"
-                    />
-                  </svg>
-                </button>
               </div>
             );
           })}
         </div>
 
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-dashed border-[var(--bocar-blue-30)] bg-white px-4 py-2.5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(0,46,93,0.04)]"
-          type="button"
-          onClick={() => append({ concept: '', unit: '', price_unit: '', weeks: '' })}
-        >
-          + Add spare part
-        </button>
 
         <div className={`mt-2 rounded-[10px] bg-[rgba(0,46,93,0.04)] px-3 py-3 ${gridClass}`}>
           <div className="text-[13px] font-semibold text-[var(--bocar-text)]">Grand total Σ</div>
@@ -1316,7 +1279,6 @@ function SparePartsPage() {
             value={formatNum(totals.weeks)}
             readOnly
           />
-          <div />
         </div>
       </div>
     </SectionCard>

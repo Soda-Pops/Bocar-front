@@ -201,6 +201,11 @@ export function mapDetailToTrimmingFormValues(dto: RfqDetailDto): TrimmingFormVa
     ts_num_hydr_slides: text(raw, 'no_of_hydraulic_slides'),
     ts_num_parts_per_stroke: '',
     ts_num_tools: '',
+    ts_intro_extraction: '',
+    ts_biscuit_position: '',
+    ts_qty_punch_pins: '',
+    ts_temp_trimmed: '',
+    ts_ejector_fixed_side: '',
     comments: text(raw, 'comments'),
     files: mapUploadedFiles(dto),
   };

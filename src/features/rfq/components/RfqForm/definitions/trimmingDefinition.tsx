@@ -71,14 +71,19 @@ const trimmingSchema = z
     pg_volume: z.string(), // optional · number as string (input step 0.01, en cm³)
     pg_gross_weight: z.string(), // optional · number as string (input step 0.01, en g)
     // Section 7 — Tool Specification
-    ts_buhler_machine_ton: z.string(), // optional · number as string (input step 0.01, in tons)
-    ts_num_cavities_sets: z.string(), // optional · number as string (input step 0.01)
-    ts_three_plate_mold: z.string(), // optional · number as string (input step 0.01)
-    ts_num_gates_per_part: z.string(), // optional · free-form string
-    ts_num_mech_slides: z.string(), // optional · number as string (input step 0.01)
-    ts_num_hydr_slides: z.string(), // optional · number as string (input step 0.01)
-    ts_num_parts_per_stroke: z.string(), // optional · free-form string
-    ts_num_tools: z.string(), // optional · free-form string
+    ts_buhler_machine_ton: z.string(),
+    ts_num_cavities_sets: z.string(),
+    ts_three_plate_mold: z.string(),
+    ts_num_gates_per_part: z.string(),
+    ts_num_mech_slides: z.string(),
+    ts_num_hydr_slides: z.string(),
+    ts_num_parts_per_stroke: z.string(),
+    ts_num_tools: z.string(),
+    ts_intro_extraction: z.string(),
+    ts_biscuit_position: z.string(),
+    ts_qty_punch_pins: z.string(),
+    ts_temp_trimmed: z.string(),
+    ts_ejector_fixed_side: z.string(),
     // Section 8 — Comments
     comments: z.string(), // optional · free-form text (textarea, no length limit)
     // Section 9 — Files
@@ -310,6 +315,11 @@ function getCreateDefaultValues(): TrimmingFormValues {
     ts_num_hydr_slides: '',
     ts_num_parts_per_stroke: '',
     ts_num_tools: '',
+    ts_intro_extraction: '',
+    ts_biscuit_position: '',
+    ts_qty_punch_pins: '',
+    ts_temp_trimmed: '',
+    ts_ejector_fixed_side: '',
     comments: '',
     files: [],
   };
@@ -372,6 +382,11 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     ts_num_hydr_slides: '1',
     ts_num_parts_per_stroke: '2',
     ts_num_tools: '1',
+    ts_intro_extraction: '',
+    ts_biscuit_position: '',
+    ts_qty_punch_pins: '',
+    ts_temp_trimmed: '',
+    ts_ejector_fixed_side: '',
     comments: '',
     files: [],
   };
@@ -543,11 +558,6 @@ function PartGeometryPage() {
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Alloy</div>
-          <input className={inputBaseClasses(false)} {...register('pg_alloy')} />
-        </div>
-
-        <div className={rowClass}>
           <div className={labelClass}>Part number</div>
           <input
             className={inputBaseClasses(false)}
@@ -646,48 +656,23 @@ function ToolSpecPage() {
 
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         <div className={rowClass}>
-          <div className={labelClass}>Bühler Machine Ton</div>
-          <input
-            className={inputBaseClasses(false)}
-            step="0.01"
-            type="number"
-            {...register('ts_buhler_machine_ton')}
-          />
+          <div className={labelClass}>Press Type</div>
+          <input className={inputBaseClasses(false)} {...register('press')} />
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Number of cavities/sets</div>
-          <input
-            className={inputBaseClasses(false)}
-            step="0.01"
-            type="number"
-            {...register('ts_num_cavities_sets')}
-          />
+          <div className={labelClass}>Number of cavities</div>
+          <input className={inputBaseClasses(false)} {...register('num_cavities')} />
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Three plate mold</div>
-          <input
-            className={inputBaseClasses(false)}
-            step="0.01"
-            type="number"
-            {...register('ts_three_plate_mold')}
-          />
+          <div className={labelClass}>Introduction / Extraction Process</div>
+          <input className={inputBaseClasses(false)} {...register('ts_intro_extraction')} />
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Number of gates per part</div>
-          <input className={inputBaseClasses(false)} {...register('ts_num_gates_per_part')} />
-        </div>
-
-        <div className={rowClass}>
-          <div className={labelClass}>Number of mech. slides</div>
-          <input
-            className={inputBaseClasses(false)}
-            step="0.01"
-            type="number"
-            {...register('ts_num_mech_slides')}
-          />
+          <div className={labelClass}>Biscuit Position</div>
+          <input className={inputBaseClasses(false)} {...register('ts_biscuit_position')} />
         </div>
 
         <div className={rowClass}>
@@ -696,18 +681,43 @@ function ToolSpecPage() {
             className={inputBaseClasses(false)}
             step="0.01"
             type="number"
-            {...register('ts_num_hydr_slides')}
+            {...register('num_hydraulic_slides')}
           />
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Number of parts per stroke</div>
-          <input className={inputBaseClasses(false)} {...register('ts_num_parts_per_stroke')} />
+          <div className={labelClass}>Quantity of punch pins</div>
+          <input
+            className={inputBaseClasses(false)}
+            step="1"
+            type="number"
+            {...register('ts_qty_punch_pins')}
+          />
         </div>
 
         <div className={rowClass}>
-          <div className={labelClass}>Number of tools</div>
-          <input className={inputBaseClasses(false)} {...register('ts_num_tools')} />
+          <div className={labelClass}>Admissible residual Burr in mm</div>
+          <input
+            className={inputBaseClasses(false)}
+            step="0.01"
+            type="number"
+            {...register('residual_burr_mm')}
+          />
+        </div>
+
+        <div className={rowClass}>
+          <div className={labelClass}>Temperature of part when trimmed</div>
+          <input className={inputBaseClasses(false)} {...register('ts_temp_trimmed')} />
+        </div>
+
+        <div className={rowClass}>
+          <div className={labelClass}>Gas Springs</div>
+          <input className={inputBaseClasses(false)} {...register('gas_springs')} />
+        </div>
+
+        <div className={rowClass}>
+          <div className={labelClass}>Ejector system in fixed side</div>
+          <input className={inputBaseClasses(false)} {...register('ts_ejector_fixed_side')} />
         </div>
       </div>
     </SectionCard>
