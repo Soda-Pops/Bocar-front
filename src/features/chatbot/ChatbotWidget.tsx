@@ -18,7 +18,7 @@ const WELCOME: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Hi, I\'m the BOCAR assistant. You can ask me about your RFQs, for example:\n• "How many RFQs do I have in draft?"\n• "Which suppliers are assigned to RFQ 5?"\n• "List my RFQs in the quoting process."',
+    'Hi, I\'m the BOCAR assistant.\nYou can ask me about your RFQs and assignments, for example:\n• "How many RFQs do I have in draft?"\n• "List my RFQs awaiting authorization"\n• "Show me the history of RFQ 5"\n• "List my assignments"',
 };
 
 function buildHistorial(messages: ChatMessage[]): HistorialItem[] {
@@ -235,11 +235,6 @@ export function ChatbotWidget() {
                     </ReactMarkdown>
                   ) : (
                     msg.content
-                  )}
-                  {msg.sources && msg.sources.length > 0 && (
-                    <p className="mt-1.5 text-[11px] opacity-50">
-                      source: {msg.sources.join(', ')}
-                    </p>
                   )}
                 </div>
               </div>
