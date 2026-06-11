@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { queryChatbot } from './chatbotService';
 import type { HistorialItem } from './chatbotService';
 import { NetworkError } from '@shared/http/errors';
@@ -209,13 +211,31 @@ export function ChatbotWidget() {
             return (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
+                  className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'rounded-br-sm bg-[var(--bocar-blue-100)] text-white'
+                      ? 'rounded-br-sm bg-[var(--bocar-blue-100)] text-white whitespace-pre-line'
                       : 'rounded-bl-sm bg-[#f0f2f5] text-[var(--bocar-text)]'
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-1 space-y-0.5">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-1 space-y-0.5">{children}</ol>,
+                        li: ({ children }) => <li>{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                        code: ({ children }) => <code className="bg-white/60 rounded px-1 font-mono text-xs">{children}</code>,
+                        pre: ({ children }) => <pre className="bg-white/60 rounded p-2 my-1 overflow-x-auto font-mono text-xs">{children}</pre>,
+                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline opacity-80 hover:opacity-100">{children}</a>,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
                   {msg.sources && msg.sources.length > 0 && (
                     <p className="mt-1.5 text-[11px] opacity-50">
                       source: {msg.sources.join(', ')}
