@@ -101,7 +101,6 @@ export type PurchasingRfqAction = {
     | 'view_detail'
     | 'assign'
     | 'extend_deadline'
-    | 'view_benchmark'
     | 'close_rfq';
   label: string;
   href?: string;

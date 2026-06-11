@@ -27,16 +27,28 @@ const TRIMMING_TOGGLE_REQUIRED = new Set([
   'ejector_fixed', 'trim_die_1', 'trim_die_2', 'spare_parts_set', 'hydraulic_cyl',
 ]);
 
-const trimmingSchema = z
+const requiredText = (message = 'Complete this field before submitting the RFQ.') =>
+  z.string().trim().min(1, message);
+
+const fileSchema = z.object({
+  name: z.string(),
+  size: z.number(),
+  type: z.string(),
+  file: z.instanceof(File).optional(),
+  id: z.number().optional(),
+  url: z.string().optional(),
+  uploadedAt: z.string().optional(),
+});
+
+const trimmingBaseSchema = z
   .object({
     // Section 1 — RFQ
-    description: z.string().trim().min(1, 'Enter the description.'), // required · trim · minimum 1 character
-    part_number: z.string().trim().min(1, 'Enter the part number.'), // required · trim · minimum 1 character
+    description: z.string(), // draft requires this as DESC; submit requires all rendered fields below
+    part_number: z.string(),
     parts_per_year: z.string(), // optional · number as string (input type number)
     project_life: z.string(), // optional · free-form string (ej. "5 years")
     customer: z.string(), // optional · free-form string
     previous_job: z.string(), // optional · free-form string (referencia a job anterior)
-    supplier: z.string(), // optional · free-form string
     deliver_by: z.string(), // opcional · formato date YYYY-MM-DD desde el input, no validado by Zod
     // Section 2 — Trim Die
     press: z.string(), // optional · free-form string (modelo de prensa)
@@ -87,7 +99,57 @@ const trimmingSchema = z
     // Section 8 — Comments
     comments: z.string(), // optional · free-form text (textarea, no length limit)
     // Section 9 — Files
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional(), id: z.number().optional(), url: z.string().optional(), uploadedAt: z.string().optional() })), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
+    files: z.array(fileSchema), // optional · attached files: PPT, STP, PDF; max. 25 MB per file
+  });
+
+const trimmingDraftSchema = trimmingBaseSchema.extend({
+  description: requiredText('Enter DESC before saving the RFQ draft.'),
+});
+
+const trimmingSubmitSchema = trimmingBaseSchema
+  .extend({
+    description: requiredText('Enter DESC before submitting the RFQ.'),
+    part_number: requiredText(),
+    parts_per_year: requiredText(),
+    project_life: requiredText(),
+    customer: requiredText(),
+    previous_job: requiredText(),
+    deliver_by: requiredText(),
+    press: requiredText(),
+    num_cavities: requiredText(),
+    num_hydraulic_slides: requiredText(),
+    fully_automatic: requiredText('Select YES or NO.'),
+    presence_detectors: requiredText('Select YES or NO.'),
+    trimming_condition: requiredText(),
+    punch_pins_required: requiredText('Select YES or NO.'),
+    residual_burr_mm: requiredText(),
+    castings_by_auma: requiredText('Select YES or NO.'),
+    adjustments_toolmaker: requiredText('Select YES or NO.'),
+    gas_springs: requiredText(),
+    shot_sketch_file: trimmingBaseSchema.shape.shot_sketch_file.refine(
+      (value) => value !== null,
+      'Attach the shot sketch file.',
+    ),
+    pg_part_name: requiredText(),
+    pg_alloy: requiredText(),
+    pg_part_number_geom: requiredText(),
+    pg_part_dimension: requiredText(),
+    pg_min_wall_thickness: requiredText(),
+    pg_max_wall_thickness: requiredText(),
+    pg_projected_area: requiredText(),
+    pg_surface: requiredText(),
+    pg_volume: requiredText(),
+    pg_gross_weight: requiredText(),
+    ts_buhler_machine_ton: requiredText(),
+    ts_num_cavities_sets: requiredText(),
+    ts_three_plate_mold: requiredText(),
+    ts_num_gates_per_part: requiredText(),
+    ts_num_mech_slides: requiredText(),
+    ts_num_hydr_slides: requiredText(),
+    ts_num_parts_per_stroke: requiredText(),
+    ts_num_tools: requiredText(),
+    comments: requiredText(),
+    files: z.array(fileSchema).min(1, 'Attach at least one file.'),
   })
   .superRefine((values, ctx) => {
     TRIMMING_TOGGLE_REQUIRED.forEach((key) => {
@@ -98,20 +160,17 @@ const trimmingSchema = z
           path: ['considerations', key, 'checked'],
         });
       }
+      if (!values.considerations[key]?.notes?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          message: 'Complete the notes/specifications. Use N/A if it does not apply.',
+          path: ['considerations', key, 'notes'],
+        });
+      }
     });
-    if (
-      values.considerations['others']?.checked === 'yes' &&
-      !values.considerations['others']?.notes?.trim()
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        message: 'Specify the concept.',
-        path: ['considerations', 'others', 'notes'],
-      });
-    }
   });
 
-export type TrimmingFormValues = z.infer<typeof trimmingSchema>;
+export type TrimmingFormValues = z.infer<typeof trimmingBaseSchema>;
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
@@ -209,28 +268,86 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
-const REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly FieldPath<TrimmingFormValues>[]>> = {
-  basic: ['description', 'part_number'],
+function requiredTogglePaths(ids: readonly string[]): readonly FieldPath<TrimmingFormValues>[] {
+  return ids.flatMap((id) => [
+    `considerations.${id}.checked` as FieldPath<TrimmingFormValues>,
+    `considerations.${id}.notes` as FieldPath<TrimmingFormValues>,
+  ]);
+}
+
+const DRAFT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly FieldPath<TrimmingFormValues>[]>> = {
+  basic: ['description'],
+};
+
+const SUBMIT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly FieldPath<TrimmingFormValues>[]>> = {
+  basic: [
+    'description',
+    'part_number',
+    'parts_per_year',
+    'project_life',
+    'customer',
+    'previous_job',
+    'deliver_by',
+  ],
+  trim_die: [
+    'press',
+    'num_cavities',
+    'num_hydraulic_slides',
+    'fully_automatic',
+    'presence_detectors',
+    'trimming_condition',
+    'punch_pins_required',
+    'residual_burr_mm',
+    'castings_by_auma',
+    'adjustments_toolmaker',
+    'gas_springs',
+  ],
   data_info: [
-    'considerations.design_3d.checked',
-    'considerations.design_2d.checked',
-    'considerations.punch_pins.checked',
-    'considerations.manuf_proposals.checked',
-    'considerations.latest_improvements.checked',
-    'considerations.sketch_concept.checked',
+    ...requiredTogglePaths([
+      'design_3d',
+      'design_2d',
+      'punch_pins',
+      'manuf_proposals',
+      'latest_improvements',
+      'sketch_concept',
+    ]),
   ],
-  other_info: [
-    'considerations.frame_refur.checked',
-    'considerations.elec_wires.checked',
-    'considerations.others.checked',
-    'considerations.others.notes',
-    'considerations.delivery_date.checked',
-    'considerations.ejector_fixed.checked',
-    'considerations.trim_die_1.checked',
-    'considerations.trim_die_2.checked',
-    'considerations.spare_parts_set.checked',
-    'considerations.hydraulic_cyl.checked',
+  other_info: requiredTogglePaths([
+    'frame_refur',
+    'elec_wires',
+    'others',
+    'delivery_date',
+    'ejector_fixed',
+    'trim_die_1',
+    'trim_die_2',
+    'spare_parts_set',
+    'hydraulic_cyl',
+  ]),
+  shot_sketch: ['shot_sketch_file'],
+  part_geometry: [
+    'pg_part_name',
+    'pg_alloy',
+    'pg_part_number_geom',
+    'pg_part_dimension',
+    'pg_min_wall_thickness',
+    'pg_max_wall_thickness',
+    'pg_projected_area',
+    'pg_surface',
+    'pg_volume',
+    'pg_gross_weight',
   ],
+  tool_spec: [
+    'ts_buhler_machine_ton',
+    'ts_num_cavities_sets',
+    'ts_three_plate_mold',
+    'ts_num_gates_per_part',
+    'ts_num_mech_slides',
+    'ts_num_hydr_slides',
+    'ts_num_parts_per_stroke',
+    'ts_num_tools',
+  ],
+  comments: ['comments'],
+  files: ['files'],
 };
 
 // ─── Consideration group configs ──────────────────────────────────────────────
@@ -282,7 +399,6 @@ function getCreateDefaultValues(): TrimmingFormValues {
     project_life: '',
     customer: '',
     previous_job: '',
-    supplier: '',
     deliver_by: '',
     press: '',
     num_cavities: '',
@@ -333,7 +449,6 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     project_life: '5 years',
     customer: 'BMW AG',
     previous_job: 'TRM-0098',
-    supplier: 'Herramental Precision SA',
     deliver_by: '2026-09-15',
     press: 'Müller Weingarten PE2500',
     num_cavities: '2x',
@@ -396,7 +511,7 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
 
 function getCompletedMap(values: TrimmingFormValues): Partial<Record<string, boolean>> {
   return {
-    basic: values.description.trim().length > 0 && values.part_number.trim().length > 0,
+    basic: values.description.trim().length > 0,
     shot_sketch: values.shot_sketch_file !== null,
   };
 }
@@ -404,7 +519,19 @@ function getCompletedMap(values: TrimmingFormValues): Partial<Record<string, boo
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<TrimmingFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
-  return buildPageErrorMap(REQUIRED_FIELDS_BY_PAGE, errors);
+  return buildPageErrorMap(SUBMIT_REQUIRED_FIELDS_BY_PAGE, errors);
+}
+
+function getDraftPageErrorMap(
+  errors: Parameters<RfqWorkspaceDefinition<TrimmingFormValues>['getPageErrorMap']>[0]
+): Partial<Record<string, boolean>> {
+  return buildPageErrorMap(DRAFT_REQUIRED_FIELDS_BY_PAGE, errors);
+}
+
+function getSubmitPageErrorMap(
+  errors: Parameters<RfqWorkspaceDefinition<TrimmingFormValues>['getPageErrorMap']>[0]
+): Partial<Record<string, boolean>> {
+  return buildPageErrorMap(SUBMIT_REQUIRED_FIELDS_BY_PAGE, errors);
 }
 
 // ─── Page components ──────────────────────────────────────────────────────────
@@ -419,7 +546,6 @@ function BasicPage() {
         <TextField label="PROJECT LIFE" name="project_life" />
         <TextField label="CUSTOMER" name="customer" />
         <TextField label="PREVIOUS JOB" name="previous_job" />
-        <TextField label="SUPPLIER" name="supplier" />
         <TextField label="DELIVER THIS QUOTE BY" name="deliver_by" type="date" />
       </FormGrid>
     </SectionCard>
@@ -769,17 +895,26 @@ function renderPage(page: string, readOnly?: boolean): ReactNode {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export const trimmingDefinition: RfqWorkspaceDefinition<TrimmingFormValues> = {
-  resolver: zodResolver(trimmingSchema),
+  resolver: zodResolver(trimmingDraftSchema),
+  draftResolver: zodResolver(trimmingDraftSchema),
+  submitResolver: zodResolver(trimmingSubmitSchema),
   getCreateDefaultValues,
   getEditDefaultValues,
   pages: PAGES,
   navGroups: NAV_GROUPS,
   pageMeta: PAGE_META,
-  requiredFieldsByPage: REQUIRED_FIELDS_BY_PAGE,
+  requiredFieldsByPage: DRAFT_REQUIRED_FIELDS_BY_PAGE,
+  draftRequiredFieldsByPage: DRAFT_REQUIRED_FIELDS_BY_PAGE,
+  submitRequiredFieldsByPage: SUBMIT_REQUIRED_FIELDS_BY_PAGE,
   renderPage,
   getCompletedMap,
   getPageErrorMap,
+  getDraftPageErrorMap,
+  getSubmitPageErrorMap,
   onInvalidSubmit: (fieldErrors, ctx) => {
-    goToFirstRequiredError(PAGES, REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
+    goToFirstRequiredError(PAGES, SUBMIT_REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
+  },
+  onInvalidDraft: (fieldErrors, ctx) => {
+    goToFirstRequiredError(PAGES, DRAFT_REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
   },
 };

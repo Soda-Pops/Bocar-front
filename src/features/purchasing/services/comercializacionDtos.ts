@@ -31,10 +31,14 @@ const editRequestItemDto = z.object({
 
 const extensionItemDto = z.object({
   id: z.number(),
-  rfq_nombre: z.string().optional(),
-  proveedor_nombre: z.string().optional(),
-  motivo: z.string().optional(),
-  due_date_actual: z.string().optional(),
+  rfq_id: z.number().nullable().optional(),
+  rfq_nombre: z.string().nullable().optional(),
+  proveedor_nombre: z.string().nullable().optional(),
+  motivo: z.string().nullable().optional(),
+  due_date_actual: z.string().nullable().optional(),
+  nueva_fecha: z.string().nullable().optional(),
+  status: z.string().optional(),
+  solicitada_at: z.string().optional(),
 });
 
 export const solicitudesPendientesDto = z.object({

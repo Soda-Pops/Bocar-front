@@ -46,8 +46,6 @@ export const ROUTES = {
     RFQ_DETAIL_FULL: '/compras/rfq/:id/completo',
     // Programada: seleccion/asignacion de proveedores.
     RFQ_ASSIGN_SUPPLIERS: '/compras/rfq/:id/asignar',
-    // Falta por programar: benchmark interno de cotizaciones por RFQ.
-    BENCHMARK: '/compras/benchmark/:rfqId',
     // Falta por programar: analytics/KPIs de Compras.
     ANALYTICS: '/compras/analytics',
     // Falta por programar: explorador operativo de proveedores para seleccion.

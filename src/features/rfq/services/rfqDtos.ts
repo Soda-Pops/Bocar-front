@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
 export const backendRfqStatusDto = z.enum(['En_Ind', 'En_Com', 'En_Pro']);
+export const operationalRfqStatusDto = z.enum([
+  'PENDING',
+  'QUOTING',
+  'BENCHMARK_READY',
+  'CLOSED',
+  'EXPIRED',
+]);
 
 export const detailMsgDto = z.object({
   detail: z.string(),
@@ -47,6 +54,7 @@ export const rfqComercializacionListItemDto = z.object({
   fecha_creacion: z.string(),
   creado_por: z.string().nullable().optional(),
   progreso_proveedores: z.string().optional(),
+  operational_status: operationalRfqStatusDto.optional(),
 });
 
 export const rfqComercializacionListResponseDto = z.object({
@@ -103,6 +111,7 @@ export const dashboardCountDto = z.object({
 });
 
 export type BackendRfqStatusDto = z.infer<typeof backendRfqStatusDto>;
+export type OperationalRfqStatusDto = z.infer<typeof operationalRfqStatusDto>;
 export type CreateRfqResponseDto = z.infer<typeof createRfqResponseDto>;
 export type RfqListItemDto = z.infer<typeof rfqListItemDto>;
 export type RfqComercializacionListItemDto = z.infer<typeof rfqComercializacionListItemDto>;

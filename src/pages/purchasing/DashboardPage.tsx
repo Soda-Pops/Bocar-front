@@ -9,16 +9,16 @@ import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/Da
 import { FilterSelect } from '@/features/analytics/components/Filters/FilterSelect';
 import { SearchField } from '@/features/analytics/components/Filters/SearchField';
 import { PurchasingStatusBadge } from '@/features/purchasing/components/PurchasingStatusBadge';
+import { PurchasingWidgetPanel } from '@/features/purchasing/components/PurchasingWidgetPanel';
 import {
   formatDeadlineLabel,
   getDeadlineUrgencyTone,
   purchasingDeadlineRangeOptions,
 } from '@/features/purchasing/constants';
 import {
-  getDashboardCardStatusClass,
+  buildUnlockRequestItems,
+  buildUpcomingDeadlineItems,
   getFilteredDashboardRows,
-  unlockRequests,
-  urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
 import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
 import {
@@ -26,29 +26,19 @@ import {
   type PurchasingStatusCounts,
 } from '@/features/purchasing/hooks/usePurchasingDashboardCounts';
 import { usePurchasingRfqList } from '@/features/purchasing/hooks/usePurchasingRfqList';
-import type { PurchasingDashboardMetric, PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
+import { useSolicitudesExtension } from '@/features/purchasing/hooks/useSolicitudesExtension';
+import type {
+  PurchasingDashboardMetric,
+  PurchasingDashboardRow,
+  PurchasingRfqStatus,
+} from '@/features/purchasing/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ActionMenu } from '@/shared/components/ui/ActionMenu';
 
 const PAGE_SIZE = 4;
 
-type DashboardTab = 'pending' | 'historical';
-
-function ArrowRightIcon() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8H12.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
-      <path
-        d="M9.5 4.5L13 8L9.5 11.5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
+type DashboardTab = PurchasingDashboardMetric['key'];
 
 function DashboardStatusBadge({ status }: { status: PurchasingRfqStatus }) {
   if (status === 'QUOTING') {
@@ -107,104 +97,28 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
   return [detailAction];
 }
 
-function WidgetPanel({
-  actionHref,
-  caption,
-  items,
-  title,
-}: {
-  actionHref?: string;
-  caption: string;
-  items: typeof urgentDeadlines;
-  title: string;
-}) {
-  const navigate = useNavigate();
-  const rfqs = usePurchasingRfqList();
-
-  return (
-    <section className="rounded-[14px] border border-[var(--bocar-border)] bg-white p-5 shadow-[0_10px_24px_rgba(0,46,93,0.05)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="m-0 text-[13px] font-bold uppercase tracking-[0.07em] text-[var(--bocar-text)]">
-            {title}
-          </h2>
-          <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{caption}</p>
-        </div>
-        {actionHref ? (
-          <button
-            type="button"
-            onClick={() => navigate(actionHref)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-[9px] border border-[rgba(217,222,229,0.92)] bg-white px-3 text-[12px] font-medium text-[var(--bocar-blue-100)] transition hover:bg-[var(--bocar-bg)] focus:outline-none"
-          >
-            View all
-            <ArrowRightIcon />
-          </button>
-        ) : null}
-      </div>
-
-      <div className="mt-4 grid gap-3">
-        {items.map((item) => {
-          const deadlineTone =
-            typeof item.hoursToDeadline === 'number'
-              ? getDeadlineUrgencyTone(item.hoursToDeadline)
-              : 'neutral';
-
-          return (
-            <div
-              key={item.id}
-              className={[
-                'rounded-[12px] border px-4 py-4',
-                typeof item.hoursToDeadline === 'number'
-                  ? getDashboardCardStatusClass(item.hoursToDeadline)
-                  : 'border-[rgba(217,222,229,0.84)] bg-white',
-              ].join(' ')}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
-                  {item.title}
-                </p>
-                {typeof item.hoursToDeadline === 'number' ? (
-                  <span
-                    className={[
-                      'shrink-0 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold',
-                      deadlineTone === 'critical'
-                        ? 'border-[rgba(170,0,15,0.16)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]'
-                        : deadlineTone === 'warning'
-                          ? 'border-[rgba(255,242,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[var(--bocar-blue-100)]'
-                          : 'border-[rgba(217,222,229,0.9)] bg-[var(--bocar-bg)] text-[var(--bocar-blue-90)]',
-                    ].join(' ')}
-                  >
-                    {formatDeadlineLabel(item.hoursToDeadline)}
-                  </span>
-                ) : null}
-              </div>
-              {item.meta ? (
-                <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{item.meta}</p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 function DashboardPage() {
   const navigate = useNavigate();
   const rfqs = usePurchasingRfqList();
   const rfqHistogram = useRfqHistogramSeries();
   const dashboardCounts = usePurchasingDashboardCounts();
   const [activeTab, setActiveTab] = useState<DashboardTab>('pending');
-  const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
   const [tipoValue, setTipoValue] = useState('');
   const [deadlineValue, setDeadlineValue] = useState('');
   const [sortValue, setSortValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  const extensionRequests = useSolicitudesExtension();
   const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
-  const purchasingQueueRows = allRows.filter((row) => row.status !== 'CLOSED' && row.status !== 'CANCELLED' && row.status !== 'BENCHMARK_READY');
-  const historicalRows = allRows.filter((row) => row.status === 'CLOSED' || row.status === 'CANCELLED' || row.status === 'BENCHMARK_READY');
+  const upcomingDeadlineItems = useMemo(() => buildUpcomingDeadlineItems(allRows), [allRows]);
+  const unlockRequestItems = useMemo(
+    () =>
+      buildUnlockRequestItems(
+        extensionRequests.state.status === 'success' ? extensionRequests.state.data : [],
+      ),
+    [extensionRequests.state],
+  );
   const purchasingMetrics = useMemo(
     () =>
       buildPurchasingMetrics(
@@ -212,13 +126,14 @@ function DashboardPage() {
       ),
     [dashboardCounts.state],
   );
-  const sourceRows = activeTab === 'pending' ? purchasingQueueRows : historicalRows;
+  const activeMetric = purchasingMetrics.find((metric) => metric.key === activeTab) ?? purchasingMetrics[0];
+  const activeStatus = activeMetric.status;
+  const usesHistoricalTable = activeStatus === 'BENCHMARK_READY' || activeStatus === 'CLOSED';
+  const showDeadlineFilter = activeStatus === 'PENDING' || activeStatus === 'QUOTING' || activeStatus === 'EXPIRED';
+  const sourceRows = allRows.filter((row) => row.status === activeStatus);
 
   const filteredRows = useMemo(() => {
     let base = getFilteredDashboardRows(sourceRows, { searchValue, tipoValue, deadlineValue });
-    if (activeStatusFilter) {
-      base = base.filter((row) => row.status === activeStatusFilter);
-    }
     if (sortValue === 'Deadline') {
       return [...base].sort((a, b) => a.hoursToDeadline - b.hoursToDeadline);
     }
@@ -226,7 +141,7 @@ function DashboardPage() {
       return [...base].sort((a, b) => a.owner.localeCompare(b.owner));
     }
     return base;
-  }, [sourceRows, searchValue, tipoValue, deadlineValue, activeStatusFilter, sortValue]);
+  }, [sourceRows, searchValue, tipoValue, deadlineValue, sortValue]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -234,7 +149,6 @@ function DashboardPage() {
 
   function handleTabChange(tab: DashboardTab) {
     setActiveTab(tab);
-    setActiveStatusFilter('');
     setCurrentPage(1);
     setSearchValue('');
     setTipoValue('');
@@ -243,16 +157,8 @@ function DashboardPage() {
   }
 
   function handleMetricSelect(key: string) {
-    const metric = purchasingMetrics.find((m) => m.key === key);
-    if (!metric) return;
-    if (metric.status === 'QUOTING' || metric.status === 'EXPIRED' || metric.status === 'PENDING') {
-      setActiveTab('pending');
-      setActiveStatusFilter((prev) => (prev === metric.status ? '' : metric.status));
-      setCurrentPage(1);
-    } else if (metric.status === 'BENCHMARK_READY' || metric.status === 'CLOSED') {
-      handleTabChange('historical');
-      setActiveStatusFilter(metric.status);
-    }
+    if (!purchasingMetrics.some((metric) => metric.key === key)) return;
+    handleTabChange(key as DashboardTab);
   }
 
   function handleFilterChange(setter: (v: string) => void) {
@@ -284,10 +190,7 @@ function DashboardPage() {
             {purchasingMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
-                isActive={
-                  (activeStatusFilter !== '' && metric.status === activeStatusFilter) ||
-                  (activeStatusFilter === '' && metric.status === 'BENCHMARK_READY' && activeTab === 'historical')
-                }
+                isActive={metric.key === activeTab}
                 metric={metric}
                 onSelect={handleMetricSelect}
               />
@@ -300,31 +203,24 @@ function DashboardPage() {
         </section>
 
         {/* Tabs */}
-        <div className="mt-8 flex justify-center border-b border-[var(--bocar-border)]">
-          <button
-            type="button"
-            onClick={() => handleTabChange('pending')}
-            className={[
-              'mr-6 px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'pending'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            RFQs to assign
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTabChange('historical')}
-            className={[
-              'px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'historical'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            Historical
-          </button>
+        <div className="mt-8 overflow-x-auto border-b border-[var(--bocar-border)]">
+          <div className="flex min-w-max justify-center gap-6 px-1">
+            {purchasingMetrics.map((metric) => (
+              <button
+                key={metric.key}
+                type="button"
+                onClick={() => handleTabChange(metric.key)}
+                className={[
+                  'px-1 pb-3 pt-1 text-[13px] transition focus:outline-none',
+                  activeTab === metric.key
+                    ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
+                    : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
+                ].join(' ')}
+              >
+                <span>{metric.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Filter bar */}
@@ -340,7 +236,7 @@ function DashboardPage() {
               value={tipoValue}
               onChange={handleFilterChange(setTipoValue)}
             />
-            {activeTab === 'pending' && (
+            {showDeadlineFilter && (
               <FilterSelect
                 label="Deadline"
                 options={deadlineOptions}
@@ -433,7 +329,7 @@ function DashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#eef1f5]">
-                  {(activeTab === 'historical'
+                  {(usesHistoricalTable
                     ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
                     : ['ID', 'DESC', 'STATUS', 'TYPE', 'DEADLINE', 'CREATION DATE', 'CREATED BY', 'SUPPLIER PROGRESS', 'ACTIONS']
                   ).map((header) => (
@@ -449,13 +345,13 @@ function DashboardPage() {
               <tbody>
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={activeTab === 'historical' ? 7 : 9} className="px-6 py-12 text-center">
+                    <td colSpan={usesHistoricalTable ? 7 : 9} className="px-6 py-12 text-center">
                       <p className="m-0 text-[14px] font-medium text-[var(--bocar-text)]">
                         No RFQs match the current filters.
                       </p>
                     </td>
                   </tr>
-                ) : activeTab === 'historical' ? (
+                ) : usesHistoricalTable ? (
                   visibleRows.map((row) => (
                     <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
                       <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
@@ -542,16 +438,22 @@ function DashboardPage() {
         </section>
 
         {/* Bottom panels */}
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <WidgetPanel
+        <section className="mt-5 grid items-start gap-4 lg:grid-cols-2">
+          <PurchasingWidgetPanel
             title="UPCOMING DEADLINES"
             caption="RFQs requiring immediate follow-up before closing."
-            items={urgentDeadlines}
+            items={upcomingDeadlineItems}
+            isLoading={rfqs.state.status === 'loading'}
+            emptyLabel="No RFQs with upcoming deadlines."
+            pageSize={2}
           />
-          <WidgetPanel
+          <PurchasingWidgetPanel
             title="PENDING UNLOCK REQUESTS"
             caption="Reopening requests received from suppliers."
-            items={unlockRequests}
+            items={unlockRequestItems}
+            isLoading={extensionRequests.state.status === 'loading'}
+            emptyLabel="No pending unlock requests."
+            pageSize={2}
           />
         </section>
 

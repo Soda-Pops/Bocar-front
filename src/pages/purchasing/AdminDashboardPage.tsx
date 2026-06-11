@@ -15,16 +15,18 @@ import {
   purchasingDeadlineRangeOptions,
 } from '@/features/purchasing/constants';
 import {
+  buildUnlockRequestItems,
+  buildUpcomingDeadlineItems,
   eliminatedRows,
-  getDashboardCardStatusClass,
   getFilteredDashboardRows,
   historicalRows,
   purchasingQueueRows,
   superuserPurchasingMetrics,
-  unlockRequests,
-  urgentDeadlines,
 } from '@/features/purchasing/services/purchasingDashboardService';
+import { PurchasingWidgetPanel } from '@/features/purchasing/components/PurchasingWidgetPanel';
 import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
+import { usePurchasingRfqList } from '@/features/purchasing/hooks/usePurchasingRfqList';
+import { useSolicitudesExtension } from '@/features/purchasing/hooks/useSolicitudesExtension';
 import type { PurchasingDashboardRow, PurchasingRfqStatus } from '@/features/purchasing/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
@@ -33,21 +35,6 @@ import { ActionMenu } from '@/shared/components/ui/ActionMenu';
 const PAGE_SIZE = 4;
 
 type AdminTab = 'pending' | 'eliminated' | 'historical';
-
-function ArrowRightIcon() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8H12.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
-      <path
-        d="M9.5 4.5L13 8L9.5 11.5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
 
 function DashboardStatusBadge({ status }: { status: PurchasingRfqStatus }) {
   if (status === 'QUOTING') {
@@ -119,94 +106,22 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
   return [detailAction];
 }
 
-function WidgetPanel({
-  actionHref,
-  caption,
-  items,
-  title,
-}: {
-  actionHref?: string;
-  caption: string;
-  items: typeof urgentDeadlines;
-  title: string;
-}) {
-  const navigate = useNavigate();
-
-  return (
-    <section className="rounded-[14px] border border-[var(--bocar-border)] bg-white p-5 shadow-[0_10px_24px_rgba(0,46,93,0.05)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="m-0 text-[13px] font-bold uppercase tracking-[0.07em] text-[var(--bocar-text)]">
-            {title}
-          </h2>
-          <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{caption}</p>
-        </div>
-        {actionHref ? (
-          <button
-            type="button"
-            onClick={() => navigate(actionHref)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-[9px] border border-[rgba(217,222,229,0.92)] bg-white px-3 text-[12px] font-medium text-[var(--bocar-blue-100)] transition hover:bg-[var(--bocar-bg)] focus:outline-none"
-          >
-            View all
-            <ArrowRightIcon />
-          </button>
-        ) : null}
-      </div>
-
-      <div className="mt-4 grid gap-3">
-        {items.length === 0 ? (
-          <p className="m-0 text-[13px] text-[var(--bocar-blue-50)]">No pending requests.</p>
-        ) : (
-          items.map((item) => {
-            const deadlineTone =
-              typeof item.hoursToDeadline === 'number'
-                ? getDeadlineUrgencyTone(item.hoursToDeadline)
-                : 'neutral';
-
-            return (
-              <div
-                key={item.id}
-                className={[
-                  'rounded-[12px] border px-4 py-4',
-                  typeof item.hoursToDeadline === 'number'
-                    ? getDashboardCardStatusClass(item.hoursToDeadline)
-                    : 'border-[rgba(217,222,229,0.84)] bg-white',
-                ].join(' ')}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">
-                    {item.title}
-                  </p>
-                  {typeof item.hoursToDeadline === 'number' ? (
-                    <span
-                      className={[
-                        'shrink-0 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold',
-                        deadlineTone === 'critical'
-                          ? 'border-[rgba(170,0,15,0.16)] bg-[rgba(170,0,15,0.08)] text-[var(--bocar-error)]'
-                          : deadlineTone === 'warning'
-                            ? 'border-[rgba(255,242,0,0.32)] bg-[rgba(255,242,0,0.18)] text-[var(--bocar-blue-100)]'
-                            : 'border-[rgba(217,222,229,0.9)] bg-[var(--bocar-bg)] text-[var(--bocar-blue-90)]',
-                      ].join(' ')}
-                    >
-                      {formatDeadlineLabel(item.hoursToDeadline)}
-                    </span>
-                  ) : null}
-                </div>
-                {item.meta ? (
-                  <p className="m-0 mt-1 text-[12px] text-[var(--bocar-blue-70)]">{item.meta}</p>
-                ) : null}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </section>
-  );
-}
-
 function AdminDashboardPage() {
   const navigate = useNavigate();
   const rfqHistogram = useRfqHistogramSeries();
+  const rfqs = usePurchasingRfqList();
+  const extensionRequests = useSolicitudesExtension();
+  const upcomingDeadlineItems = useMemo(
+    () => buildUpcomingDeadlineItems(rfqs.state.status === 'success' ? rfqs.state.data : []),
+    [rfqs.state],
+  );
+  const unlockRequestItems = useMemo(
+    () =>
+      buildUnlockRequestItems(
+        extensionRequests.state.status === 'success' ? extensionRequests.state.data : [],
+      ),
+    [extensionRequests.state],
+  );
   const [activeTab, setActiveTab] = useState<AdminTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
   const [searchValue, setSearchValue] = useState('');
@@ -536,17 +451,22 @@ function AdminDashboardPage() {
         </section>
 
         {/* Bottom panels */}
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <WidgetPanel
+        <section className="mt-5 grid items-start gap-4 lg:grid-cols-2">
+          <PurchasingWidgetPanel
             title="UPCOMING DEADLINES"
             caption="RFQs requiring immediate follow-up before closing."
-            items={urgentDeadlines}
+            items={upcomingDeadlineItems}
+            isLoading={rfqs.state.status === 'loading'}
+            emptyLabel="No RFQs with upcoming deadlines."
+            pageSize={2}
           />
-          <WidgetPanel
+          <PurchasingWidgetPanel
             title="PENDING UNLOCK REQUESTS"
             caption="Reopening requests received from suppliers."
-            actionHref={ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS}
-            items={unlockRequests}
+            items={unlockRequestItems}
+            isLoading={extensionRequests.state.status === 'loading'}
+            emptyLabel="No pending unlock requests."
+            pageSize={2}
           />
         </section>
 

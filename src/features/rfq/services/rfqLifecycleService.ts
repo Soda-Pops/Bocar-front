@@ -12,6 +12,7 @@ import {
   type DashboardCountDto,
 } from '@/features/rfq/services/rfqDtos';
 import { rfqFormToFormData } from '@/features/rfq/services/rfqFormToDto';
+import type { RfqPayloadMode } from '@/features/rfq/services/rfqFormToDto';
 import { mapDetailToFormValues } from '@/features/rfq/services/rfqDetailToFormValues';
 import { mapIndustrializacionRow, mapRfqDetail } from '@/features/rfq/services/rfqMappers';
 import type { RfqDetail } from '@/features/rfq/services/rfqDetailService';
@@ -50,10 +51,11 @@ export async function fetchDashboardCounts(userId?: number, signal?: AbortSignal
 export async function createRfq(
   tipo: RfqTipo,
   values: MoldFormValues | TrimmingFormValues,
+  mode: RfqPayloadMode = 'draft',
 ): Promise<CreateRfqResponseDto> {
   return request(`${INDUSTRIALIZACION_BASE}/rfq/${tipoQ(tipo)}`, {
     method: 'POST',
-    body: rfqFormToFormData(tipo, values),
+    body: rfqFormToFormData(tipo, values, mode),
     schema: createRfqResponseDto,
   });
 }
@@ -62,10 +64,11 @@ export async function updateRfq(
   tipo: RfqTipo,
   id: number,
   values: MoldFormValues | TrimmingFormValues,
+  mode: RfqPayloadMode = 'draft',
 ): Promise<{ detail: string }> {
   return request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
     method: 'PATCH',
-    body: rfqFormToFormData(tipo, values),
+    body: rfqFormToFormData(tipo, values, mode),
     schema: detailMsgDto,
   });
 }

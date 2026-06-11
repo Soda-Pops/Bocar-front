@@ -167,10 +167,6 @@ function buildAssignRoute(id: string) {
   return ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', id);
 }
 
-function buildBenchmarkRoute(id: string) {
-  return ROUTES.PURCHASING.BENCHMARK.replace(':rfqId', id);
-}
-
 function createDisabledAdminAction(
   key: PurchasingRfqAction['key'],
   label: string,
@@ -217,11 +213,7 @@ export function getActionsByStatus(
 
   if (row.status === 'BENCHMARK_READY') {
     return [
-      {
-        key: 'view_benchmark',
-        label: 'View benchmark',
-        href: buildBenchmarkRoute(row.id),
-      },
+      detailAction,
       createDisabledAdminAction('close_rfq', 'Close RFQ', role),
     ].filter(Boolean) as PurchasingRfqAction[];
   }

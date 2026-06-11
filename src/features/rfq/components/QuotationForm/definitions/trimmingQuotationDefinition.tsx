@@ -565,6 +565,9 @@ function getPageErrorMap(
   };
 }
 
+const getDraftPageErrorMap = getPageErrorMap;
+const getSubmitPageErrorMap = getPageErrorMap;
+
 // ─── Shared readonly display primitives (local) ───────────────────────────────
 
 const ROW_CLASS =
@@ -1499,15 +1502,21 @@ export function buildTrimmingQuotationDefinition(
 
   return {
     resolver: zodResolver(trimmingQuotationSchema),
+    draftResolver: zodResolver(trimmingQuotationSchema),
+    submitResolver: zodResolver(trimmingQuotationSchema),
     getCreateDefaultValues,
     getEditDefaultValues,
     pages: PAGES,
     navGroups: NAV_GROUPS,
     pageMeta: PAGE_META,
     requiredFieldsByPage: REQUIRED_FIELDS_BY_PAGE,
+    draftRequiredFieldsByPage: REQUIRED_FIELDS_BY_PAGE,
+    submitRequiredFieldsByPage: REQUIRED_FIELDS_BY_PAGE,
     renderPage,
     getCompletedMap,
     getPageErrorMap,
+    getDraftPageErrorMap,
+    getSubmitPageErrorMap,
     onInvalidSubmit: (fieldErrors, { setCurrentPage, setFocus }) => {
       if (fieldErrors.supplier) {
         setCurrentPage('basic');

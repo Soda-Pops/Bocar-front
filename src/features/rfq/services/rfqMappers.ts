@@ -86,7 +86,7 @@ export function mapComercializacionRow(
     deadlineExpired: parsedDeadline.expired,
   });
   // ANSWERED es exclusivo de la vista de proveedor; nunca se produce aquí.
-  const status: PurchasingRfqStatus = rawStatus === 'ANSWERED' ? 'QUOTING' : rawStatus;
+  const status: PurchasingRfqStatus = dto.operational_status ?? (rawStatus === 'ANSWERED' ? 'QUOTING' : rawStatus);
 
   const supplierProgress =
     progress.total > 0

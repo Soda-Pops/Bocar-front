@@ -1,6 +1,7 @@
 import { ROUTES } from '@/app/config/routes';
 import type { ChartPoint } from '@/features/analytics/types';
 import { getDeadlineRange, getDeadlineUrgencyTone, getPriorityRank } from '@/features/purchasing/constants';
+import type { ExtensionRequestItem } from '@/features/purchasing/services/comercializacionService';
 import type {
   PurchasingDashboardMetric,
   PurchasingDashboardRow,
@@ -8,6 +9,7 @@ import type {
   PurchasingUser,
   PurchasingWidgetItem,
 } from '@/features/purchasing/types';
+import { formatId } from '@/shared/utils/rfqId';
 
 export const purchasingUser: PurchasingUser = {
   initials: 'CM',
@@ -320,54 +322,49 @@ export const eliminatedRows: PurchasingDashboardRow[] = [
   },
 ];
 
-export const urgentDeadlines: PurchasingWidgetItem[] = [
-  {
-    id: 'urgent-rfq-004',
-    title: 'RFQ-004',
-    subtitle: '',
-    meta: '2 of 5 quoted',
-    href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 18,
-    actionLabel: '',
-  },
-  {
-    id: 'urgent-rfq-003a',
-    title: 'RFQ-003',
-    subtitle: '',
-    meta: '3 of 4 quoted',
-    href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 34,
-    actionLabel: '',
-  },
-  {
-    id: 'urgent-rfq-003b',
-    title: 'RFQ-003',
-    subtitle: '',
-    meta: '1 of 4 quoted',
-    href: ROUTES.PURCHASING.RFQ_LIST,
-    hoursToDeadline: 144,
-    actionLabel: '',
-  },
-];
+/** Estados de RFQ activos que aún requieren seguimiento antes de cerrarse. */
+const FOLLOW_UP_STATUSES: PurchasingRfqStatus[] = ['QUOTING', 'PARTIALLY_QUOTED'];
 
-export const unlockRequests: PurchasingWidgetItem[] = [
-  {
-    id: 'ULK-14',
-    title: 'ULK-14',
-    subtitle: 'Supplier MAGNATECH requests reopening of RFQ-0974',
-    meta: 'Reason: lead time and tooling adjustment',
-    href: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
+/**
+ * Construye los items del widget "UPCOMING DEADLINES" a partir de las RFQs
+ * reales de Comercialización: RFQs activas con fecha límite próxima, ordenadas
+ * por urgencia. Devuelve la lista completa; el widget se encarga de paginar.
+ * Cada item enlaza al detalle de la RFQ.
+ */
+export function buildUpcomingDeadlineItems(rows: PurchasingDashboardRow[]): PurchasingWidgetItem[] {
+  return rows
+    .filter((row) => FOLLOW_UP_STATUSES.includes(row.status) && row.hoursToDeadline < 9999)
+    .sort((leftRow, rightRow) => leftRow.hoursToDeadline - rightRow.hoursToDeadline)
+    .map((row) => ({
+      id: row.id,
+      title: row.id,
+      subtitle: row.project,
+      meta: row.supplierProgress?.label ?? 'No quotations',
+      href: `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`,
+      hoursToDeadline: row.hoursToDeadline,
+      actionLabel: '',
+    }));
+}
+
+/**
+ * Construye los items del widget "PENDING UNLOCK REQUESTS" a partir de las
+ * solicitudes de extensión reales enviadas por proveedores. Devuelve la lista
+ * completa; el widget se encarga de paginar. Cada item enlaza al detalle de la
+ * RFQ correspondiente.
+ */
+export function buildUnlockRequestItems(requests: ExtensionRequestItem[]): PurchasingWidgetItem[] {
+  return requests.map((req) => ({
+    id: String(req.id),
+    title: req.rfqId > 0 ? formatId(req.rfqId) : req.rfqNombre,
+    subtitle: `${req.proveedorNombre} solicita reabrir su asignación`,
+    meta: req.motivo ? `Motivo: ${req.motivo}` : '',
+    href:
+      req.rfqId > 0
+        ? `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', formatId(req.rfqId))}?tipo=${req.rfqTipo}`
+        : '',
     actionLabel: 'Review',
-  },
-  {
-    id: 'ULK-12',
-    title: 'ULK-12',
-    subtitle: 'Supplier PLASTIMEX requests reopening of RFQ-0968',
-    meta: 'Reason: official PDF corrected',
-    href: ROUTES.PURCHASING.ADMIN_UNLOCK_REQUESTS,
-    actionLabel: 'Review',
-  },
-];
+  }));
+}
 
 export function getFilteredDashboardRows(
   rows: PurchasingDashboardRow[],

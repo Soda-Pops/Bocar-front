@@ -96,3 +96,63 @@ export async function listEditRequests(signal?: AbortSignal): Promise<EditReques
   }));
   return [...mold, ...trimming].sort((a, b) => b.id - a.id);
 }
+
+export type ExtensionRequestItem = {
+  id: number;
+  rfqId: number;
+  rfqTipo: 'Mold' | 'Trimming';
+  rfqNombre: string;
+  proveedorNombre: string;
+  motivo: string;
+  dueDateActual: string;
+  nuevaFecha: string;
+  status: string;
+  solicitadaAt: string;
+};
+
+/**
+ * Solicitudes de desbloqueo (extensión de tiempo) enviadas por proveedores.
+ * Provienen del bloque `solicitudes_extension` de GET /solicitudes/.
+ */
+export async function listExtensionRequests(signal?: AbortSignal): Promise<ExtensionRequestItem[]> {
+  const data = await request(`${BASE}/solicitudes/`, {
+    method: 'GET',
+    schema: solicitudesPendientesDto,
+    signal,
+  });
+  const mapItem = (
+    r: (typeof data.solicitudes_extension.mold)[number],
+    tipo: 'Mold' | 'Trimming',
+  ): ExtensionRequestItem => ({
+    id: r.id,
+    rfqId: r.rfq_id ?? 0,
+    rfqTipo: tipo,
+    rfqNombre: r.rfq_nombre ?? '-',
+    proveedorNombre: r.proveedor_nombre ?? '-',
+    motivo: r.motivo ?? '-',
+    dueDateActual: r.due_date_actual ?? '',
+    nuevaFecha: r.nueva_fecha ?? '',
+    status: r.status ?? 'Pendiente',
+    solicitadaAt: r.solicitada_at ?? '',
+  });
+  const mold = data.solicitudes_extension.mold.map((r) => mapItem(r, 'Mold'));
+  const trimming = data.solicitudes_extension.trimming.map((r) => mapItem(r, 'Trimming'));
+  return [...mold, ...trimming].sort((a, b) => b.id - a.id);
+}
+
+/**
+ * Aprueba o rechaza una solicitud de extensión usando el endpoint vigente de
+ * Comercialización (no el legacy de Asignaciones).
+ * PATCH /api_comercializacion/v1/extension/<id>/resolver/?tipo=mold|trimming
+ */
+export async function resolverExtension(
+  tipo: RfqTipo,
+  id: number,
+  status: 'Aprobada' | 'Rechazada',
+): Promise<void> {
+  await request(`${BASE}/extension/${id}/resolver/${tipoQ(tipo)}`, {
+    method: 'PATCH',
+    body: { status },
+    schema: comercializacionMessageDto,
+  });
+}

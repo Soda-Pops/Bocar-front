@@ -27,7 +27,25 @@ const TOGGLE_REQUIRED_CONSIDERATIONS = new Set([
   'comp_d', 'subseq_d', 'repl_h13', 'sp_ei', 'ficf', 'hcls', 'fr_refur',
 ]);
 
-const moldSchema = z
+const SPEC_ONLY_CONSIDERATIONS = new Set([
+  'smach', 'no_cav', 'no_hs', 'no_ms', 'third_p_supp', 'no_subc', 'jco', 'qc_sys', 'ihtcs',
+  'spin', 'hics', 'cm_gom', 'sp_thermo', 'n_return_v', 'vac_v', 'chill_bl', 'no_pl_jco', 'ctbd',
+]);
+
+const requiredText = (message = 'Complete this field before submitting the RFQ.') =>
+  z.string().trim().min(1, message);
+
+const fileSchema = z.object({
+  name: z.string(),
+  size: z.number(),
+  type: z.string(),
+  file: z.instanceof(File).optional(),
+  id: z.number().optional(),
+  url: z.string().optional(),
+  uploadedAt: z.string().optional(),
+});
+
+const moldBaseSchema = z
   .object({
     alloy: z.string(),
     buhler: z.string(),
@@ -45,17 +63,17 @@ const moldSchema = z
     num_cav: z.string(),
     num_tools: z.string(),
     part_dim: z.string(),
-    part_name: z.string().trim().min(1, 'Enter the part name before continuing.'),
-    part_number: z.string().trim().min(1, 'Enter the part number before submitting the RFQ.'),
+    part_name: z.string(),
+    part_number: z.string(),
     part_tech: z.string(),
     parts_stroke: z.string(),
     pnum: z.string(),
     ppy: z.string(),
     prlf: z.string(),
     projected: z.string(),
-    rfq_name: z.string().trim().min(1, 'Enter the RFQ name to continue.'),
+    rfq_name: z.string(),
     sk_part: z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() }).nullable(),
-    files: z.array(z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional(), id: z.number().optional(), url: z.string().optional(), uploadedAt: z.string().optional() })),
+    files: z.array(fileSchema),
     surface: z.string(),
     three_plate: z.string(),
     tt: z.string(),
@@ -63,6 +81,44 @@ const moldSchema = z
     wall_max: z.string(),
     wall_min: z.string(),
     weight: z.string(),
+  });
+
+const moldDraftSchema = moldBaseSchema.extend({
+  rfq_name: requiredText('Enter DESC before saving the RFQ draft.'),
+});
+
+const moldSubmitSchema = moldBaseSchema
+  .extend({
+    alloy: requiredText(),
+    buhler: requiredText(),
+    comments: requiredText(),
+    cust: requiredText(),
+    dtq: requiredText(),
+    elab: requiredText(),
+    gates: requiredText(),
+    hydr_slides: requiredText(),
+    mech_slides: requiredText(),
+    num_cav: requiredText(),
+    num_tools: requiredText(),
+    part_dim: requiredText(),
+    part_name: requiredText(),
+    part_number: requiredText(),
+    part_tech: requiredText(),
+    parts_stroke: requiredText(),
+    pnum: requiredText(),
+    ppy: requiredText(),
+    prlf: requiredText(),
+    projected: requiredText(),
+    rfq_name: requiredText('Enter DESC before submitting the RFQ.'),
+    sk_part: moldBaseSchema.shape.sk_part.refine((value) => value !== null, 'Attach the SK part file.'),
+    files: z.array(fileSchema).min(1, 'Attach at least one file.'),
+    surface: requiredText(),
+    three_plate: requiredText(),
+    tt: requiredText(),
+    volume: requiredText(),
+    wall_max: requiredText(),
+    wall_min: requiredText(),
+    weight: requiredText(),
   })
   .superRefine((values, ctx) => {
     // Iterate the required set (not the entries present in the form): the
@@ -78,10 +134,26 @@ const moldSchema = z
           path: ['considerations', key, 'checked'],
         });
       }
+      if (!values.considerations[key]?.notes?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Complete the notes/specifications. Use N/A if it does not apply.',
+          path: ['considerations', key, 'notes'],
+        });
+      }
+    });
+    SPEC_ONLY_CONSIDERATIONS.forEach((key) => {
+      if (!values.considerations[key]?.notes?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Complete the notes/specifications. Use N/A if it does not apply.',
+          path: ['considerations', key, 'notes'],
+        });
+      }
     });
   });
 
-export type MoldFormValues = z.infer<typeof moldSchema>;
+export type MoldFormValues = z.infer<typeof moldBaseSchema>;
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
@@ -242,15 +314,41 @@ function requiredTogglePaths(page: MoldPageKey): readonly FieldPath<MoldFormValu
   const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
   return (group?.items ?? [])
     .filter((item) => TOGGLE_REQUIRED_CONSIDERATIONS.has(item.id))
-    .map((item) => `considerations.${item.id}.checked` as FieldPath<MoldFormValues>);
+    .flatMap((item) => [
+      `considerations.${item.id}.checked` as FieldPath<MoldFormValues>,
+      `considerations.${item.id}.notes` as FieldPath<MoldFormValues>,
+    ]);
 }
 
-const REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly FieldPath<MoldFormValues>[]>> = {
+function requiredSpecPaths(page: MoldPageKey): readonly FieldPath<MoldFormValues>[] {
+  const group = CONSIDERATION_GROUPS.find((g) => g.page === page);
+  return (group?.items ?? [])
+    .filter((item) => SPEC_ONLY_CONSIDERATIONS.has(item.id))
+    .map((item) => `considerations.${item.id}.notes` as FieldPath<MoldFormValues>);
+}
+
+const DRAFT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly FieldPath<MoldFormValues>[]>> = {
   basic: ['rfq_name'],
-  geometry: ['part_name', 'part_number'],
+};
+
+const SUBMIT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly FieldPath<MoldFormValues>[]>> = {
+  basic: ['rfq_name', 'cust', 'ppy', 'part_tech'],
+  tool_eng: ['pnum', 'dtq', 'prlf', 'elab', 'tt'],
+  dcm: requiredSpecPaths('dcm'),
   diritpotd: requiredTogglePaths('diritpotd'),
   other_cons: requiredTogglePaths('other_cons'),
   ot_inf: requiredTogglePaths('ot_inf'),
+  spareparts: ['sk_part'],
+  geometry: [
+    'part_name', 'alloy', 'part_number', 'part_dim', 'wall_min', 'wall_max',
+    'projected', 'surface', 'volume', 'weight',
+  ],
+  tool_spec: [
+    'buhler', 'num_cav', 'three_plate', 'gates', 'mech_slides', 'hydr_slides',
+    'parts_stroke', 'num_tools',
+  ],
+  comments: ['comments'],
+  files: ['files'],
 };
 
 // ─── Default values ───────────────────────────────────────────────────────────
@@ -320,7 +418,19 @@ function getCompletedMap(values: MoldFormValues): Partial<Record<string, boolean
 function getPageErrorMap(
   errors: Parameters<RfqWorkspaceDefinition<MoldFormValues>['getPageErrorMap']>[0]
 ): Partial<Record<string, boolean>> {
-  return buildPageErrorMap(REQUIRED_FIELDS_BY_PAGE, errors);
+  return buildPageErrorMap(SUBMIT_REQUIRED_FIELDS_BY_PAGE, errors);
+}
+
+function getDraftPageErrorMap(
+  errors: Parameters<RfqWorkspaceDefinition<MoldFormValues>['getPageErrorMap']>[0]
+): Partial<Record<string, boolean>> {
+  return buildPageErrorMap(DRAFT_REQUIRED_FIELDS_BY_PAGE, errors);
+}
+
+function getSubmitPageErrorMap(
+  errors: Parameters<RfqWorkspaceDefinition<MoldFormValues>['getPageErrorMap']>[0]
+): Partial<Record<string, boolean>> {
+  return buildPageErrorMap(SUBMIT_REQUIRED_FIELDS_BY_PAGE, errors);
 }
 
 // ─── Page components ──────────────────────────────────────────────────────────
@@ -561,17 +671,26 @@ function renderPage(page: string, readOnly?: boolean): ReactNode {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export const moldDefinition: RfqWorkspaceDefinition<MoldFormValues> = {
-  resolver: zodResolver(moldSchema),
+  resolver: zodResolver(moldDraftSchema),
+  draftResolver: zodResolver(moldDraftSchema),
+  submitResolver: zodResolver(moldSubmitSchema),
   getCreateDefaultValues,
   getEditDefaultValues,
   pages: PAGES,
   navGroups: NAV_GROUPS,
   pageMeta: PAGE_META,
-  requiredFieldsByPage: REQUIRED_FIELDS_BY_PAGE,
+  requiredFieldsByPage: DRAFT_REQUIRED_FIELDS_BY_PAGE,
+  draftRequiredFieldsByPage: DRAFT_REQUIRED_FIELDS_BY_PAGE,
+  submitRequiredFieldsByPage: SUBMIT_REQUIRED_FIELDS_BY_PAGE,
   renderPage,
   getCompletedMap,
   getPageErrorMap,
+  getDraftPageErrorMap,
+  getSubmitPageErrorMap,
   onInvalidSubmit: (fieldErrors, ctx) => {
-    goToFirstRequiredError(PAGES, REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
+    goToFirstRequiredError(PAGES, SUBMIT_REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
+  },
+  onInvalidDraft: (fieldErrors, ctx) => {
+    goToFirstRequiredError(PAGES, DRAFT_REQUIRED_FIELDS_BY_PAGE, fieldErrors, ctx);
   },
 };

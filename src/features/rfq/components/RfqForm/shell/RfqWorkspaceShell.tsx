@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type BaseSyntheticEvent } from 'react';
 import {
   FormProvider,
   type DefaultValues,
+  type FieldErrors,
+  type FieldPath,
   type FieldValues,
   type SubmitErrorHandler,
   useForm,
@@ -157,6 +159,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     getInitialFeedback(mode, rfqId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [lastAttemptMode, setLastAttemptMode] = useState<'draft' | 'submit'>('draft');
   const [actionPending, setActionPending] = useState(false);
   const [createdSuccessfully, setCreatedSuccessfully] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
@@ -172,13 +175,15 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     defaultValues: defaults as DefaultValues<TValues>,
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    resolver: definition.resolver,
+    resolver: definition.draftResolver,
   });
 
   const {
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     reset,
+    setError,
     setFocus,
     trigger,
   } = form;
@@ -202,7 +207,9 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   currentPageRef.current = currentPage;
 
   const currentIndex = definition.pages.indexOf(currentPage);
-  const pageErrors = definition.getPageErrorMap(errors);
+  const getActivePageErrorMap =
+    lastAttemptMode === 'submit' ? definition.getSubmitPageErrorMap : definition.getDraftPageErrorMap;
+  const pageErrors = getActivePageErrorMap(errors);
   const pageErrorSignature = definition.pages.map((page) => (pageErrors[page] ? '1' : '0')).join('|');
 
   useEffect(() => {
@@ -241,7 +248,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
       return;
     }
 
-    const requiredFields = definition.requiredFieldsByPage[currentPage] ?? [];
+    const requiredFields = definition.draftRequiredFieldsByPage[currentPage] ?? [];
 
     if (requiredFields.length > 0) {
       const pageAtCallTime = currentPage;
@@ -273,6 +280,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   }
 
   async function handleValidSaveDraft(values: TValues) {
+    setLastAttemptMode('draft');
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
     setCreatedSuccessfully(false);
@@ -310,6 +318,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
   }
 
   async function handleValidSubmit(values: TValues) {
+    setLastAttemptMode('submit');
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
     setCreatedSuccessfully(false);
@@ -343,26 +352,60 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
     });
   }
 
-  const handleInvalidSubmit: SubmitErrorHandler<TValues> = (fieldErrors) => {
+  const handleInvalidSubmit = (
+    fieldErrors: FieldErrors<TValues>,
+    validationMode: 'draft' | 'submit' = 'submit',
+  ) => {
+    setLastAttemptMode(validationMode);
     setAttemptedSubmit(true);
     setFeedback({
       text: 'This section has required fields that are not complete.',
       tone: 'error',
     });
-    const errorMap = definition.getPageErrorMap(fieldErrors);
+    const errorMap =
+      validationMode === 'submit'
+        ? definition.getSubmitPageErrorMap(fieldErrors)
+        : definition.getDraftPageErrorMap(fieldErrors);
     skipNextEmptyPageErrorSyncRef.current = true;
     setVisiblePageErrors(errorMap);
     const firstErrorPage = definition.pages.find((p) => errorMap[p]);
     if (firstErrorPage) setCurrentPage(firstErrorPage);
-    definition.onInvalidSubmit?.(fieldErrors, { setCurrentPage, setFocus });
+    if (validationMode === 'submit') {
+      definition.onInvalidSubmit?.(fieldErrors, { setCurrentPage, setFocus });
+    } else {
+      definition.onInvalidDraft?.(fieldErrors, { setCurrentPage, setFocus });
+    }
   };
+
+  const handleInvalidDraft: SubmitErrorHandler<TValues> = (fieldErrors) => {
+    handleInvalidSubmit(fieldErrors, 'draft');
+  };
+
+  function applyResolverErrors(fieldErrors: FieldErrors<TValues>) {
+    function walk(target: unknown, prefix = '') {
+      if (!target || typeof target !== 'object') return;
+      const record = target as Record<string, unknown>;
+      if ('type' in record || 'message' in record) {
+        setError(prefix as FieldPath<TValues>, {
+          type: typeof record.type === 'string' ? record.type : 'manual',
+          message: typeof record.message === 'string' ? record.message : 'This field is required.',
+        });
+        return;
+      }
+      Object.entries(record).forEach(([key, value]) => {
+        walk(value, prefix ? `${prefix}.${key}` : key);
+      });
+    }
+
+    walk(fieldErrors);
+  }
 
   function unlockAction() {
     actionPendingRef.current = false;
     setActionPending(false);
   }
 
-  function submitOnce(validHandler: (values: TValues) => Promise<void>) {
+  function submitOnce(validHandler: (values: TValues) => Promise<void>, validationMode: 'draft' | 'submit') {
     return (event?: BaseSyntheticEvent) => {
       if (actionPendingRef.current) {
         event?.preventDefault();
@@ -374,6 +417,19 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
       void handleSubmit(
         async (values) => {
           try {
+            if (validationMode === 'submit') {
+              const result = await definition.submitResolver(getValues(), undefined, {
+                criteriaMode: 'firstError',
+                fields: {},
+                names: undefined,
+                shouldUseNativeValidation: false,
+              });
+              if (Object.keys(result.errors).length > 0) {
+                applyResolverErrors(result.errors);
+                handleInvalidSubmit(result.errors, 'submit');
+                return;
+              }
+            }
             await validHandler(values);
           } finally {
             unlockAction();
@@ -381,7 +437,11 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
         },
         (fieldErrors) => {
           try {
-            handleInvalidSubmit(fieldErrors);
+            if (validationMode === 'draft') {
+              handleInvalidDraft(fieldErrors);
+            } else {
+              handleInvalidSubmit(fieldErrors, 'submit');
+            }
           } finally {
             unlockAction();
           }
@@ -467,7 +527,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                 <form
                   className="mt-8"
                   noValidate
-                  onSubmit={submitOnce(handleValidSubmit)}
+                  onSubmit={submitOnce(handleValidSubmit, 'submit')}
                 >
                   <fieldset disabled={disableWorkspace} className="m-0 min-w-0 border-0 p-0">
                     {definition.renderPage(currentPage, readOnly)}
@@ -492,7 +552,7 @@ export function RfqWorkspaceShell<TValues extends FieldValues>({
                           className="inline-flex h-11 min-w-[180px] items-center justify-center rounded-[10px] border border-[#d9dee5] bg-white px-5 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)] hover:bg-[rgba(245,247,250,0.8)] disabled:cursor-not-allowed disabled:opacity-70"
                           disabled={disableActions}
                           type="button"
-                          onClick={submitOnce(handleValidSaveDraft)}
+                          onClick={submitOnce(handleValidSaveDraft, 'draft')}
                         >
                           {disableActions ? 'Saving...' : 'Save Draft'}
                         </button>

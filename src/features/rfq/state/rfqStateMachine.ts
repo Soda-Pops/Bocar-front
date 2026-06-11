@@ -30,7 +30,6 @@ export type RfqActionKey =
   | 'assign_suppliers'
   | 'approve_edit_request'
   | 'reject_edit_request'
-  | 'view_benchmark'
   | 'close_rfq'
   | 'extend_deadline'
   | 'cancel_early'
@@ -120,13 +119,6 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
     tone: 'secondary',
     icon: 'x',
     requiresConfirmation: true,
-  },
-  view_benchmark: {
-    key: 'view_benchmark',
-    label: 'View benchmark',
-    tone: 'primary',
-    icon: 'arrow-right',
-    requiresConfirmation: false,
   },
   close_rfq: {
     key: 'close_rfq',
@@ -277,9 +269,6 @@ export function resolveAllowedActions(input: {
     }
 
     case 'BENCHMARK_READY': {
-      if (!isSupplier) {
-        actions.push({ ...A.view_benchmark });
-      }
       if (isPurchasing) {
         actions.push({ ...A.close_rfq });
       }

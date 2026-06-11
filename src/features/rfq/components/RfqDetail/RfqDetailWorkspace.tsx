@@ -25,6 +25,7 @@ import {
   getPendingEditRequestId,
 } from '@/features/rfq/services/rfqLifecycleService';
 import { CloseRfqModal } from '@/features/rfq/components/RfqDetail/CloseRfqModal';
+import { BenchmarkComparativaChart } from '@/features/rfq/components/RfqDetail/BenchmarkComparativaChart';
 import type { RfqUploadedFile } from '@/features/rfq/services/rfqDetailService';
 import type { RfqActionKey, RfqBannerConfig, UserRole } from '@/features/rfq/state/rfqStateMachine';
 import { HttpError } from '@/shared/http/errors';
@@ -219,6 +220,9 @@ export function RfqDetailWorkspace({
       const body = err.body;
       if (body && typeof body === 'object') {
         const b = body as Record<string, unknown>;
+        if (b.code === 'rfq_incompleto') {
+          return 'Este RFQ tiene campos faltantes. Ábrelo en edición y complétalos antes de enviarlo a Comercialización.';
+        }
         if (typeof b.detail === 'string') return b.detail;
         if (typeof b.message === 'string') return b.message;
         if (typeof b.error === 'string') return b.error;
@@ -244,9 +248,6 @@ export function RfqDetailWorkspace({
         window.requestAnimationFrame(() =>
           assignmentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
         );
-        break;
-      case 'view_benchmark':
-        navigate(ROUTES.PURCHASING.BENCHMARK.replace(':rfqId', rfqId));
         break;
       case 'open_rfq':
         navigate(`/industrializacion/rfq/${rfqId}/editar?view=true`);
@@ -602,6 +603,11 @@ export function RfqDetailWorkspace({
               </table>
             </div>
           </div>
+        ) : null}
+
+        {/* Benchmark comparison chart — only when the RFQ reached Benchmark ready */}
+        {rfq.status === 'BENCHMARK_READY' ? (
+          <BenchmarkComparativaChart tipo={tipo} rfqNumericId={parseId(rfq.id)} />
         ) : null}
 
         {/* Benchmark */}

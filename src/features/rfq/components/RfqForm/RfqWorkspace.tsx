@@ -71,10 +71,10 @@ export function RfqWorkspace({
   async function handleSaveDraft(values: Parameters<typeof createRfq>[1]) {
     const currentId = workingRfqIdRef.current;
     if (currentId) {
-      const updated = await updateRfq(tipo, currentId, values);
+      const updated = await updateRfq(tipo, currentId, values, 'draft');
       return { detail: updated.detail };
     }
-    const created = await createRfq(tipo, values);
+    const created = await createRfq(tipo, values, 'draft');
     workingRfqIdRef.current = created.id;
     return { created: true, detail: created.detail, id: created.id };
   }
@@ -83,7 +83,7 @@ export function RfqWorkspace({
     const currentId = workingRfqIdRef.current;
     if (currentId) {
       const id = currentId;
-      await updateRfq(tipo, id, values);
+      await updateRfq(tipo, id, values, 'submit');
       try {
         await sendRfqToCom(tipo, id);
       } catch (error) {
@@ -94,7 +94,7 @@ export function RfqWorkspace({
       return { submitted: true };
     }
 
-    const created = await createRfq(tipo, values);
+    const created = await createRfq(tipo, values, 'submit');
     workingRfqIdRef.current = created.id;
     try {
       await sendRfqToCom(tipo, created.id);
