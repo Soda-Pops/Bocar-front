@@ -48,7 +48,10 @@ const trimmingBaseSchema = z
     project_life: z.string(), // optional · free-form string (ej. "5 years")
     customer: z.string(), // optional · free-form string
     previous_job: z.string(), // optional · free-form string (referencia a job anterior)
-    deliver_by: z.string(), // opcional · formato date YYYY-MM-DD desde el input, no validado by Zod
+    deliver_by: z.string().refine(
+      (v) => !v || v > new Date().toISOString().slice(0, 10),
+      { message: 'Date must be in the future.' }
+    ),
     // Section 2 — Trim Die
     press: z.string(), // optional · free-form string (modelo de prensa)
     num_cavities: z.string(), // optional · free-form string (ej. "2x")
@@ -90,6 +93,15 @@ const trimmingBaseSchema = z
 
 const trimmingDraftSchema = trimmingBaseSchema.extend({
   description: requiredText('Enter DESC before saving the RFQ draft.'),
+}).superRefine((values, ctx) => {
+  const dateNotes = values.considerations['delivery_date']?.notes?.trim();
+  if (dateNotes && dateNotes <= new Date().toISOString().slice(0, 10)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Date must be in the future.',
+      path: ['considerations', 'delivery_date', 'notes'],
+    });
+  }
 });
 
 const trimmingSubmitSchema = trimmingBaseSchema
@@ -100,7 +112,10 @@ const trimmingSubmitSchema = trimmingBaseSchema
     project_life: requiredText(),
     customer: requiredText(),
     previous_job: requiredText(),
-    deliver_by: requiredText(),
+    deliver_by: requiredText().refine(
+      (v) => !v || v > new Date().toISOString().slice(0, 10),
+      { message: 'Date must be in the future.' }
+    ),
     press: requiredText(),
     num_cavities: requiredText(),
     num_hydraulic_slides: requiredText(),
@@ -140,10 +155,17 @@ const trimmingSubmitSchema = trimmingBaseSchema
       }
       // delivery_date.notes is a date picker — only required when the toggle is YES
       if (key === 'delivery_date') {
-        if (values.considerations[key]?.checked === 'yes' && !values.considerations[key]?.notes?.trim()) {
+        const dateNotes = values.considerations[key]?.notes?.trim();
+        if (values.considerations[key]?.checked === 'yes' && !dateNotes) {
           ctx.addIssue({
             code: "custom",
             message: 'Select a delivery date.',
+            path: ['considerations', key, 'notes'],
+          });
+        } else if (dateNotes && dateNotes <= new Date().toISOString().slice(0, 10)) {
+          ctx.addIssue({
+            code: "custom",
+            message: 'Date must be in the future.',
             path: ['considerations', key, 'notes'],
           });
         }

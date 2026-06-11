@@ -185,7 +185,10 @@ const moldBasicDataSchema = z.object({
   base_currency: z.string(),
   exchange_rate_to: z.string(),
   last_edited_by: z.string(),
-  last_change: z.string(),
+  last_change: z.string().refine(
+    (v) => !v || v > new Date().toISOString().slice(0, 10),
+    { message: 'Date must be in the future.' }
+  ),
 });
 
 const moldAccessoriesCostsSchema = z.object({
