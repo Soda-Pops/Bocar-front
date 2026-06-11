@@ -164,7 +164,6 @@ export function mapRfqDetail(
           spec(raw, 'CUST', 'Customer'),
           spec(raw, 'PPY', 'Parts per year'),
           spec(raw, 'part_name', 'Part name'),
-          spec(raw, 'part_number', 'Part number'),
           spec(raw, 'comments', 'Comments'),
         ];
 

@@ -67,8 +67,6 @@ export type InheritedMoldRfq = {
   other_items: ConsiderationItem[];
   // Other Information
   ot_inf: ConsiderationItem[];
-  // Part Sketch
-  sk_part_file: { name: string; size: number; type: string } | null;
   // Costs to Be Determined
   ctbd_items: ConsiderationItem[];
   // Part Geometry
@@ -143,11 +141,6 @@ function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
       { label: 'Mold No. 2', checked: 'no', notes: '' },
       { label: 'Others', checked: 'no', notes: '' },
     ],
-    sk_part_file: {
-      name: 'Part_Sketch_CarcasaFrontal_v2.pdf',
-      size: 3_120_000,
-      type: 'application/pdf',
-    },
     ctbd_items: [
       { label: 'Vacuum system', checked: 'yes', notes: 'Required per drawing.' },
       { label: 'Temperature control unit', checked: 'yes', notes: 'External unit.' },
@@ -177,7 +170,10 @@ function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const moneyCell = z.string();
+const moneyCell = z.string().refine(
+  (v) => v === '' || /^\d+(\.\d*)?$/.test(v),
+  'Must be a valid number',
+);
 const hRow = z.object({ h: moneyCell, price: moneyCell, weeks: moneyCell });
 const unitRow = z.object({ unit: moneyCell, price_unit: moneyCell, weeks: moneyCell });
 const qRow = z.object({ q: moneyCell, price_q: moneyCell, weeks: moneyCell });
@@ -351,7 +347,6 @@ type PageKey =
   | 'diritpotd'
   | 'other'
   | 'ot_inf'
-  | 'sk_part'
   | 'ctbd'
   | 'basic_data'
   | 'part_geometry'
@@ -380,7 +375,6 @@ const PAGES: readonly PageKey[] = [
   'diritpotd',
   'other',
   'ot_inf',
-  'sk_part',
   'ctbd',
   'basic_data',
   'part_geometry',
@@ -433,11 +427,6 @@ const PAGE_META: Record<PageKey, PageMeta> = {
     navLabel: 'OT INF',
     subtitle: 'Additional mold information.',
     title: '6. Other Information',
-  },
-  sk_part: {
-    navLabel: 'SK PART',
-    subtitle: 'Part sketch attached by Industrialization as a technical reference.',
-    title: '7. Complete Part Sketch',
   },
   ctbd: {
     navLabel: 'CTBD',
@@ -552,7 +541,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'diritpotd', label: 'DIRITPOTD' },
       { key: 'other', label: 'OTHER' },
       { key: 'ot_inf', label: 'OT INF' },
-      { key: 'sk_part', label: 'SK PART' },
       { key: 'ctbd', label: 'CTBD' },
     ],
   },
@@ -989,54 +977,6 @@ function OtInfPage({ inherited }: { inherited: InheritedMoldRfq }) {
     </SectionCard>
   );
 }
-
-function SkPartPage({ inherited }: { inherited: InheritedMoldRfq }) {
-  const file = inherited.sk_part_file;
-
-  function getExtColor(name: string) {
-    const ext = name.split('.').pop()?.toLowerCase() ?? '';
-    if (ext === 'pdf') return '#AA000F';
-    if (ext === 'dwg') return '#1F3A61';
-    return '#7F8FA3';
-  }
-  function getExtLabel(name: string) {
-    return (name.split('.').pop()?.toUpperCase() ?? 'FILE').slice(0, 4);
-  }
-
-  return (
-    <SectionCard subtitle={PAGE_META.sk_part.subtitle} title={PAGE_META.sk_part.title}>
-      {file ? (
-        <div className="flex items-center gap-4 rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-4">
-          <span
-            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-[6px] text-[10px] font-bold uppercase tracking-[0.04em] text-white"
-            style={{ backgroundColor: getExtColor(file.name) }}
-          >
-            {getExtLabel(file.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 truncate text-[14px] font-semibold text-[var(--bocar-text)]">
-              {file.name}
-            </p>
-            <p className="m-0 mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">
-              {formatFileSize(file.size)} · Uploaded by Industrialization
-            </p>
-          </div>
-          <button
-            className="shrink-0 rounded-[8px] border border-[#d9dee5] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)]"
-            type="button"
-          >
-            View file
-          </button>
-        </div>
-      ) : (
-        <div className="flex min-h-[100px] items-center justify-center rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-6 text-[13px] text-[var(--bocar-blue-30)]">
-          No part sketch was attached to this RFQ.
-        </div>
-      )}
-    </SectionCard>
-  );
-}
-
 
 function CtbdPage() {
   const { control } = useFormContext<MoldQuotationValues>();
@@ -1806,18 +1746,18 @@ export function buildMoldQuotationDefinition(
       ...values,
       accessories_costs: {
         ...values.accessories_costs,
-        parker_hydraulic: { ...values.accessories_costs.parker_hydraulic, unit: inherited.dcm_no_hs },
-        jet_cooling: { ...values.accessories_costs.jet_cooling, unit: inherited.dcm_jco },
-        squeeze_pin: { ...values.accessories_costs.squeeze_pin, unit: inherited.dcm_spin },
-        interchangeable_inserts: { ...values.accessories_costs.interchangeable_inserts, unit: inherited.dcm_ihtcs },
-        chill_blocks: { ...values.accessories_costs.chill_blocks, unit: chillOrVac },
-        others: { ...values.accessories_costs.others, unit: inherited.dcm_oth },
+        parker_hydraulic: { ...values.accessories_costs.parker_hydraulic, unit: inherited.dcm_no_hs || '0' },
+        jet_cooling: { ...values.accessories_costs.jet_cooling, unit: inherited.dcm_jco || '0' },
+        squeeze_pin: { ...values.accessories_costs.squeeze_pin, unit: inherited.dcm_spin || '0' },
+        interchangeable_inserts: { ...values.accessories_costs.interchangeable_inserts, unit: inherited.dcm_ihtcs || '0' },
+        chill_blocks: { ...values.accessories_costs.chill_blocks, unit: chillOrVac || '0' },
+        others: { ...values.accessories_costs.others, unit: inherited.dcm_oth || '0' },
       },
       spare_parts: {
         ...values.spare_parts,
-        interchangeable_inserts: { ...values.spare_parts.interchangeable_inserts, unit: inherited.dcm_ihtcs },
-        core_pins: { ...values.spare_parts.core_pins, unit: inherited.dcm_jco },
-        others: { ...values.spare_parts.others, unit: inherited.dcm_oth },
+        interchangeable_inserts: { ...values.spare_parts.interchangeable_inserts, unit: inherited.dcm_ihtcs || '0' },
+        core_pins: { ...values.spare_parts.core_pins, unit: inherited.dcm_jco || '0' },
+        others: { ...values.spare_parts.others, unit: inherited.dcm_oth || '0' },
       },
     };
   }
@@ -1842,7 +1782,6 @@ export function buildMoldQuotationDefinition(
     if (page === 'diritpotd') return <DiritpotdPage inherited={inherited} />;
     if (page === 'other') return <MoldOtherPage inherited={inherited} />;
     if (page === 'ot_inf') return <OtInfPage inherited={inherited} />;
-    if (page === 'sk_part') return <SkPartPage inherited={inherited} />;
     if (page === 'ctbd') return <CtbdPage />;
     if (page === 'basic_data') return <MoldBasicDataPage />;
     if (page === 'part_geometry') return <MoldPartGeometryPage inherited={inherited} />;

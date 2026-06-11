@@ -10,6 +10,7 @@ import {
   getFilteredRows,
 } from '@/features/supplier/services/supplierDashboardService';
 import { useMisAsignaciones } from '@/features/supplier/hooks/useMisAsignaciones';
+import { SupplierProfileCard } from '@/features/supplier/components/SupplierProfileCard';
 import type { SupplierMetricKey, SupplierRfqRow, SupplierRfqStatus, SupplierTab } from '@/features/supplier/types';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
@@ -224,8 +225,9 @@ function SupplierDashboardPage() {
               />
             ))}
           </div>
-          {/* placeholder card */}
-          <div className="hidden rounded-[12px] border border-[var(--bocar-border)] bg-white shadow-[0_8px_18px_rgba(0,46,93,0.04)] lg:block" />
+          <div className="hidden lg:block">
+            <SupplierProfileCard />
+          </div>
         </section>
 
         {/* Tabs */}

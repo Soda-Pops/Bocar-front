@@ -52,9 +52,7 @@ export type InheritedRfq = {
   data_info: ConsiderationItem[];
   // Section 4 — Other Information
   other_info: ConsiderationItem[];
-  // Section 5 — Shot Sketch
-  shot_sketch_file: { name: string; size: number; type: string } | null;
-  // Section 6 — Part Geometry
+  // Section 5 — Part Geometry
   pg_part_name: string;
   pg_part_number_geom: string;
   pg_part_dimension: string;
@@ -118,7 +116,6 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
       { label: 'Set of spare parts (recommended by tool maker)', checked: 'yes', notes: 'View attached list.' },
       { label: 'Hydraulic Cylinders and limit switches', checked: 'yes', notes: 'Bosch Rexroth.' },
     ],
-    shot_sketch_file: { name: 'Shot_Sketch_SoporteLateral_v3.pdf', size: 2_340_000, type: 'application/pdf' },
     pg_part_name: 'Lateral door support',
     pg_part_number_geom: '0',
     pg_part_dimension: '320 × 180 × 75 mm',
@@ -138,7 +135,10 @@ function getInheritedRfqMock(rfqId: string): InheritedRfq {
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const moneyCell = z.string();
+const moneyCell = z.string().refine(
+  (v) => v === '' || /^\d+(\.\d*)?$/.test(v),
+  'Must be a valid number',
+);
 const hRow = z.object({ h: moneyCell, price: moneyCell, weeks: moneyCell });
 const unitRow = z.object({ unit: moneyCell, price_unit: moneyCell, weeks: moneyCell });
 
@@ -262,7 +262,6 @@ type PageKey =
   | 'data_info'
   | 'other_info'
   | 'cost_and_timing_breakdown'
-  | 'shot_sketch'
   | 'basic_data'
   | 'part_geometry'
   | 'tool_spec'
@@ -282,7 +281,6 @@ const PAGES: readonly PageKey[] = [
   'data_info',
   'other_info',
   'cost_and_timing_breakdown',
-  'shot_sketch',
   'basic_data',
   'part_geometry',
   'tool_spec',
@@ -322,11 +320,6 @@ const PAGE_META: Record<PageKey, PageMeta> = {
     navLabel: 'COST AND TIMING BREAKDOWN',
     subtitle: 'Cost and Timing Breakdown',
     title: '5. Cost and Timing Breakdown',
-  },
-  shot_sketch: {
-    navLabel: 'SHOT SKETCH',
-    subtitle: 'Shot sketch attached by Industrialization as a technical reference.',
-    title: '5. Complete Shot Sketch',
   },
   basic_data: {
     navLabel: 'BASIC DATA',
@@ -400,7 +393,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'data_info', label: 'DATA INFORMATION' },
       { key: 'other_info', label: 'OTHER INFORMATION' },
       { key: 'cost_and_timing_breakdown', label: 'COST AND TIMING BREAKDOWN' },
-      { key: 'shot_sketch', label: 'SHOT SKETCH' },
     ],
   },
   {
@@ -755,52 +747,7 @@ function OtherInfoPage({ inherited }: { inherited: InheritedRfq }) {
   );
 }
 
-function ShotSketchPage({ inherited }: { inherited: InheritedRfq }) {
-  const file = inherited.shot_sketch_file;
 
-  function getExtColor(name: string) {
-    const ext = name.split('.').pop()?.toLowerCase() ?? '';
-    if (ext === 'pdf') return '#AA000F';
-    if (ext === 'dwg') return '#1F3A61';
-    return '#7F8FA3';
-  }
-  function getExtLabel(name: string) {
-    return (name.split('.').pop()?.toUpperCase() ?? 'FILE').slice(0, 4);
-  }
-
-  return (
-    <SectionCard subtitle={PAGE_META.shot_sketch.subtitle} title={PAGE_META.shot_sketch.title}>
-      {file ? (
-        <div className="flex items-center gap-4 rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-4">
-          <span
-            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-[6px] text-[10px] font-bold uppercase tracking-[0.04em] text-white"
-            style={{ backgroundColor: getExtColor(file.name) }}
-          >
-            {getExtLabel(file.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 truncate text-[14px] font-semibold text-[var(--bocar-text)]">
-              {file.name}
-            </p>
-            <p className="m-0 mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">
-              {formatFileSize(file.size)} · Uploaded by Industrialization
-            </p>
-          </div>
-          <button
-            className="shrink-0 rounded-[8px] border border-[#d9dee5] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--bocar-blue-100)] transition hover:border-[var(--bocar-blue-70)]"
-            type="button"
-          >
-            View file
-          </button>
-        </div>
-      ) : (
-        <div className="flex min-h-[100px] items-center justify-center rounded-[12px] border border-[rgba(217,222,229,0.92)] bg-[#f5f7fa] px-5 py-6 text-[13px] text-[var(--bocar-blue-30)]">
-          No shot sketch was attached to this RFQ.
-        </div>
-      )}
-    </SectionCard>
-  );
-}
 
 function BasicDataPage() {
   const { register } = useFormContext<TrimmingQuotationValues>();
@@ -1484,7 +1431,6 @@ export function buildTrimmingQuotationDefinition(
     if (page === 'data_info') return <DataInfoPage inherited={inherited} />;
     if (page === 'other_info') return <OtherInfoPage inherited={inherited} />;
     if (page === 'cost_and_timing_breakdown') return <CostAndTimingBreakdownPage />;
-    if (page === 'shot_sketch') return <ShotSketchPage inherited={inherited} />;
     if (page === 'basic_data') return <BasicDataPage />;
     if (page === 'part_geometry') return <PartGeometryPage inherited={inherited} />;
     if (page === 'tool_spec') return <ToolSpecPage inherited={inherited} />;

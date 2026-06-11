@@ -118,16 +118,20 @@ const moldSpecMap: Record<string, string> = {
 const numericMoldSpecKeys = new Set(['no_hs', 'no_ms']);
 
 const trimmingConsiderationMap: Record<string, string> = {
+  // Data Information (sección 3)
   design_3d: 'di_design_3d_model',
   design_2d: 'di_design_2d_data',
   punch_pins: 'di_punch_pins_data',
   manuf_proposals: 'di_manufacturing_proposals',
   latest_improvements: 'di_latest_trim_die_improvements',
   sketch_concept: 'di_sketch_trim_die_concept',
+  // Other Information (sección 4) — toggles con patrón estándar booleano + _note
   trim_die_1: 'di_trim_die_no1',
   trim_die_2: 'di_trim_die_no2',
   spare_parts_set: 'di_set_of_spare_parts',
   hydraulic_cyl: 'di_hydraulic_cylinders_limit_sw',
+  frame_refur: 'oi_frame_refurbishment',
+  elec_wires: 'oi_set_of_electric_wires',
 };
 
 function appendFiles(fd: FormData, values: FormValues): void {
@@ -181,54 +185,74 @@ function moldToFormData(values: MoldFormValues, mode: RfqPayloadMode): FormData 
   Object.entries(moldConsiderationMap).forEach(([frontendKey, backendKey]) => {
     appendConsideration(fd, values.considerations, frontendKey, backendKey, mode);
   });
-  if (values.sk_part?.file) fd.append('archivos', values.sk_part.file);
   appendFiles(fd, values);
   return fd;
 }
 
 function trimmingToFormData(values: TrimmingFormValues, mode: RfqPayloadMode): FormData {
   const fd = new FormData();
+  // ─── 1. RFQ ───────────────────────────────────────────────────────────────
   fd.append('due_date', isIsoDate(values.deliver_by) ? values.deliver_by : fallbackDueDate());
+  appendDate(fd, 'DTQ', values.deliver_by, mode);
   appendString(fd, 'DESC', values.description, mode);
   appendString(fd, 'CUST', values.customer, mode);
   appendString(fd, 'PNUM', values.part_number, mode);
   appendNumber(fd, 'PPY', values.parts_per_year, mode);
   appendNumber(fd, 'PRLF', values.project_life, mode);
+  appendString(fd, 'previous_job', values.previous_job, mode);
+  // ─── 2. Trim Die ──────────────────────────────────────────────────────────
   appendString(fd, 'press', values.press, mode);
-  appendNumber(fd, 'no_of_cavities', values.num_cavities, mode);
+  appendString(fd, 'no_of_cavities', values.num_cavities, mode);
   appendString(fd, 'no_of_hydraulic_slides', values.num_hydraulic_slides, mode);
   appendString(fd, 'fully_automatic_process', values.fully_automatic, mode);
   appendString(fd, 'presence_detectors', values.presence_detectors, mode);
   appendString(fd, 'trimming_process_condition', values.trimming_condition, mode);
+  fd.append('punch_pins_required', String(checkedToBoolean(values.punch_pins_required)));
   appendNumber(fd, 'admissible_residual_burr_mm', values.residual_burr_mm, mode);
   appendString(fd, 'castings_supplied_by_auma', values.castings_by_auma, mode);
   appendString(fd, 'adjustments_optimization_at_tool', values.adjustments_toolmaker, mode);
   appendString(fd, 'gas_springs', values.gas_springs, mode);
+  // ─── 6. Part Geometry ─────────────────────────────────────────────────────
   appendString(fd, 'part_name', values.pg_part_name || values.description, mode);
   appendString(fd, 'part_number', values.pg_part_number_geom || values.part_number, mode);
-  appendNumber(fd, 'part_dim_length_mm', values.pg_part_dimension, mode);
+  appendString(fd, 'part_dimension', values.pg_part_dimension, mode);
   appendNumber(fd, 'min_wall_thickness_mm', values.pg_min_wall_thickness, mode);
   appendNumber(fd, 'max_wall_thickness_mm', values.pg_max_wall_thickness, mode);
   appendNumber(fd, 'projected_area_cm2', values.pg_projected_area, mode);
   appendNumber(fd, 'surface_cm2', values.pg_surface, mode);
   appendNumber(fd, 'volume_cm3', values.pg_volume, mode);
   appendNumber(fd, 'gross_weight_g', values.pg_gross_weight, mode);
-  appendString(fd, 'press_type', values.ts_buhler_machine_ton, mode);
-  appendString(fd, 'quantity_of_punch_pins', values.punch_pins_required, mode);
+  // ─── 7. Tool Specification ────────────────────────────────────────────────
+  // "Press Type" reutiliza el input de press, así que press_type espeja press.
+  appendString(fd, 'press_type', values.press, mode);
+  appendString(fd, 'introduction_extraction_process', values.ts_intro_extraction, mode);
+  appendString(fd, 'biscuit_position', values.ts_biscuit_position, mode);
+  appendString(fd, 'quantity_of_punch_pins', values.ts_qty_punch_pins, mode);
+  appendString(fd, 'temperature_when_trimmed', values.ts_temp_trimmed, mode);
+  appendString(fd, 'oi_ejector_system_fixed_side', values.ts_ejector_fixed_side, mode);
+  // ─── 8. Comments ──────────────────────────────────────────────────────────
   appendString(fd, 'comments', values.comments, mode);
 
+  // ─── 3 y 4. Considerations (toggle booleano + _note) ──────────────────────
   Object.entries(trimmingConsiderationMap).forEach(([frontendKey, backendKey]) => {
     appendConsideration(fd, values.considerations, frontendKey, backendKey, mode);
   });
-  const other = values.considerations.others;
-  if (other) appendString(fd, 'oi_others', other.notes, mode);
-  const delivery = values.considerations.delivery_date;
-  if (delivery && isIsoDate(delivery.notes)) appendString(fd, 'oi_delivery_date_imex', delivery.notes, mode);
-  fd.append('oi_frame_refurbishment', String(checkedToBoolean(values.considerations.frame_refur?.checked)));
-  fd.append('oi_set_of_electric_wires', String(checkedToBoolean(values.considerations.elec_wires?.checked)));
-  appendString(fd, 'oi_ejector_system_fixed_side', values.considerations.ejector_fixed?.checked, mode);
 
-  if (values.shot_sketch_file?.file) fd.append('archivos', values.shot_sketch_file.file);
+  // Other Information con claves de backend que no siguen el sufijo _note
+  const other = values.considerations.others;
+  fd.append('oi_others_applies', String(checkedToBoolean(other?.checked)));
+  appendString(fd, 'oi_others', other?.notes ?? '', mode);
+
+  const delivery = values.considerations.delivery_date;
+  fd.append('oi_delivery_date_imex_applies', String(checkedToBoolean(delivery?.checked)));
+  if (isIsoDate(delivery?.notes)) {
+    fd.append('oi_delivery_date_imex', delivery!.notes);
+  }
+
+  const ejector = values.considerations.ejector_fixed;
+  fd.append('oi_ejector_fixed_applies', String(checkedToBoolean(ejector?.checked)));
+  appendString(fd, 'oi_ejector_fixed_note', ejector?.notes ?? '', mode);
+
   appendFiles(fd, values);
   return fd;
 }

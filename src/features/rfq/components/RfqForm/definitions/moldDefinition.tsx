@@ -5,7 +5,6 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
-import { FileUploadField } from '@shared/components/ui/FileUploadField';
 import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 
 import {
@@ -27,9 +26,19 @@ const TOGGLE_REQUIRED_CONSIDERATIONS = new Set([
   'comp_d', 'subseq_d', 'repl_h13', 'sp_ei', 'ficf', 'hcls', 'fr_refur',
 ]);
 
+// VacV y ChillBl quedan FUERA de este set a propósito: son mutuamente excluyentes
+// (regla "uno u otro"). La UI bloquea el que no aplica y ambos pueden quedar en 0,
+// así que no se exigen individualmente. Ver useVacChillExclusion más abajo.
 const SPEC_ONLY_CONSIDERATIONS = new Set([
   'smach', 'no_cav', 'no_hs', 'no_ms', 'third_p_supp', 'no_subc', 'jco', 'qc_sys', 'ihtcs',
-  'spin', 'hics', 'cm_gom', 'sp_thermo', 'n_return_v', 'vac_v', 'chill_bl', 'no_pl_jco', 'ctbd',
+  'spin', 'hics', 'cm_gom', 'sp_thermo', 'n_return_v', 'no_pl_jco', 'ctbd',
+]);
+
+// DCM spec fields whose values feed directly into the quotation unit columns.
+// vac_v and chill_bl are excluded from SPEC_ONLY_CONSIDERATIONS (mutual exclusion)
+// but still need to be numeric so the quotation unit cells receive a valid float.
+const NUMERIC_DCM_CONSIDERATIONS = new Set([
+  'no_hs', 'jco', 'ihtcs', 'spin', 'ctbd', 'vac_v', 'chill_bl',
 ]);
 
 const requiredText = (message = 'Complete this field before submitting the RFQ.') =>
@@ -72,7 +81,6 @@ const moldBaseSchema = z
     prlf: z.string(),
     projected: z.string(),
     rfq_name: z.string(),
-    sk_part: z.object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() }).nullable(),
     files: z.array(fileSchema),
     surface: z.string(),
     three_plate: z.string(),
@@ -110,7 +118,6 @@ const moldSubmitSchema = moldBaseSchema
     prlf: requiredText(),
     projected: requiredText(),
     rfq_name: requiredText('Enter DESC before submitting the RFQ.'),
-    sk_part: moldBaseSchema.shape.sk_part.refine((value) => value !== null, 'Attach the SK part file.'),
     files: z.array(fileSchema).min(1, 'Attach at least one file.'),
     surface: requiredText(),
     three_plate: requiredText(),
@@ -151,6 +158,16 @@ const moldSubmitSchema = moldBaseSchema
         });
       }
     });
+    NUMERIC_DCM_CONSIDERATIONS.forEach((key) => {
+      const val = values.considerations[key]?.notes?.trim() ?? '';
+      if (val !== '' && !/^\d+(\.\d*)?$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Must be a valid number.',
+          path: ['considerations', key, 'notes'],
+        });
+      }
+    });
   });
 
 export type MoldFormValues = z.infer<typeof moldBaseSchema>;
@@ -164,14 +181,13 @@ type MoldPageKey =
   | 'diritpotd'
   | 'other_cons'
   | 'ot_inf'
-  | 'spareparts'
   | 'geometry'
   | 'tool_spec'
   | 'comments'
   | 'files';
 
 const PAGES: readonly MoldPageKey[] = [
-  'basic', 'tool_eng', 'dcm', 'diritpotd', 'other_cons', 'ot_inf', 'spareparts',
+  'basic', 'tool_eng', 'dcm', 'diritpotd', 'other_cons', 'ot_inf',
   'geometry', 'tool_spec', 'comments', 'files',
 ];
 
@@ -183,10 +199,9 @@ const PAGE_META: Record<MoldPageKey, PageMeta> = {
   geometry: { navLabel: 'PART GEOMETRY', subtitle: 'Component dimensions and properties.', title: '8. Part Geometry' },
   other_cons: { navLabel: 'OTHER', subtitle: 'Other quotation deliverables.', title: '5. Other' },
   ot_inf: { navLabel: 'OT INF', subtitle: 'Additional documentation required from the supplier.', title: '6. OT INF' },
-  spareparts: { navLabel: 'SK PART', subtitle: 'Attach the complete SK part sketch of the component.', title: '7. SK PART' },
   tool_eng: { navLabel: 'TOOL ENG.', subtitle: 'Tooling configuration and parameters.', title: '2. Tool Engineering' },
-  tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Detailed tooling dimensions and configuration.', title: '9. Tool Specification' },
-  files: { navLabel: 'UPLOAD FILES', subtitle: 'Attach blueprints, quotations and part specifications.', title: '11. Upload Files' },
+  tool_spec: { navLabel: 'TOOL SPECIFICATION', subtitle: 'Detailed tooling dimensions and configuration.', title: '8. Tool Specification' },
+  files: { navLabel: 'UPLOAD FILES', subtitle: 'Attach blueprints, quotations and part specifications.', title: '10. Upload Files' },
 };
 
 const NAV_GROUPS: readonly NavGroup[] = [
@@ -200,7 +215,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'diritpotd', label: 'DIRITPOTD' },
       { key: 'other_cons', label: 'OTHER' },
       { key: 'ot_inf', label: 'OT INF' },
-      { key: 'spareparts', label: 'SK PART' },
     ],
   },
   {
@@ -338,7 +352,6 @@ const SUBMIT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<MoldPageKey, readonly Field
   diritpotd: requiredTogglePaths('diritpotd'),
   other_cons: requiredTogglePaths('other_cons'),
   ot_inf: requiredTogglePaths('ot_inf'),
-  spareparts: ['sk_part'],
   geometry: [
     'part_name', 'alloy', 'part_number', 'part_dim', 'wall_min', 'wall_max',
     'projected', 'surface', 'volume', 'weight',
@@ -358,7 +371,7 @@ function getCreateDefaultValues(): MoldFormValues {
     alloy: '', buhler: '', comments: '', considerations: {}, cust: '', dtq: '', elab: '', gates: '',
     hydr_slides: '', mech_slides: '', num_cav: '', num_tools: '', part_dim: '', part_name: '',
     part_number: '', part_tech: '', parts_stroke: '', pnum: '', ppy: '', prlf: '', projected: '',
-    rfq_name: '', sk_part: null, files: [], surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
+    rfq_name: '', files: [], surface: '', three_plate: '', tt: '', volume: '', wall_max: '',
     wall_min: '', weight: '',
   };
 }
@@ -394,7 +407,6 @@ function getEditDefaultValues(rfqId?: string): MoldFormValues {
     prlf: '5',
     projected: '336',
     rfq_name: 'Door support project',
-    sk_part: null,
     files: [],
     surface: '522',
     three_plate: '0',
@@ -510,6 +522,7 @@ function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         {group.items.map((item) => {
           const disabled = isItemDisabled(item.id);
+          const isNumeric = NUMERIC_DCM_CONSIDERATIONS.has(item.id);
           return (
             <div
               key={item.id}
@@ -525,8 +538,11 @@ function ConsiderationPage({ group }: { group: MoldConsiderationGroup }) {
                     : inputBaseClasses(false)
                 }
                 disabled={disabled}
-                placeholder={item.noteExample ?? 'Specifications / notes'}
+                min={isNumeric ? 0 : undefined}
+                placeholder={item.noteExample ?? (isNumeric ? '0' : 'Specifications / notes')}
+                step={isNumeric ? 'any' : undefined}
                 title={disabled ? 'Locked: the other exclusive field has a value other than 0.' : undefined}
+                type={isNumeric ? 'number' : 'text'}
                 {...register(`considerations.${item.id}.notes`)}
               />
             </div>
@@ -566,18 +582,6 @@ function ToolEngineeringPage() {
         <TextField label="ELAB" name="elab" placeholder="NAME" />
         <TextField label="TT" name="tt" placeholder="PRODUCTION" />
       </FormGrid>
-    </SectionCard>
-  );
-}
-
-function SparePartsPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.spareparts.subtitle} title={PAGE_META.spareparts.title}>
-      <FileUploadField
-        accept=".png,.jpg,.jpeg,.pdf,.dwg"
-        maxSizeMb={10}
-        name="sk_part"
-      />
     </SectionCard>
   );
 }
@@ -649,7 +653,6 @@ function FilesPage({ readOnly }: { readOnly?: boolean }) {
 function renderPage(page: string, readOnly?: boolean): ReactNode {
   if (page === 'basic') return <BasicPage />;
   if (page === 'tool_eng') return <ToolEngineeringPage />;
-  if (page === 'spareparts') return <SparePartsPage />;
   if (page === 'geometry') return <GeometryPage />;
   if (page === 'tool_spec') return <ToolSpecificationPage />;
   if (page === 'comments') return <CommentsPage />;

@@ -4,7 +4,6 @@ import { useFormContext } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
-import { FileUploadField } from '@shared/components/ui/FileUploadField';
 import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 
 import {
@@ -67,13 +66,8 @@ const trimmingBaseSchema = z
       z.string(),
       z.object({ checked: z.string().optional(), notes: z.string() })
     ), // free-form keys -> { checked?: string, notes: string }; superRefine: las 15 claves de TRIMMING_TOGGLE_REQUIRED require a non-empty checked value; if others.checked === 'yes', notes is also required
-    // Section 5 — Shot Sketch
-    shot_sketch_file: z
-      .object({ name: z.string(), size: z.number(), type: z.string(), file: z.instanceof(File).optional() })
-      .nullable(), // null = no attached file; if present: name (string), size (number in bytes), type (MIME string)
-    // Section 6 — Part Geometry
+    // Section 5 — Part Geometry
     pg_part_name: z.string(), // optional · free-form string
-    pg_alloy: z.string(), // optional · free-form string (ej. "AlSi10MgMn")
     pg_part_number_geom: z.string(), // optional · number as string (input step 0.01)
     pg_part_dimension: z.string(), // optional · free-form string (ej. "320x180x75" in mm)
     pg_min_wall_thickness: z.string(), // optional · number as string (input step 0.01, in mm)
@@ -82,15 +76,7 @@ const trimmingBaseSchema = z
     pg_surface: z.string(), // optional · number as string (input step 0.01, en cm²)
     pg_volume: z.string(), // optional · number as string (input step 0.01, en cm³)
     pg_gross_weight: z.string(), // optional · number as string (input step 0.01, en g)
-    // Section 7 — Tool Specification
-    ts_buhler_machine_ton: z.string(),
-    ts_num_cavities_sets: z.string(),
-    ts_three_plate_mold: z.string(),
-    ts_num_gates_per_part: z.string(),
-    ts_num_mech_slides: z.string(),
-    ts_num_hydr_slides: z.string(),
-    ts_num_parts_per_stroke: z.string(),
-    ts_num_tools: z.string(),
+    // Section 7 — Tool Specification (solo los campos realmente renderizados)
     ts_intro_extraction: z.string(),
     ts_biscuit_position: z.string(),
     ts_qty_punch_pins: z.string(),
@@ -126,12 +112,7 @@ const trimmingSubmitSchema = trimmingBaseSchema
     castings_by_auma: requiredText('Select YES or NO.'),
     adjustments_toolmaker: requiredText('Select YES or NO.'),
     gas_springs: requiredText(),
-    shot_sketch_file: trimmingBaseSchema.shape.shot_sketch_file.refine(
-      (value) => value !== null,
-      'Attach the shot sketch file.',
-    ),
     pg_part_name: requiredText(),
-    pg_alloy: requiredText(),
     pg_part_number_geom: requiredText(),
     pg_part_dimension: requiredText(),
     pg_min_wall_thickness: requiredText(),
@@ -140,14 +121,11 @@ const trimmingSubmitSchema = trimmingBaseSchema
     pg_surface: requiredText(),
     pg_volume: requiredText(),
     pg_gross_weight: requiredText(),
-    ts_buhler_machine_ton: requiredText(),
-    ts_num_cavities_sets: requiredText(),
-    ts_three_plate_mold: requiredText(),
-    ts_num_gates_per_part: requiredText(),
-    ts_num_mech_slides: requiredText(),
-    ts_num_hydr_slides: requiredText(),
-    ts_num_parts_per_stroke: requiredText(),
-    ts_num_tools: requiredText(),
+    ts_intro_extraction: requiredText(),
+    ts_biscuit_position: requiredText(),
+    ts_qty_punch_pins: requiredText(),
+    ts_temp_trimmed: requiredText(),
+    ts_ejector_fixed_side: requiredText(),
     comments: requiredText(),
     files: z.array(fileSchema).min(1, 'Attach at least one file.'),
   })
@@ -160,7 +138,16 @@ const trimmingSubmitSchema = trimmingBaseSchema
           path: ['considerations', key, 'checked'],
         });
       }
-      if (!values.considerations[key]?.notes?.trim()) {
+      // delivery_date.notes is a date picker — only required when the toggle is YES
+      if (key === 'delivery_date') {
+        if (values.considerations[key]?.checked === 'yes' && !values.considerations[key]?.notes?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: 'Select a delivery date.',
+            path: ['considerations', key, 'notes'],
+          });
+        }
+      } else if (!values.considerations[key]?.notes?.trim()) {
         ctx.addIssue({
           code: "custom",
           message: 'Complete the notes/specifications. Use N/A if it does not apply.',
@@ -179,14 +166,13 @@ type TrimmingPageKey =
   | 'trim_die'
   | 'data_info'
   | 'other_info'
-  | 'shot_sketch'
   | 'part_geometry'
   | 'tool_spec'
   | 'comments'
   | 'files';
 
 const PAGES: readonly TrimmingPageKey[] = [
-  'basic', 'trim_die', 'data_info', 'other_info', 'shot_sketch',
+  'basic', 'trim_die', 'data_info', 'other_info',
   'part_geometry', 'tool_spec', 'comments', 'files',
 ];
 
@@ -211,30 +197,25 @@ const PAGE_META: Record<TrimmingPageKey, PageMeta> = {
     subtitle: 'Other deliverables and included services.',
     title: '4. Other Information',
   },
-  shot_sketch: {
-    navLabel: 'SHOT SKETCH',
-    subtitle: 'Attach the complete shot sketch of the component.',
-    title: '5. Complete Shot Sketch',
-  },
   part_geometry: {
     navLabel: 'PART GEOMETRY',
     subtitle: 'Part geometry and physical properties.',
-    title: '6. Part Geometry',
+    title: '5. Part Geometry',
   },
   tool_spec: {
     navLabel: 'TOOL SPECIFICATION',
     subtitle: 'Technical specifications of the tooling and machine.',
-    title: '7. Tool Specification',
+    title: '6. Tool Specification',
   },
   comments: {
     navLabel: 'COMMENTS',
     subtitle: 'Additional comments for the supplier.',
-    title: '8. Comments',
+    title: '7. Comments',
   },
   files: {
     navLabel: 'UPLOAD FILES',
     subtitle: 'Attach blueprints, quotations and part specifications.',
-    title: '9. Upload Files',
+    title: '8. Upload Files',
   },
 };
 
@@ -247,7 +228,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'trim_die', label: 'TRIM DIE' },
       { key: 'data_info', label: 'DATA INFORMATION' },
       { key: 'other_info', label: 'OTHER INFORMATION' },
-      { key: 'shot_sketch', label: 'SHOT SKETCH' },
     ],
   },
   {
@@ -323,10 +303,8 @@ const SUBMIT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly F
     'spare_parts_set',
     'hydraulic_cyl',
   ]),
-  shot_sketch: ['shot_sketch_file'],
   part_geometry: [
     'pg_part_name',
-    'pg_alloy',
     'pg_part_number_geom',
     'pg_part_dimension',
     'pg_min_wall_thickness',
@@ -337,14 +315,11 @@ const SUBMIT_REQUIRED_FIELDS_BY_PAGE: Partial<Record<TrimmingPageKey, readonly F
     'pg_gross_weight',
   ],
   tool_spec: [
-    'ts_buhler_machine_ton',
-    'ts_num_cavities_sets',
-    'ts_three_plate_mold',
-    'ts_num_gates_per_part',
-    'ts_num_mech_slides',
-    'ts_num_hydr_slides',
-    'ts_num_parts_per_stroke',
-    'ts_num_tools',
+    'ts_intro_extraction',
+    'ts_biscuit_position',
+    'ts_qty_punch_pins',
+    'ts_temp_trimmed',
+    'ts_ejector_fixed_side',
   ],
   comments: ['comments'],
   files: ['files'],
@@ -412,9 +387,7 @@ function getCreateDefaultValues(): TrimmingFormValues {
     adjustments_toolmaker: '',
     gas_springs: '',
     considerations: {},
-    shot_sketch_file: null,
     pg_part_name: '',
-    pg_alloy: '',
     pg_part_number_geom: '',
     pg_part_dimension: '',
     pg_min_wall_thickness: '',
@@ -423,14 +396,6 @@ function getCreateDefaultValues(): TrimmingFormValues {
     pg_surface: '',
     pg_volume: '',
     pg_gross_weight: '',
-    ts_buhler_machine_ton: '',
-    ts_num_cavities_sets: '',
-    ts_three_plate_mold: '',
-    ts_num_gates_per_part: '',
-    ts_num_mech_slides: '',
-    ts_num_hydr_slides: '',
-    ts_num_parts_per_stroke: '',
-    ts_num_tools: '',
     ts_intro_extraction: '',
     ts_biscuit_position: '',
     ts_qty_punch_pins: '',
@@ -478,9 +443,7 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
       spare_parts_set: { checked: 'yes', notes: 'See attached list.' },
       hydraulic_cyl: { checked: 'yes', notes: 'Bosch Rexroth.' },
     },
-    shot_sketch_file: null,
     pg_part_name: 'Lateral door support',
-    pg_alloy: 'AlSi10MgMn',
     pg_part_number_geom: '0',
     pg_part_dimension: '320x180x75',
     pg_min_wall_thickness: '3',
@@ -489,19 +452,11 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     pg_surface: '1180.00',
     pg_volume: '285.30',
     pg_gross_weight: '780.00',
-    ts_buhler_machine_ton: '900',
-    ts_num_cavities_sets: '2',
-    ts_three_plate_mold: '0',
-    ts_num_gates_per_part: '2',
-    ts_num_mech_slides: '3',
-    ts_num_hydr_slides: '1',
-    ts_num_parts_per_stroke: '2',
-    ts_num_tools: '1',
-    ts_intro_extraction: '',
-    ts_biscuit_position: '',
-    ts_qty_punch_pins: '',
-    ts_temp_trimmed: '',
-    ts_ejector_fixed_side: '',
+    ts_intro_extraction: 'Robot arm extraction',
+    ts_biscuit_position: 'Bottom center',
+    ts_qty_punch_pins: '12',
+    ts_temp_trimmed: '280',
+    ts_ejector_fixed_side: 'Spring return ejectors',
     comments: '',
     files: [],
   };
@@ -512,7 +467,6 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
 function getCompletedMap(values: TrimmingFormValues): Partial<Record<string, boolean>> {
   return {
     basic: values.description.trim().length > 0,
-    shot_sketch: values.shot_sketch_file !== null,
   };
 }
 
@@ -645,18 +599,6 @@ function DataInfoPage() {
 
 function OtherInfoPage() {
   return <ConsiderationTogglePage group={OTHER_INFO_GROUP} />;
-}
-
-function ShotSketchPage() {
-  return (
-    <SectionCard subtitle={PAGE_META.shot_sketch.subtitle} title={PAGE_META.shot_sketch.title}>
-      <FileUploadField
-        accept=".png,.jpg,.jpeg,.pdf,.dwg"
-        maxSizeMb={10}
-        name="shot_sketch_file"
-      />
-    </SectionCard>
-  );
 }
 
 function PartGeometryPage() {
@@ -884,7 +826,6 @@ function renderPage(page: string, readOnly?: boolean): ReactNode {
   if (page === 'trim_die') return <TrimDiePage />;
   if (page === 'data_info') return <DataInfoPage />;
   if (page === 'other_info') return <OtherInfoPage />;
-  if (page === 'shot_sketch') return <ShotSketchPage />;
   if (page === 'part_geometry') return <PartGeometryPage />;
   if (page === 'tool_spec') return <ToolSpecPage />;
   if (page === 'comments') return <CommentsPage />;
