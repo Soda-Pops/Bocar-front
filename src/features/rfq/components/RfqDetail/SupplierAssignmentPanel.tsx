@@ -59,6 +59,12 @@ export function SupplierAssignmentPanel({ suppliers, backHref, onSubmit }: Suppl
       setFeedback({ tone: 'error', text: 'Each selected supplier requires a deadline.' });
       return;
     }
+    const today = new Date().toISOString().slice(0, 10);
+    const pastDeadline = selectedNames.some((n) => deadlines[n] <= today);
+    if (pastDeadline) {
+      setFeedback({ tone: 'error', text: 'Deadlines must be in the future (from tomorrow onwards).' });
+      return;
+    }
     if (onSubmit) {
       const proveedores = suppliers
         .filter((supplier) => selectedNames.includes(supplier.name))
@@ -142,6 +148,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref, onSubmit }: Suppl
                       aria-label={`Deadline ${supplier.name}`}
                       className="h-10 rounded-[6px] border border-[var(--bocar-border)] px-3 text-[12px] font-normal tracking-normal text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]"
                       disabled={!selected}
+                      min={new Date(Date.now() + 864e5).toISOString().slice(0, 10)}
                       onChange={(e) => handleDeadline(supplier.name, e.target.value)}
                       type="date"
                       value={deadlines[supplier.name] ?? ''}
@@ -194,6 +201,7 @@ export function SupplierAssignmentPanel({ suppliers, backHref, onSubmit }: Suppl
                             : 'border-[var(--bocar-border)] focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]',
                         ].join(' ')}
                         disabled={!selected}
+                        min={new Date(Date.now() + 864e5).toISOString().slice(0, 10)}
                         onChange={(e) => handleDeadline(supplier.name, e.target.value)}
                         type="date"
                         value={deadlines[supplier.name] ?? ''}

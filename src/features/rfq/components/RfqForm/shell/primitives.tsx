@@ -154,6 +154,7 @@ export function TextField({
       <input
         aria-invalid={Boolean(error)}
         className={inputBaseClasses(Boolean(error))}
+        min={type === 'date' ? new Date(Date.now() + 864e5).toISOString().slice(0, 10) : undefined}
         placeholder={placeholder}
         type={type}
         {...rest}
@@ -300,6 +301,7 @@ export function YesNoDateRow({
           aria-invalid={Boolean(notesError)}
           className={inputBaseClasses(Boolean(notesError))}
           disabled={!isYes}
+          min={new Date(Date.now() + 864e5).toISOString().slice(0, 10)}
           type="date"
           {...notesRegister}
           onChange={async (e) => {
@@ -313,6 +315,74 @@ export function YesNoDateRow({
           {error}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+// ─── ConsiderationYesNoToggle ────────────────────────────────────────────────
+// Like YesNoToggle but auto-fills the paired notes field with "N/A" when NO is selected.
+
+function ConsiderationYesNoToggle({
+  checkedName,
+  notesName,
+}: {
+  checkedName: string;
+  notesName: string;
+}) {
+  const { control, setValue } = useFormContext();
+  const rawValue = useWatch({ control, name: checkedName });
+  const value = typeof rawValue === 'string' ? rawValue : '';
+
+  function handleYes() {
+    setValue(checkedName, value === 'yes' ? '' : 'yes', {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  }
+
+  function handleNo() {
+    const next = value === 'no' ? '' : 'no';
+    setValue(checkedName, next, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    if (next === 'no') {
+      setValue(notesName, 'N/A', {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }
+
+  return (
+    <div className="flex gap-1.5">
+      <button
+        className={[
+          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
+          value === 'yes'
+            ? 'border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] text-white'
+            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
+        ].join(' ')}
+        type="button"
+        onClick={handleYes}
+      >
+        YES
+      </button>
+      <button
+        className={[
+          'rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] transition',
+          value === 'no'
+            ? 'border-transparent bg-[rgba(170,0,15,0.85)] text-white'
+            : 'border-[#d9dee5] bg-white text-[var(--bocar-blue-70)] hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)]',
+        ].join(' ')}
+        type="button"
+        onClick={handleNo}
+      >
+        NO
+      </button>
     </div>
   );
 }
@@ -544,7 +614,7 @@ export function ConsiderationTogglePage({ group }: { group: ConsiderationGroupCo
                   <div className="text-[13px] font-medium leading-[1.5] text-[var(--bocar-text)]">
                     {item.label}
                   </div>
-                  <YesNoToggle name={checkedName} />
+                  <ConsiderationYesNoToggle checkedName={checkedName} notesName={notesName} />
                   {item.notesAs === 'textarea' ? (
                     <textarea
                       aria-invalid={Boolean(notesError)}
