@@ -131,18 +131,22 @@ export function FormGrid({ children }: { children: ReactNode }) {
 export function TextField({
   hint,
   label,
+  min,
   name,
   placeholder,
   required = false,
   span = 1,
+  step,
   type = 'text',
 }: {
   hint?: string;
   label: string;
+  min?: InputHTMLAttributes<HTMLInputElement>['min'];
   name: string;
   placeholder?: string;
   required?: boolean;
   span?: 1 | 2;
+  step?: InputHTMLAttributes<HTMLInputElement>['step'];
   type?: InputHTMLAttributes<HTMLInputElement>['type'];
 }) {
   const { formState, getFieldState, register, trigger } = useFormContext();
@@ -154,8 +158,9 @@ export function TextField({
       <input
         aria-invalid={Boolean(error)}
         className={inputBaseClasses(Boolean(error))}
-        min={type === 'date' ? new Date(Date.now() + 864e5).toISOString().slice(0, 10) : undefined}
+        min={min ?? (type === 'date' ? new Date(Date.now() + 864e5).toISOString().slice(0, 10) : undefined)}
         placeholder={placeholder}
+        step={step}
         type={type}
         {...rest}
         onChange={async (e) => {

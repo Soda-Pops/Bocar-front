@@ -17,8 +17,10 @@ import type {
   RfqWorkspaceDefinition,
 } from '../../RfqForm/shell/types';
 import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
+import type { FileInfo } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum, mul, parseNum } from '../shared/formulas';
+import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
 
 // ─── Inherited RFQ data (mock) ────────────────────────────────────────────────
 
@@ -68,68 +70,45 @@ export type InheritedRfq = {
   ts_qty_punch_pins: string;
   ts_temp_trimmed: string;
   ts_ejector_fixed_side: string;
+  rfq_files: FileInfo[];
 };
 
-function getInheritedRfqMock(rfqId: string): InheritedRfq {
+function getEmptyInheritedRfq(): InheritedRfq {
   return {
-    description: 'Lateral door support',
-    parts_per_year: '180,000',
-    customer: 'BMW AG',
-    part_number: `${rfqId.toUpperCase()}-TR`,
-    project_life: '5 years',
-    deliver_by: '2026-09-15',
-    press: 'Müller Weingarten PE2500',
-    num_cavities: '2x',
-    num_hydraulic_slides: '3',
-    fully_automatic: 'yes',
-    presence_detectors: 'yes',
-    trimming_condition: 'hot',
-    punch_pins_required: 'yes',
-    residual_burr_mm: '0.3',
-    castings_by_auma: 'no',
-    adjustments_toolmaker: 'yes',
-    gas_springs: 'Nitrogen, 4 pcs.',
-    data_info: [
-      { label: 'Design 3D model', checked: 'yes', notes: 'Native CATIA V5 format.' },
-      { label: 'Design 2D data', checked: 'yes', notes: 'PDF + DXF.' },
-      { label: 'Punch pins Data', checked: 'yes', notes: '' },
-      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'View M1 proposal.' },
-      {
-        label: 'Latest trim die improvements',
-        checked: 'yes',
-        notes: 'Review of steel inserts from the previous print.',
-      },
-      {
-        label: 'Sketch of trim die concept including steel dimensions',
-        checked: 'yes',
-        notes: 'Include steel dimensions.',
-      },
-    ],
-    other_info: [
-      { label: 'Frame Refurbishment', checked: 'yes', notes: '' },
-      { label: 'Set of electric wires', checked: 'no', notes: '' },
-      { label: 'Others', checked: 'no', notes: '' },
-      { label: 'Delivery date (pick-up by IMEX)', checked: 'yes', notes: '2026-09-01' },
-      { label: 'Ejector system in fixed side', checked: 'yes', notes: '' },
-      { label: 'Trim die No. 1', checked: 'yes', notes: '' },
-      { label: 'Trim die No. 2', checked: 'no', notes: '' },
-      { label: 'Set of spare parts (recommended by tool maker)', checked: 'yes', notes: 'View attached list.' },
-      { label: 'Hydraulic Cylinders and limit switches', checked: 'yes', notes: 'Bosch Rexroth.' },
-    ],
-    pg_part_name: 'Lateral door support',
-    pg_part_number_geom: '0',
-    pg_part_dimension: '320 × 180 × 75 mm',
-    pg_min_wall_thickness: '3 mm',
-    pg_max_wall_thickness: '14 mm',
-    pg_projected_area: '420.50 cm²',
-    pg_surface: '1,180.00 cm²',
-    pg_volume: '285.30 cm³',
-    pg_gross_weight: '780.00 g',
-    ts_intro_extraction: 'Manual extraction',
-    ts_biscuit_position: 'Left side',
-    ts_qty_punch_pins: '8',
-    ts_temp_trimmed: '200°C',
-    ts_ejector_fixed_side: 'Yes — 4 pins',
+    description: '',
+    parts_per_year: '',
+    customer: '',
+    part_number: '',
+    project_life: '',
+    deliver_by: '',
+    press: '',
+    num_cavities: '',
+    num_hydraulic_slides: '',
+    fully_automatic: '',
+    presence_detectors: '',
+    trimming_condition: '',
+    punch_pins_required: '',
+    residual_burr_mm: '',
+    castings_by_auma: '',
+    adjustments_toolmaker: '',
+    gas_springs: '',
+    data_info: [],
+    other_info: [],
+    pg_part_name: '',
+    pg_part_number_geom: '',
+    pg_part_dimension: '',
+    pg_min_wall_thickness: '',
+    pg_max_wall_thickness: '',
+    pg_projected_area: '',
+    pg_surface: '',
+    pg_volume: '',
+    pg_gross_weight: '',
+    ts_intro_extraction: '',
+    ts_biscuit_position: '',
+    ts_qty_punch_pins: '',
+    ts_temp_trimmed: '',
+    ts_ejector_fixed_side: '',
+    rfq_files: [],
   };
 }
 
@@ -513,33 +492,8 @@ function getCreateDefaultValues(): TrimmingQuotationValues {
 }
 
 function getEditDefaultValues(quotationId?: string): TrimmingQuotationValues {
-  const base = getCreateDefaultValues();
-  return {
-    ...base,
-    supplier: 'Herramental Precision SA',
-    ts_max_weight_trim_die: '850 kg',
-    comments: `Quotation linked to ${(quotationId ?? 'COT-001').toUpperCase()}.`,
-    basic_data: {
-      company: 'Herramental Precision SA',
-      elaborated_by: 'Carlos Martinez',
-      country: 'Mexico',
-      currency: 'USD',
-      last_edited_by: 'Carlos Martinez',
-      last_change: '2026-05-20',
-    },
-    material_costs: {
-      raw_materials: { unit: '420', price_unit: '4.80', weeks: '4' },
-      others: { unit: '6', price_unit: '120.00', weeks: '2' },
-    },
-    manufacturing: {
-      ...base.manufacturing,
-      machining: {
-        ...base.manufacturing.machining,
-        milling: { h: '120', price: '65', weeks: '4' },
-        turning: { h: '40', price: '60', weeks: '2' },
-      },
-    },
-  };
+  void quotationId;
+  return getCreateDefaultValues();
 }
 
 // ─── Completion / error maps ──────────────────────────────────────────────────
@@ -1412,10 +1366,11 @@ function CostAndTimingBreakdownPage() {
   );
 }
 
-function FilesPage() {
+function FilesPage({ inherited }: { inherited: InheritedRfq }) {
   return (
     <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
-      <MultiFileUploadField name="files" />
+      <InheritedRfqFilesList files={inherited.rfq_files} />
+      <MultiFileUploadField maxSizeMb={100} name="files" />
     </SectionCard>
   );
 }
@@ -1425,8 +1380,17 @@ function FilesPage() {
 export function buildTrimmingQuotationDefinition(
   rfqId: string,
   inheritedOverride?: InheritedRfq,
+  draftFiles: FileInfo[] = [],
 ): RfqWorkspaceDefinition<TrimmingQuotationValues> {
-  const inherited = inheritedOverride ?? getInheritedRfqMock(rfqId);
+  const inherited = inheritedOverride ?? getEmptyInheritedRfq();
+  void rfqId;
+
+  function getCreateDefaultValuesWithFiles(): TrimmingQuotationValues {
+    return {
+      ...getCreateDefaultValues(),
+      files: draftFiles,
+    };
+  }
 
   function renderPage(page: string): ReactNode {
     if (page === 'basic') return <BasicPage inherited={inherited} />;
@@ -1445,7 +1409,7 @@ export function buildTrimmingQuotationDefinition(
     if (page === 'logistics') return <LogisticsPage />;
     if (page === 'tool_replacement') return <ToolReplacementPage />;
     if (page === 'spare_parts') return <SparePartsPage />;
-    if (page === 'files') return <FilesPage />;
+    if (page === 'files') return <FilesPage inherited={inherited} />;
     return null;
   }
 
@@ -1453,8 +1417,8 @@ export function buildTrimmingQuotationDefinition(
     resolver: zodResolver(trimmingQuotationSchema),
     draftResolver: zodResolver(trimmingQuotationSchema),
     submitResolver: zodResolver(trimmingQuotationSchema),
-    getCreateDefaultValues,
-    getEditDefaultValues,
+    getCreateDefaultValues: getCreateDefaultValuesWithFiles,
+    getEditDefaultValues: () => getCreateDefaultValuesWithFiles(),
     pages: PAGES,
     navGroups: NAV_GROUPS,
     pageMeta: PAGE_META,

@@ -38,11 +38,15 @@ const SPEC_ONLY_CONSIDERATIONS = new Set([
 // vac_v and chill_bl are excluded from SPEC_ONLY_CONSIDERATIONS (mutual exclusion)
 // but still need to be numeric so the quotation unit cells receive a valid float.
 const NUMERIC_DCM_CONSIDERATIONS = new Set([
-  'no_hs', 'jco', 'ihtcs', 'spin', 'ctbd', 'vac_v', 'chill_bl',
+  'no_hs', 'jco', 'ihtcs', 'spin', 'ctbd', 'vac_v', 'chill_bl', 'no_subc',
 ]);
 
 const requiredText = (message = 'Complete this field before submitting the RFQ.') =>
   z.string().trim().min(1, message);
+const wholeNumberText = (message = 'Must be a whole number.') =>
+  z.string().regex(/^\d*$/, message);
+const requiredWholeNumberText = () =>
+  requiredText().regex(/^\d+$/, 'Must be a whole number.');
 
 const fileSchema = z.object({
   name: z.string(),
@@ -69,7 +73,7 @@ const moldBaseSchema = z
     gates: z.string(),
     hydr_slides: z.string(),
     mech_slides: z.string(),
-    num_cav: z.string(),
+    num_cav: wholeNumberText(),
     num_tools: z.string(),
     part_dim: z.string(),
     part_name: z.string(),
@@ -106,7 +110,7 @@ const moldSubmitSchema = moldBaseSchema
     gates: requiredText(),
     hydr_slides: requiredText(),
     mech_slides: requiredText(),
-    num_cav: requiredText(),
+    num_cav: requiredWholeNumberText(),
     num_tools: requiredText(),
     part_dim: requiredText(),
     part_name: requiredText(),
@@ -610,7 +614,7 @@ function ToolSpecificationPage() {
     <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
       <div className="grid gap-5">
         <TextField label="Bühler Machine Ton" name="buhler" type="number" />
-        <TextField label="Number of cavities / sets" name="num_cav" type="number" />
+        <TextField label="Number of cavities / sets" min={0} name="num_cav" step={1} type="number" />
         <TextField label="Three plate mold" name="three_plate" type="number" />
         <TextField label="Number of gates per part" name="gates" type="number" />
         <TextField label="Number of mech. slides" name="mech_slides" type="number" />

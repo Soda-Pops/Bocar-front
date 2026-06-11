@@ -75,11 +75,11 @@ function DeadlineBadge({ hoursToDeadline }: { hoursToDeadline: number }) {
 }
 
 function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof useNavigate>) {
+  const detailHref = `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`;
   const detailAction = {
     key: 'view_detail' as const,
     label: 'View details',
-    onSelect: () =>
-      navigate(`${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`),
+    onSelect: () => navigate(detailHref),
   };
 
   if (row.status === 'PENDING') {
@@ -89,7 +89,7 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
         key: 'assign' as const,
         label: 'Assign suppliers',
         onSelect: () =>
-          navigate(`${ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id)}?tipo=${row.machineType}`),
+          navigate(`${detailHref}#assign-suppliers`, { state: { scrollTo: 'assign-suppliers' } }),
       },
     ];
   }

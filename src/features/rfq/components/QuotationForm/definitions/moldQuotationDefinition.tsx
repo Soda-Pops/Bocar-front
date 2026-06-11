@@ -17,8 +17,10 @@ import type {
   RfqWorkspaceDefinition,
 } from '../../RfqForm/shell/types';
 import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
+import type { FileInfo } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum } from '../shared/formulas';
+import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
 
 // ─── Inherited RFQ data (mock) ────────────────────────────────────────────────
 
@@ -33,6 +35,7 @@ export type InheritedMoldRfq = {
   description: string;
   parts_per_year: string;
   customer: string;
+  part_tech: string;
   part_number: string;
   project_life: string;
   deliver_by: string;
@@ -41,17 +44,10 @@ export type InheritedMoldRfq = {
   te_num_cavities: string;
   te_num_hydraulic_slides: string;
   te_num_mech_slides: string;
-  te_fully_automatic: 'yes' | 'no' | '';
-  te_presence_detectors: 'yes' | 'no' | '';
-  te_ejector_system: string;
   te_three_plate_mold: string;
   te_num_gates_per_part: string;
   // DCM (Die Casting Machine)
   dcm_model: string;
-  dcm_locking_force: string;
-  dcm_shot_weight: string;
-  dcm_platen_dimension: string;
-  dcm_tie_bar: string;
   // DCM SPECS captured by Industrialization (obfuscated keys), carried into the
   // Cost Breakdown Unit column as readonly values.
   dcm_no_hs: string; // No.ofHS (C15)
@@ -89,82 +85,55 @@ export type InheritedMoldRfq = {
   ts_num_hydr_slides: string;
   ts_num_parts_per_stroke: string;
   ts_num_tools: string;
+  rfq_files: FileInfo[];
 };
 
-function getInheritedMoldRfqMock(rfqId: string): InheritedMoldRfq {
+function getEmptyInheritedMoldRfq(): InheritedMoldRfq {
   return {
-    description: 'Front transmission housing',
-    parts_per_year: '240,000',
-    customer: 'Mercedes-Benz AG',
-    part_number: `${rfqId.toUpperCase()}-MO`,
-    project_life: '7 years',
-    deliver_by: '2026-10-30',
-    te_machine: 'Bühler 900T',
-    te_num_cavities: '1x',
-    te_num_hydraulic_slides: '2',
-    te_num_mech_slides: '4',
-    te_fully_automatic: 'yes',
-    te_presence_detectors: 'yes',
-    te_ejector_system: 'Ejector plate, 12 pins',
-    te_three_plate_mold: '0',
-    te_num_gates_per_part: '2',
-    dcm_model: 'Bühler Carat 110',
-    dcm_locking_force: '11,000 kN',
-    dcm_shot_weight: '4.2 kg',
-    dcm_platen_dimension: '1,100 × 950 mm',
-    dcm_tie_bar: '730 × 730 mm',
-    dcm_no_hs: '2',
-    dcm_jco: '4',
-    dcm_ihtcs: '3',
-    dcm_spin: '1',
-    dcm_vac_v: '2',
-    dcm_chill_bl: '0',
+    description: '',
+    parts_per_year: '',
+    customer: '',
+    part_tech: '',
+    part_number: '',
+    project_life: '',
+    deliver_by: '',
+    te_machine: '',
+    te_num_cavities: '',
+    te_num_hydraulic_slides: '',
+    te_num_mech_slides: '',
+    te_three_plate_mold: '',
+    te_num_gates_per_part: '',
+    dcm_model: '',
+    dcm_no_hs: '',
+    dcm_jco: '',
+    dcm_ihtcs: '',
+    dcm_spin: '',
+    dcm_vac_v: '',
+    dcm_chill_bl: '',
     dcm_oth: '',
-    diritpotd: [
-      { label: 'Design 3D model', checked: 'yes', notes: 'Native CATIA V5 format.' },
-      { label: 'Design 2D data', checked: 'yes', notes: 'PDF + DXF.' },
-      { label: 'Manufacturing Proposals', checked: 'yes', notes: 'View M1 proposal.' },
-      { label: 'Latest mold improvements', checked: 'yes', notes: 'Insert review.' },
-      { label: 'Sketch of mold concept including steel dimensions', checked: 'yes', notes: '' },
-      { label: 'Cooling circuit layout', checked: 'yes', notes: 'Circuit diagram v2.' },
-    ],
-    other_items: [
-      { label: 'Frame Refurbishment', checked: 'yes', notes: '' },
-      { label: 'Set of electric wires', checked: 'no', notes: '' },
-      { label: 'Delivery date (pick-up by IMEX)', checked: 'yes', notes: '2026-09-15' },
-      { label: 'Ejector system in fixed side', checked: 'yes', notes: '' },
-      { label: 'Set of spare parts (recommended by tool maker)', checked: 'yes', notes: '' },
-      { label: 'Hydraulic Cylinders and limit switches', checked: 'yes', notes: 'Bosch Rexroth.' },
-    ],
-    ot_inf: [
-      { label: 'Mold No. 1', checked: 'yes', notes: '' },
-      { label: 'Mold No. 2', checked: 'no', notes: '' },
-      { label: 'Others', checked: 'no', notes: '' },
-    ],
-    ctbd_items: [
-      { label: 'Vacuum system', checked: 'yes', notes: 'Required per drawing.' },
-      { label: 'Temperature control unit', checked: 'yes', notes: 'External unit.' },
-      { label: 'Sensor integration', checked: 'no', notes: '' },
-      { label: 'Others', checked: 'no', notes: '' },
-    ],
-    pg_part_name: 'Front transmission housing',
-    pg_alloy: 'AlSi9Cu3(Fe)',
-    pg_part_number_geom: '0',
-    pg_part_dimension: '410 × 260 × 95 mm',
-    pg_min_wall_thickness: '2.5 mm',
-    pg_max_wall_thickness: '18 mm',
-    pg_projected_area: '680.00 cm²',
-    pg_surface: '2,140.00 cm²',
-    pg_volume: '520.80 cm³',
-    pg_gross_weight: '1,410.00 g',
-    ts_buhler_machine_ton: '900',
-    ts_num_cavities_sets: '1',
-    ts_three_plate_mold: '0',
-    ts_num_gates_per_part: '2',
-    ts_num_mech_slides: '4',
-    ts_num_hydr_slides: '2',
-    ts_num_parts_per_stroke: '1',
-    ts_num_tools: '1',
+    diritpotd: [],
+    other_items: [],
+    ot_inf: [],
+    ctbd_items: [],
+    pg_part_name: '',
+    pg_alloy: '',
+    pg_part_number_geom: '',
+    pg_part_dimension: '',
+    pg_min_wall_thickness: '',
+    pg_max_wall_thickness: '',
+    pg_projected_area: '',
+    pg_surface: '',
+    pg_volume: '',
+    pg_gross_weight: '',
+    ts_buhler_machine_ton: '',
+    ts_num_cavities_sets: '',
+    ts_three_plate_mold: '',
+    ts_num_gates_per_part: '',
+    ts_num_mech_slides: '',
+    ts_num_hydr_slides: '',
+    ts_num_parts_per_stroke: '',
+    ts_num_tools: '',
+    rfq_files: [],
   };
 }
 
@@ -752,35 +721,8 @@ function getCreateDefaultValues(): MoldQuotationValues {
 }
 
 function getEditDefaultValues(quotationId?: string): MoldQuotationValues {
-  const base = getCreateDefaultValues();
-  return {
-    ...base,
-    supplier: 'Moldeo Industrial SA',
-    ts_max_weight_mold: '3,200 kg',
-    comments: `Quotation linked to ${(quotationId ?? 'COT-001').toUpperCase()}.`,
-    basic_data: {
-      company: 'Moldeo Industrial SA',
-      elaborated_by: 'Patricia Rios',
-      country: 'Mexico',
-      base_currency: 'EUR',
-      exchange_rate_to: 'MXN',
-      last_edited_by: 'Patricia Rios',
-      last_change: '2026-05-20',
-    },
-    material_costs: {
-      ...base.material_costs,
-      die_frame: { unit: '1', price_unit: '18500.00', weeks: '6' },
-      cavity: { unit: '1', price_unit: '22000.00', weeks: '8' },
-    },
-    manufacturing: {
-      ...base.manufacturing,
-      machining: {
-        ...base.manufacturing.machining,
-        milling: { h: '280', price: '75', weeks: '6' },
-        turning: { h: '60', price: '70', weeks: '3' },
-      },
-    },
-  };
+  void quotationId;
+  return getCreateDefaultValues();
 }
 
 // ─── Completion / error maps ──────────────────────────────────────────────────
@@ -911,9 +853,6 @@ function ToolEngPage({ inherited }: { inherited: InheritedMoldRfq }) {
     { label: 'No. of cavities', value: inherited.te_num_cavities },
     { label: 'No. of hydraulic slides', value: inherited.te_num_hydraulic_slides },
     { label: 'No. of mechanical slides', value: inherited.te_num_mech_slides },
-    { label: 'Fully automatic process', value: <YesNoBadge value={inherited.te_fully_automatic} /> },
-    { label: 'Presence detectors', value: <YesNoBadge value={inherited.te_presence_detectors} /> },
-    { label: 'Ejector system', value: inherited.te_ejector_system },
     { label: 'Three plate mold', value: inherited.te_three_plate_mold },
     { label: 'No. of gates per part', value: inherited.te_num_gates_per_part },
   ];
@@ -936,10 +875,6 @@ function ToolEngPage({ inherited }: { inherited: InheritedMoldRfq }) {
 function DcmPage({ inherited }: { inherited: InheritedMoldRfq }) {
   const rows: { label: string; value: ReactNode }[] = [
     { label: 'Machine model', value: inherited.dcm_model },
-    { label: 'Locking force', value: inherited.dcm_locking_force },
-    { label: 'Shot weight', value: inherited.dcm_shot_weight },
-    { label: 'Platen dimension', value: inherited.dcm_platen_dimension },
-    { label: 'Tie bar distance', value: inherited.dcm_tie_bar },
   ];
 
   return (
@@ -1181,10 +1116,11 @@ const spa = { border: 'none' as const, background: 'transparent' };
 
 // ─── COST BREAKDOWN pages ─────────────────────────────────────────────────────
 
-function MoldBasicDataPage() {
+function MoldBasicDataPage({ inherited }: { inherited: InheritedMoldRfq }) {
   return (
     <SectionCard subtitle={PAGE_META.basic_data.subtitle} title={PAGE_META.basic_data.title}>
       <FormGrid>
+        <ReadOnlyField label="PT" value={inherited.part_tech} />
         <TextField label="COMPANY" name="basic_data.company" placeholder="Legal name" />
         <TextField
           label="ELABORATED BY"
@@ -1730,8 +1666,10 @@ function isNonZeroSpec(value: string): boolean {
 export function buildMoldQuotationDefinition(
   rfqId: string,
   inheritedOverride?: InheritedMoldRfq,
+  draftFiles: FileInfo[] = [],
 ): RfqWorkspaceDefinition<MoldQuotationValues> {
-  const inherited = inheritedOverride ?? getInheritedMoldRfqMock(rfqId);
+  const inherited = inheritedOverride ?? getEmptyInheritedMoldRfq();
+  void rfqId;
 
   // Chill Blocks / Vacuum Valves is a single Cost Breakdown row: only one of
   // VacV (C27) / ChillBl (C28) comes filled (≠ 0) from Industrialization.
@@ -1747,6 +1685,7 @@ export function buildMoldQuotationDefinition(
   function withInheritedUnits(values: MoldQuotationValues): MoldQuotationValues {
     return {
       ...values,
+      files: draftFiles,
       accessories_costs: {
         ...values.accessories_costs,
         parker_hydraulic: { ...values.accessories_costs.parker_hydraulic, unit: inherited.dcm_no_hs || '0' },
@@ -1768,10 +1707,11 @@ export function buildMoldQuotationDefinition(
   function FilesPage() {
     return (
       <SectionCard subtitle={PAGE_META.files.subtitle} title={PAGE_META.files.title}>
+        <InheritedRfqFilesList files={inherited.rfq_files} />
         <MultiFileUploadField
           accept=".ppt,.pptx,.stp,.pdf"
           acceptLabel="PPT, STP, PDF"
-          maxSizeMb={25}
+          maxSizeMb={100}
           name="files"
         />
       </SectionCard>
@@ -1786,7 +1726,7 @@ export function buildMoldQuotationDefinition(
     if (page === 'other') return <MoldOtherPage inherited={inherited} />;
     if (page === 'ot_inf') return <OtInfPage inherited={inherited} />;
     if (page === 'ctbd') return <CtbdPage />;
-    if (page === 'basic_data') return <MoldBasicDataPage />;
+    if (page === 'basic_data') return <MoldBasicDataPage inherited={inherited} />;
     if (page === 'part_geometry') return <MoldPartGeometryPage inherited={inherited} />;
     if (page === 'tool_spec') return <MoldToolSpecPage inherited={inherited} />;
     if (page === 'comments') return <MoldCommentsPage />;

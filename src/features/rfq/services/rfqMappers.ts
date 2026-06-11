@@ -6,6 +6,7 @@ import type {
   RfqDetailDto,
   RfqListItemDto,
 } from '@/features/rfq/services/rfqDtos';
+import { buildAiPredictionInput } from '@/features/rfq/services/iaPredictionService';
 import { mapBackendStatus, parseProgreso } from '@/features/rfq/services/rfqStatusMapper';
 import type { PurchasingDashboardRow, PurchasingPriority, PurchasingRfqRow, PurchasingRfqStatus } from '@/features/purchasing/types';
 import { parseBackendDeadline, formatDateForDisplay } from '@/shared/utils/deadline';
@@ -194,5 +195,6 @@ export function mapRfqDetail(
     files,
     suppliers,
     benchmark: [],
+    predictionInput: buildAiPredictionInput(dto, tipo),
   };
 }

@@ -8,8 +8,11 @@ import {
   detalleAsignacionParaCotizar,
   enviarCotizacion,
   responderCotizacion,
+  verRespuesta,
 } from '@/features/supplier/services/asignacionesService';
+import { resolveFileUrl } from '@/features/rfq/services/rfqMappers';
 import { useResource } from '@/shared/hooks/useResource';
+import type { FileInfo } from '@/shared/components/ui/MultiFileUploadField';
 import { extractApiError } from '@/shared/utils/extractApiError';
 import { parseId } from '@/shared/utils/rfqId';
 
@@ -50,11 +53,29 @@ export function QuotationWorkspace({
   // tiene_borrador: viene del backend — true si ya existe un borrador guardado previamente.
   // hasDraft = cualquiera de los dos → usar PATCH en lugar de POST.
   const [hasDraftUser, setHasDraftUser] = useState(false);
+  const [draftFiles, setDraftFiles] = useState<FileInfo[]>([]);
   const hasDraft = hasDraftUser || (resourceData?.tiene_borrador ?? false);
 
   useEffect(() => {
     setHasDraftUser(false);
+    setDraftFiles([]);
   }, [mode, rfqId, tipo]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDraftFiles([]);
+
+    if (!resourceData?.tiene_borrador) return;
+
+    void verRespuesta(tipo, parseId(rfqId)).then((response) => {
+      if (cancelled || !response) return;
+      setDraftFiles(mapQuotationFiles(response));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceData?.tiene_borrador, rfqId, tipo]);
   // Memoizados: el shell resetea el formulario cuando cambia la definición, y
   // la definición se reconstruye cuando cambia el objeto heredado.
   const trimmingInherited = useMemo(
@@ -73,12 +94,12 @@ export function QuotationWorkspace({
   );
 
   const trimmingDef = useMemo(
-    () => buildTrimmingQuotationDefinition(rfqId, trimmingInherited),
-    [rfqId, trimmingInherited],
+    () => buildTrimmingQuotationDefinition(rfqId, trimmingInherited, draftFiles),
+    [rfqId, trimmingInherited, draftFiles],
   );
   const moldDef = useMemo(
-    () => buildMoldQuotationDefinition(rfqId, moldInherited),
-    [rfqId, moldInherited],
+    () => buildMoldQuotationDefinition(rfqId, moldInherited, draftFiles),
+    [rfqId, moldInherited, draftFiles],
   );
 
 
@@ -169,6 +190,7 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
     description: values.rfq_name,
     parts_per_year: values.ppy,
     customer: values.cust,
+    part_tech: values.part_tech,
     part_number: values.part_number || values.pnum,
     project_life: values.prlf,
     deliver_by: values.dtq,
@@ -176,16 +198,9 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
     te_num_cavities: values.num_cav,
     te_num_hydraulic_slides: values.hydr_slides,
     te_num_mech_slides: values.mech_slides,
-    te_fully_automatic: '',
-    te_presence_detectors: '',
-    te_ejector_system: '',
     te_three_plate_mold: values.three_plate,
     te_num_gates_per_part: values.gates,
     dcm_model: values.buhler,
-    dcm_locking_force: '',
-    dcm_shot_weight: '',
-    dcm_platen_dimension: '',
-    dcm_tie_bar: '',
     // SPECS del DCM capturados por Industrialización (claves ofuscadas en el
     // backend: No_ofHS, Jco, Ihtcs, Spin, VacV, ChillBl, Oth).
     dcm_no_hs: c.no_hs?.notes || values.hydr_slides,
@@ -201,6 +216,9 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
       item('Run des', c.run_des?.checked, c.run_des?.notes ?? ''),
       item('Run and over mod', c.run_over?.checked, c.run_over?.notes ?? ''),
       item('ManProp', c.man_prop?.checked, c.man_prop?.notes ?? ''),
+      item('Ldi', c.ldi?.checked, c.ldi?.notes ?? ''),
+      item('Add of mach st.', c.add_mach?.checked, c.add_mach?.notes ?? ''),
+      item('Sketch d conc, inc s dim', c.sketch?.checked, c.sketch?.notes ?? ''),
       item('2D Dr DesPDF and CNFl', c.drw_2d?.checked, c.drw_2d?.notes ?? ''),
       item('3D D. Mod. solid. Native Format', c.drw_3d?.checked, c.drw_3d?.notes ?? ''),
     ],
@@ -210,13 +228,18 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
       item('STM (1&2)', c.stm?.checked, c.stm?.notes ?? ''),
       item('CMM dim rep cal', c.cmm_rep?.checked, c.cmm_rep?.notes ?? ''),
       item('GOM report', c.gom_rep?.checked, c.gom_rep?.notes ?? ''),
+      item('H val subc& in', c.h_val?.checked, c.h_val?.notes ?? ''),
+      item('Dim con&opt', c.dim_corr?.checked, c.dim_corr?.notes ?? ''),
+      item('Sp Pl', c.sp_pt?.checked, c.sp_pt?.notes ?? ''),
     ],
     ot_inf: [
       item('Comp. D.', c.comp_d?.checked, c.comp_d?.notes ?? ''),
       item('Subseq. D.', c.subseq_d?.checked, c.subseq_d?.notes ?? ''),
       item('Set of repl. H-13', c.repl_h13?.checked, c.repl_h13?.notes ?? ''),
+      item('Sp. set of E.I.', c.sp_ei?.checked, c.sp_ei?.notes ?? ''),
       item('FICF', c.ficf?.checked, c.ficf?.notes ?? ''),
       item('HCLS', c.hcls?.checked, c.hcls?.notes ?? ''),
+      item('Fr Refur.', c.fr_refur?.checked, c.fr_refur?.notes ?? ''),
     ],
     ctbd_items: [item('Other costs to be determined', c.ctbd?.checked, c.ctbd?.notes ?? '')],
     pg_part_name: values.part_name,
@@ -237,7 +260,26 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
     ts_num_hydr_slides: values.hydr_slides,
     ts_num_parts_per_stroke: values.parts_stroke,
     ts_num_tools: values.num_tools,
+    rfq_files: values.files,
   };
+}
+
+function mapQuotationFiles(response: Record<string, unknown>): FileInfo[] {
+  const rawFiles = Array.isArray(response.archivos) ? response.archivos : [];
+  return rawFiles.flatMap((raw) => {
+    if (!raw || typeof raw !== 'object') return [];
+    const file = raw as { id?: unknown; archivo?: unknown; uploaded_at?: unknown };
+    if (typeof file.archivo !== 'string') return [];
+    const parts = file.archivo.split(/[\\/]/);
+    return [{
+      id: typeof file.id === 'number' ? file.id : undefined,
+      name: parts[parts.length - 1] ?? file.archivo,
+      size: 0,
+      type: '',
+      url: resolveFileUrl(file.archivo),
+      uploadedAt: typeof file.uploaded_at === 'string' ? file.uploaded_at : undefined,
+    }];
+  });
 }
 
 function trimmingFormToInherited(values: TrimmingFormValues): InheritedRfq {
@@ -303,5 +345,6 @@ function trimmingFormToInherited(values: TrimmingFormValues): InheritedRfq {
     ts_qty_punch_pins: values.ts_qty_punch_pins,
     ts_temp_trimmed: values.ts_temp_trimmed,
     ts_ejector_fixed_side: values.ts_ejector_fixed_side,
+    rfq_files: values.files,
   };
 }

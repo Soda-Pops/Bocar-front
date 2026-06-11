@@ -15,7 +15,6 @@ import SupplierDashboardPage from '@/pages/proveedor/DashboardPage';
 import QuotationFormPage from '@/pages/proveedor/QuotationFormPage';
 import PurchasingAdminDashboardPage from '@/pages/purchasing/AdminDashboardPage';
 import PurchasingDashboardPage from '@/pages/purchasing/DashboardPage';
-import SupplierSelectionPage from '@/pages/purchasing/SupplierSelectionPage';
 import PurchasingUnlockRequestsPage from '@/pages/purchasing/UnlockRequestsPage';
 import RfqDetailPage from '@/pages/rfq/RfqDetailPage';
 
@@ -133,14 +132,6 @@ const appRouter = createBrowserRouter([
     element: (
       <Protected allowedRoles={['compras']}>
         <RfqFormPage forcedMode="view" />
-      </Protected>
-    ),
-  },
-  {
-    path: ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS,
-    element: (
-      <Protected allowedRoles={['compras']}>
-        <SupplierSelectionPage />
       </Protected>
     ),
   },

@@ -68,7 +68,7 @@ export async function detalleAsignacionParaCotizar(
 export async function responderCotizacion(tipo: RfqTipo, id: number, values: unknown): Promise<void> {
   await request(`${BASE}/responder/${id}/${tipoQ(tipo)}`, {
     method: 'POST',
-    body: quotationFormToDto(values),
+    body: quotationFormToDto(tipo, values),
     schema: costBreakdownDto,
   });
 }
@@ -88,7 +88,7 @@ export async function verRespuesta(tipo: RfqTipo, id: number, signal?: AbortSign
 export async function actualizarCotizacion(tipo: RfqTipo, id: number, values: unknown): Promise<void> {
   await request(`${BASE}/responder/${id}/actualizar/${tipoQ(tipo)}`, {
     method: 'PATCH',
-    body: quotationFormToDto(values),
+    body: quotationFormToDto(tipo, values),
     schema: costBreakdownDto,
   });
 }

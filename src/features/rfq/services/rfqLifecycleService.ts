@@ -149,11 +149,7 @@ export async function closeRfq(
 }
 
 export async function getRfqDetail(tipo: RfqTipo, id: number, signal?: AbortSignal): Promise<RfqDetail> {
-  const path =
-    tipo === 'Mold'
-      ? `/api_mold/v1/rfq-molds/${id}/`
-      : `/api_trimming/v1/rfq-trimmings/${id}/`;
-  const dto = await request(path, {
+  const dto = await request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
     method: 'GET',
     schema: rfqDetailDto,
     signal,
@@ -162,11 +158,7 @@ export async function getRfqDetail(tipo: RfqTipo, id: number, signal?: AbortSign
 }
 
 export async function getRfqFormValues(tipo: RfqTipo, id: number, signal?: AbortSignal) {
-  const path =
-    tipo === 'Mold'
-      ? `/api_mold/v1/rfq-molds/${id}/`
-      : `/api_trimming/v1/rfq-trimmings/${id}/`;
-  const dto = await request(path, {
+  const dto = await request(`${INDUSTRIALIZACION_BASE}/rfq/${id}/${tipoQ(tipo)}`, {
     method: 'GET',
     schema: rfqDetailDto,
     signal,

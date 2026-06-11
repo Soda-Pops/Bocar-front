@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { extractApiError } from '@/shared/utils/extractApiError';
 
@@ -11,10 +11,12 @@ import { RfqActionBar } from '@/features/rfq/components/RfqDetail/RfqActionBar';
 import { RfqStatusBanner } from '@/features/rfq/components/RfqDetail/RfqStatusBanner';
 import { RfqStatusHeader } from '@/features/rfq/components/RfqDetail/RfqStatusHeader';
 import { SupplierAssignmentPanel } from '@/features/rfq/components/RfqDetail/SupplierAssignmentPanel';
+import { AiCostPredictionPanel } from '@/features/rfq/components/RfqDetail/AiCostPredictionPanel';
 import { EditRequestModal } from '@/features/rfq/components/RfqDetail/EditRequestModal';
 import { ConfirmEditModal } from '@/features/rfq/components/RfqDetail/ConfirmEditModal';
 import { RfqEditRequestsPanel } from '@/features/rfq/components/RfqDetail/RfqEditRequestsPanel';
 import { useRfqDetail } from '@/features/rfq/hooks/useRfqDetail';
+import { useAiPrediction } from '@/features/rfq/hooks/useAiPrediction';
 import { useAssignSuppliers } from '@/features/purchasing/hooks/useAssignSuppliers';
 import { useProveedores } from '@/features/purchasing/hooks/useProveedores';
 import {
@@ -34,7 +36,6 @@ import { parseId } from '@/shared/utils/rfqId';
 
 type RfqDetailWorkspaceProps = {
   backHref?: string;
-  mode?: 'readonly' | 'assign';
   referenceId?: string;
 };
 
@@ -151,7 +152,6 @@ function parseTipo(value: string | null): RfqTipo {
 
 export function RfqDetailWorkspace({
   backHref = '/industrializacion/dashboard',
-  mode = 'readonly',
   referenceId = 'RFQ-004',
 }: RfqDetailWorkspaceProps) {
   const routerLocation = useLocation();
@@ -169,9 +169,14 @@ export function RfqDetailWorkspace({
   const assignSuppliers = useAssignSuppliers();
   const proveedores = useProveedores();
 
-  const fromAdmin = (routerLocation.state as { fromAdmin?: boolean } | null)?.fromAdmin === true;
+  const routeState = routerLocation.state as { fromAdmin?: boolean; scrollTo?: string } | null;
+  const fromAdmin = routeState?.fromAdmin === true;
   const searchParams = new URLSearchParams(routerLocation.search);
   const tipo = parseTipo(searchParams.get('tipo'));
+  const shouldOpenAssignment =
+    routerLocation.hash === '#assign-suppliers' ||
+    searchParams.get('scrollTo') === 'assign-suppliers' ||
+    routeState?.scrollTo === 'assign-suppliers';
   const defaultRole =
     auth.status === 'authenticated'
       ? resolveSessionRole(auth.user.role, auth.user.isAdmin)
@@ -185,6 +190,34 @@ export function RfqDetailWorkspace({
     defaultIsCreator,
     isSupplierPath ? 'assignment' : 'rfq',
   );
+  const isPurchasingRole = role === 'compras' || role === 'compras_admin';
+  const showAiPrediction =
+    isPurchasingRole &&
+    Boolean(rfq?.predictionInput) &&
+    (rfq?.status === 'PENDING' || rfq?.status === 'QUOTING');
+  const aiPrediction = useAiPrediction(rfq, showAiPrediction);
+  const canAssignSuppliers = allowedActions.some(
+    (action) => action.key === 'assign_suppliers' && !action.disabled,
+  );
+  const isAssignmentVisible = showAssignment && canAssignSuppliers;
+
+  useEffect(() => {
+    if (shouldOpenAssignment && canAssignSuppliers) {
+      setShowAssignment(true);
+    }
+  }, [canAssignSuppliers, shouldOpenAssignment]);
+
+  useEffect(() => {
+    if (!shouldOpenAssignment || !isAssignmentVisible || isLoading || error || !rfq || !isAccessible) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() =>
+      assignmentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [error, isAccessible, isAssignmentVisible, isLoading, rfq, shouldOpenAssignment]);
 
   if (isLoading) {
     return (
@@ -208,11 +241,11 @@ export function RfqDetailWorkspace({
 
   if (!isAccessible) {
     return (
-      <Navigate
-        to={backHref}
-        replace
-        state={{ toast: 'This RFQ is not available for your role or access profile.' }}
-      />
+      <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 py-10 sm:px-8 xl:px-0">
+        <div className="rounded-[8px] border border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] px-6 py-8 text-[14px] text-[var(--bocar-error)]">
+          This RFQ is not available for your role or access profile.
+        </div>
+      </div>
     );
   }
 
@@ -234,7 +267,7 @@ export function RfqDetailWorkspace({
         );
         break;
       case 'open_rfq':
-        navigate(`/industrializacion/rfq/${rfqId}/editar?view=true`);
+        navigate(`/industrializacion/rfq/${rfqId}/editar?view=true&tipo=${tipo}`);
         break;
       case 'edit_draft':
         navigate(`/industrializacion/rfq/${rfqId}/editar?tipo=${tipo}`);
@@ -310,114 +343,9 @@ export function RfqDetailWorkspace({
       ? proveedores.state.data
       : rfq.suppliers.length > 0
       ? rfq.suppliers
-      : ([
-          { name: 'PLASTIMEX', category: 'Plastic Injection', contact: 'Laura Gomez', score: '92', scoreTone: 'success', status: 'Available' },
-          { name: 'RAMCO', category: 'Metal Machining', contact: 'Juan Perez', score: '100', scoreTone: 'success', status: 'Available' },
-          { name: 'HERTOLAB', category: 'Components', contact: 'Sofia Ruiz', score: '72', scoreTone: 'warning', status: 'Available' },
-        ] as typeof rfq.suppliers);
+      : [];
 
-  // ─── ASSIGN MODE (SupplierSelectionPage) ──────────────────────────────────
-  if (mode === 'assign') {
-    return (
-      <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 pb-10 pt-6 sm:px-8 lg:px-8 lg:pt-7 xl:px-0">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="m-0 text-[24px] font-semibold tracking-[0.02em] text-[var(--bocar-text)] lg:text-[22px]">
-            SUPPLIER SELECTION
-          </h1>
-          <a
-            className="inline-flex items-center gap-2 self-start rounded-full border border-transparent px-0 py-2 text-[14px] font-semibold text-[var(--bocar-blue-100)] no-underline transition hover:text-[var(--bocar-blue-90)]"
-            href={backHref}
-          >
-            <BackArrowIcon />
-            Back
-          </a>
-        </div>
-
-        <section className="mt-6 overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-white">
-          {/* RFQ summary (assign mode) */}
-          <div className="border-b border-[rgba(217,222,229,0.88)] px-7 py-4 lg:px-12">
-            <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">RFQ Summary</h2>
-          </div>
-          <div className="px-7 py-8 lg:px-12">
-            <div className="grid min-h-[86px] items-center gap-6 bg-[var(--bocar-bg)] px-8 py-4 md:grid-cols-[1fr_auto_1fr_1.2fr] lg:px-12">
-              <div className="grid grid-cols-[94px_minmax(0,1fr)] gap-3 text-[12px] leading-[1.35]">
-                <div className="text-right font-semibold uppercase text-[var(--bocar-blue-30)]">
-                  <p className="m-0">ID</p>
-                  <p className="m-0">Created By</p>
-                  <p className="m-0">Material</p>
-                </div>
-                <div className="font-medium text-[var(--bocar-text)]">
-                  <p className="m-0">{rfq.id.toUpperCase()}</p>
-                  <p className="m-0">{rfq.createdBy}</p>
-                  <p className="m-0">{rfq.material}</p>
-                </div>
-              </div>
-              <span className="hidden h-14 w-px bg-[var(--bocar-blue-70)] md:block" />
-              <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 text-[12px] leading-[1.35]">
-                <div className="text-right font-semibold uppercase text-[var(--bocar-blue-30)]">
-                  <p className="m-0">Description</p>
-                  <p className="m-0">Created At</p>
-                  <p className="m-0">Status</p>
-                </div>
-                <div className="font-medium text-[var(--bocar-text)]">
-                  <p className="m-0">{rfq.title}</p>
-                  <p className="m-0">{rfq.createdAt}</p>
-                  <span className="mt-1 inline-flex rounded-[4px] bg-[var(--bocar-done)] px-4 py-1 text-[10px] font-semibold text-[var(--bocar-text)]">
-                    {statusMeta.label}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Specs */}
-          <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">RFQ Specifications</h2>
-              <span className="rounded-[4px] bg-[var(--bocar-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
-                Readonly
-              </span>
-            </div>
-            <dl className="mt-4 grid gap-px overflow-hidden rounded-[6px] border border-[var(--bocar-border)] bg-[var(--bocar-border)] sm:grid-cols-2 lg:grid-cols-4">
-              {rfq.specs.map((field) => (
-                <div key={field.code} className={['flex min-h-[96px] flex-col justify-between gap-3 bg-white px-5 py-4', field.code === 'comments' ? 'sm:col-span-2 lg:col-span-4' : ''].join(' ').trim()}>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-[4px] bg-[var(--bocar-blue-100)] px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                      {field.code}
-                    </span>
-                    <dt className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">{field.label}</dt>
-                  </div>
-                  <dd className="m-0 text-[15px] font-semibold leading-[1.25] text-[var(--bocar-text)]">{field.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {/* Files */}
-          <div className="border-t border-[rgba(217,222,229,0.58)] px-7 py-6 lg:px-12">
-            <h2 className="m-0 text-[16px] font-semibold text-[var(--bocar-text)]">Uploaded Files</h2>
-            <UploadedFilesList files={rfq.files} />
-          </div>
-
-          {/* Supplier assignment panel */}
-          <SupplierAssignmentPanel
-            suppliers={assignmentSuppliers}
-            backHref={backHref}
-            onSubmit={(input) =>
-              assignSuppliers.mutate(tipo, {
-                id_rfq: parseId(rfq.id),
-                ...input,
-              })
-            }
-          />
-        </section>
-      </div>
-    );
-  }
-
-  // ─── READONLY MODE (RfqDetailPage) ────────────────────────────────────────
   const isIndustrializacionRole = role === 'industrializacion' || role === 'industrializacion_admin';
-  const isPurchasingRole = role === 'compras' || role === 'compras_admin';
   const showEditRequestsPanel =
     isPurchasingRole &&
     (rfq.status === 'PENDING' || rfq.status === 'PENDING_EDIT_REQUEST');
@@ -431,6 +359,14 @@ export function RfqDetailWorkspace({
   const showBenchmark =
     (rfq.status === 'BENCHMARK_READY' || rfq.status === 'CLOSED') && rfq.benchmark.length > 0;
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';
+  const predictionSuppliers =
+    rfq.status === 'QUOTING'
+      ? rfq.suppliers
+      : proveedores.state.status === 'success'
+        ? proveedores.state.data
+        : [];
+  const aiPredictions =
+    aiPrediction.state.status === 'success' ? aiPrediction.state.data.predictions : [];
 
   return (
     <div className="mx-auto flex w-full max-w-[1304px] flex-col px-6 pb-10 pt-6 sm:px-8 lg:pt-8 xl:px-0">
@@ -518,7 +454,7 @@ export function RfqDetailWorkspace({
         </div>
 
         {/* Inline supplier assignment (revealed from the action menu) */}
-        {showAssignment ? (
+        {isAssignmentVisible ? (
           <div
             ref={assignmentRef}
             className="scroll-mt-6 border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12"
@@ -540,7 +476,7 @@ export function RfqDetailWorkspace({
         ) : null}
 
         {/* Suppliers readonly */}
-        {showSuppliers && !showAssignment ? (
+        {showSuppliers && !isAssignmentVisible ? (
           <div className="border-t border-[rgba(217,222,229,0.88)] px-7 py-6 lg:px-12">
             <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">Selected Suppliers</h2>
             {/* Mobile */}
@@ -587,6 +523,16 @@ export function RfqDetailWorkspace({
               </table>
             </div>
           </div>
+        ) : null}
+
+        {showAiPrediction ? (
+          <AiCostPredictionPanel
+            error={aiPrediction.state.status === 'error' ? aiPrediction.state.error : null}
+            loading={aiPrediction.state.status === 'loading'}
+            onRetry={aiPrediction.retry}
+            predictions={aiPredictions}
+            suppliers={predictionSuppliers}
+          />
         ) : null}
 
         {/* Benchmark comparison chart — only when the RFQ reached Benchmark ready */}

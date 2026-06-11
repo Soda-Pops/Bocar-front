@@ -28,6 +28,10 @@ const TRIMMING_TOGGLE_REQUIRED = new Set([
 
 const requiredText = (message = 'Complete this field before submitting the RFQ.') =>
   z.string().trim().min(1, message);
+const wholeNumberText = (message = 'Must be a whole number.') =>
+  z.string().regex(/^\d*$/, message);
+const requiredWholeNumberText = () =>
+  requiredText().regex(/^\d+$/, 'Must be a whole number.');
 
 const fileSchema = z.object({
   name: z.string(),
@@ -53,9 +57,9 @@ const trimmingBaseSchema = z
       { message: 'Date must be in the future.' }
     ),
     // Section 2 — Trim Die
-    press: z.string(), // optional · free-form string (modelo de prensa)
-    num_cavities: z.string(), // optional · free-form string (ej. "2x")
-    num_hydraulic_slides: z.string(), // optional · number as string
+    press: wholeNumberText(), // optional · number as string
+    num_cavities: wholeNumberText(), // optional · number as string
+    num_hydraulic_slides: wholeNumberText(), // optional · number as string
     fully_automatic: z.string(), // opcional · valores esperados: 'yes' | 'no' (YesNoToggle), no restringido by Zod
     presence_detectors: z.string(), // opcional · valores esperados: 'yes' | 'no', no restringido by Zod
     trimming_condition: z.string(), // opcional · valores esperados: '' | 'cold' | 'hot' (select), no restringido by Zod
@@ -116,9 +120,9 @@ const trimmingSubmitSchema = trimmingBaseSchema
       (v) => !v || v > new Date().toISOString().slice(0, 10),
       { message: 'Date must be in the future.' }
     ),
-    press: requiredText(),
-    num_cavities: requiredText(),
-    num_hydraulic_slides: requiredText(),
+    press: requiredWholeNumberText(),
+    num_cavities: requiredWholeNumberText(),
+    num_hydraulic_slides: requiredWholeNumberText(),
     fully_automatic: requiredText('Select YES or NO.'),
     presence_detectors: requiredText('Select YES or NO.'),
     trimming_condition: requiredText(),
@@ -437,8 +441,8 @@ function getEditDefaultValues(rfqId?: string): TrimmingFormValues {
     customer: 'BMW AG',
     previous_job: 'TRM-0098',
     deliver_by: '2026-09-15',
-    press: 'Müller Weingarten PE2500',
-    num_cavities: '2x',
+    press: '2500',
+    num_cavities: '2',
     num_hydraulic_slides: '3',
     fully_automatic: 'yes',
     presence_detectors: 'yes',
@@ -549,17 +553,23 @@ function TrimDiePage() {
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         <div className={rowClass}>
           <div className={labelClass}>Press</div>
-          <input className={inputBaseClasses(false)} {...register('press')} />
+          <input className={inputBaseClasses(false)} min={0} step={1} type="number" {...register('press')} />
         </div>
 
         <div className={rowClass}>
           <div className={labelClass}>No. of cavities</div>
-          <input className={inputBaseClasses(false)} {...register('num_cavities')} />
+          <input className={inputBaseClasses(false)} min={0} step={1} type="number" {...register('num_cavities')} />
         </div>
 
         <div className={rowClass}>
           <div className={labelClass}>No. of hydraulic slides</div>
-          <input className={inputBaseClasses(false)} {...register('num_hydraulic_slides')} />
+          <input
+            className={inputBaseClasses(false)}
+            min={0}
+            step={1}
+            type="number"
+            {...register('num_hydraulic_slides')}
+          />
         </div>
 
         <div className={rowClass}>
@@ -747,12 +757,12 @@ function ToolSpecPage() {
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
         <div className={rowClass}>
           <div className={labelClass}>Press Type</div>
-          <input className={inputBaseClasses(false)} {...register('press')} />
+          <input className={inputBaseClasses(false)} min={0} step={1} type="number" {...register('press')} />
         </div>
 
         <div className={rowClass}>
           <div className={labelClass}>Number of cavities</div>
-          <input className={inputBaseClasses(false)} {...register('num_cavities')} />
+          <input className={inputBaseClasses(false)} min={0} step={1} type="number" {...register('num_cavities')} />
         </div>
 
         <div className={rowClass}>
@@ -769,7 +779,8 @@ function ToolSpecPage() {
           <div className={labelClass}>Number of hydr. slides</div>
           <input
             className={inputBaseClasses(false)}
-            step="0.01"
+            min={0}
+            step="1"
             type="number"
             {...register('num_hydraulic_slides')}
           />

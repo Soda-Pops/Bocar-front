@@ -176,7 +176,7 @@ export function resolveIsAccessible(
     case 'EXPIRED':
       return true;
     case 'CLOSED':
-      return isSuperUser || isSupplier;
+      return true;
     case 'CANCELLED':
       return isSuperUser;
     default:
@@ -252,6 +252,9 @@ export function resolveAllowedActions(input: {
     case 'QUOTING': {
       if (isSupplier && isAssignedSupplier) {
         actions.push({ ...A.create_quotation });
+      }
+      if (isPurchasing) {
+        actions.push({ ...A.assign_suppliers });
       }
       break;
     }

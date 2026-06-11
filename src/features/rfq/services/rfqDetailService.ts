@@ -1,5 +1,6 @@
 import type { RfqTipo } from '@/features/analytics/types';
 import { getRfqDetail } from '@/features/rfq/services/rfqLifecycleService';
+import type { AiPredictionInput } from '@/features/rfq/services/iaPredictionService';
 import type { RfqStatus } from '@/features/rfq/state/rfqStateMachine';
 import { parseId } from '@/shared/utils/rfqId';
 
@@ -70,6 +71,7 @@ export type RfqDetail = {
   files: RfqUploadedFile[];
   suppliers: RfqSupplier[];
   benchmark: RfqBenchmarkRow[];
+  predictionInput?: AiPredictionInput;
 };
 
 const BASE_SPECS: RfqSpecField[] = [

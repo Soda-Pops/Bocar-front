@@ -85,10 +85,11 @@ function DeadlineBadge({ hoursToDeadline }: { hoursToDeadline: number }) {
 }
 
 function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof useNavigate>) {
+  const detailHref = `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`;
   const detailAction = {
     key: 'view_detail' as const,
     label: 'View details',
-    onSelect: () => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: true } }),
+    onSelect: () => navigate(detailHref, { state: { fromAdmin: true } }),
   };
 
   if (row.status === 'PENDING') {
@@ -97,7 +98,9 @@ function getRowActions(row: PurchasingDashboardRow, navigate: ReturnType<typeof 
         key: 'assign' as const,
         label: 'Assign',
         onSelect: () =>
-          navigate(ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', row.id), { state: { fromAdmin: true } }),
+          navigate(`${detailHref}#assign-suppliers`, {
+            state: { fromAdmin: true, scrollTo: 'assign-suppliers' },
+          }),
       },
       detailAction,
     ];
@@ -394,7 +397,12 @@ function AdminDashboardPage() {
                         <button
                           type="button"
                           className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
-                          onClick={() => navigate(ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id), { state: { fromAdmin: true } })}
+                          onClick={() =>
+                            navigate(
+                              `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`,
+                              { state: { fromAdmin: true } },
+                            )
+                          }
                         >
                           View
                         </button>

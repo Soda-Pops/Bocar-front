@@ -159,12 +159,12 @@ export const purchasingRfqFilterOptions = {
   deadlineRanges: purchasingDeadlineRangeOptions,
 };
 
-function buildRfqDetailRoute(id: string) {
-  return ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', id);
+function buildRfqDetailRoute(row: PurchasingRfqRow) {
+  return `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', row.id)}?status=${row.status}&tipo=${row.machineType}`;
 }
 
-function buildAssignRoute(id: string) {
-  return ROUTES.PURCHASING.RFQ_ASSIGN_SUPPLIERS.replace(':id', id);
+function buildAssignRoute(row: PurchasingRfqRow) {
+  return `${buildRfqDetailRoute(row)}#assign-suppliers`;
 }
 
 function createDisabledAdminAction(
@@ -190,7 +190,7 @@ export function getActionsByStatus(
   const detailAction: PurchasingRfqAction = {
     key: 'view_detail',
     label: 'View details',
-    href: buildRfqDetailRoute(row.id),
+    href: buildRfqDetailRoute(row),
   };
 
   if (row.status === 'PENDING') {
@@ -198,7 +198,7 @@ export function getActionsByStatus(
       {
         key: 'assign',
         label: 'Assign',
-        href: buildAssignRoute(row.id),
+        href: buildAssignRoute(row),
       },
       detailAction,
     ];
