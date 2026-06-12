@@ -16,7 +16,7 @@ type MutState = { status: 'idle' | 'submitting' | 'success' | 'error'; message: 
 function formatDateTime(iso: string): string {
   if (!iso) return '-';
   try {
-    return new Date(iso).toLocaleDateString('es-MX', {
+    return new Date(iso).toLocaleDateString('en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -64,7 +64,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
     setMut({ status: 'submitting', message: '' });
     try {
       await approveEdit(tipo, item.id);
-      setMut({ status: 'success', message: 'Solicitud aprobada. El RFQ volvió a Industrialización.' });
+      setMut({ status: 'success', message: 'Request approved. The RFQ has returned to Industrialization.' });
       onResolved?.();
     } catch (err) {
       setMut({
@@ -78,7 +78,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
     setMut({ status: 'submitting', message: '' });
     try {
       await rejectEdit(tipo, item.id);
-      setMut({ status: 'success', message: 'Solicitud rechazada. El RFQ permanece en Comercialización.' });
+      setMut({ status: 'success', message: 'Request rejected. The RFQ remains in Purchasing.' });
       onResolved?.();
     } catch (err) {
       setMut({
@@ -93,10 +93,10 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
       {/* Section header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]">
-          Solicitud de edición pendiente
+          Pending Edit Request
         </h2>
         <span className="inline-flex items-center rounded-[4px] bg-[rgba(255,242,0,0.2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-[#7a6e00]">
-          Pendiente de resolución
+          Pending Resolution
         </span>
       </div>
 
@@ -108,7 +108,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
             {/* Solicitante + fecha */}
             <div>
               <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">
-                Solicitado por
+                Requested by
               </p>
               <p className="m-0 mt-1 text-[13px] font-medium text-[var(--bocar-text)]">
                 {item.requestedByName}
@@ -121,7 +121,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
             {/* Motivo */}
             <div>
               <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">
-                Motivo
+                Reason
               </p>
               <p className="m-0 mt-1 text-[13px] leading-[1.55] text-[var(--bocar-text)]">
                 {item.reason}
@@ -147,7 +147,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
                     onClick={() => void handleApprove()}
                     className="w-full rounded-[6px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[var(--bocar-blue-90)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
-                    {isSubmitting ? 'Procesando...' : 'Aprobar'}
+                    {isSubmitting ? 'Processing...' : 'Approve'}
                   </button>
                   <button
                     type="button"
@@ -155,7 +155,7 @@ export function RfqEditRequestsPanel({ rfqNumericId, tipo, onResolved }: Props) 
                     onClick={() => void handleReject()}
                     className="w-full rounded-[6px] border border-[rgba(170,0,15,0.45)] bg-white px-4 py-2 text-[12px] font-semibold text-[var(--bocar-error)] transition hover:bg-[rgba(170,0,15,0.06)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
-                    {isSubmitting ? 'Procesando...' : 'Rechazar'}
+                    {isSubmitting ? 'Processing...' : 'Reject'}
                   </button>
                 </>
               )}

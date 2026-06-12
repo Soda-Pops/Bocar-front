@@ -30,7 +30,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
 
   async function handleConfirm() {
     if (!closureReason.trim()) {
-      setError('El motivo de cierre es requerido.');
+      setError('Closure reason is required.');
       return;
     }
 
@@ -62,7 +62,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
             id="close-rfq-title"
             className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]"
           >
-            Cerrar RFQ formalmente
+            Formally Close RFQ
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">RFQ {rfqId}</p>
         </div>
@@ -70,7 +70,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
         {/* Body */}
         <div className="grid gap-5 px-7 py-6">
           <p className="m-0 text-[13px] leading-[1.6] text-[var(--bocar-blue-70)]">
-            Indica el motivo de cierre de este RFQ. Esta acción es irreversible.
+            Provide the closure reason for this RFQ. This action is irreversible.
           </p>
 
           {/* Motivo de cierre */}
@@ -79,7 +79,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
               htmlFor="close-rfq-reason"
               className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--bocar-blue-50)]"
             >
-              Motivo de cierre
+              Closure Reason
             </label>
             <textarea
               id="close-rfq-reason"
@@ -89,7 +89,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
               disabled={isSubmitting}
               rows={4}
               maxLength={1000}
-              placeholder="Ej. Mejor cumplimiento técnico y comercial."
+              placeholder="E.g. Best technical and commercial compliance."
               className="w-full resize-none rounded-[6px] border border-[var(--bocar-border)] px-3 py-2 text-[13px] text-[var(--bocar-text)] placeholder:text-[var(--bocar-blue-30)] focus:border-[var(--bocar-blue-70)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
@@ -112,7 +112,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
             disabled={isSubmitting}
             className="rounded-[6px] border border-[var(--bocar-border)] bg-white px-4 py-2 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="button"
@@ -120,7 +120,7 @@ export function CloseRfqModal({ rfqId, onConfirm, onClose }: CloseRfqModalProps)
             onClick={() => { void handleConfirm(); }}
             className="rounded-[6px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[var(--bocar-blue-90)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? 'Cerrando...' : 'Cerrar RFQ'}
+            {isSubmitting ? 'Closing...' : 'Close RFQ'}
           </button>
         </div>
       </div>

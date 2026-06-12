@@ -280,7 +280,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'success',
               icon: 'check',
-              message: 'RFQ enviada a Comercialización correctamente. Redirigiendo...',
+              message: 'RFQ submitted to Purchasing successfully. Redirecting...',
             });
             setTimeout(() => navigate(backHref), 2500);
           })
@@ -302,7 +302,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'success',
               icon: 'check',
-              message: 'Borrador eliminado correctamente. Redirigiendo...',
+              message: 'Draft deleted successfully. Redirecting...',
             });
             setTimeout(() => navigate(backHref), 2500);
           })
@@ -417,7 +417,7 @@ export function RfqDetailWorkspace({
               setFeedbackBanner({
                 tone: 'success',
                 icon: 'check',
-                message: 'Solicitud resuelta. Redirigiendo...',
+                message: 'Request resolved. Redirecting...',
               });
               setTimeout(() => navigate(backHref), 2500);
             }}
@@ -638,7 +638,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'success',
               icon: 'check',
-              message: 'Solicitud de edición enviada. Comercialización recibirá tu petición.',
+              message: 'Edit request submitted. Purchasing will receive your request.',
             });
           }}
         />
@@ -655,7 +655,7 @@ export function RfqDetailWorkspace({
             setFeedbackBanner({
               tone: 'success',
               icon: 'check',
-              message: 'RFQ cerrado formalmente. Redirigiendo...',
+              message: 'RFQ formally closed. Redirecting...',
             });
             setTimeout(() => navigate(backHref), 2500);
           }}
@@ -681,8 +681,8 @@ export function RfqDetailWorkspace({
               icon: 'check',
               message:
                 confirmEditVariant === 'approve'
-                  ? 'Solicitud aprobada. El RFQ volvió a Industrialización.'
-                  : 'Solicitud rechazada. El RFQ permanece en Comercialización.',
+                  ? 'Request approved. The RFQ has returned to Industrialization.'
+                  : 'Request rejected. The RFQ remains in Purchasing.',
             });
             setTimeout(() => navigate(backHref), 2500);
           }}

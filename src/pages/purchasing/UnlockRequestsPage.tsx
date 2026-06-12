@@ -18,7 +18,7 @@ function BackArrowIcon() {
 function formatDateTime(iso: string): string {
   if (!iso) return '-';
   try {
-    return new Date(iso).toLocaleDateString('es-MX', {
+    return new Date(iso).toLocaleDateString('en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -42,10 +42,10 @@ function UnlockRequestsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="m-0 text-[22px] font-semibold tracking-[-0.01em] text-[var(--bocar-text)]">
-              Solicitudes de edición pendientes
+              Pending Edit Requests
             </h1>
             <p className="m-0 mt-1.5 text-[13px] text-[var(--bocar-blue-70)]">
-              Solicitudes de Industrialización para regresar un RFQ a edición. Requieren resolución antes de asignar proveedores.
+              Edit requests from Industrialization to return an RFQ for corrections. Must be resolved before assigning suppliers.
             </p>
           </div>
           <button
@@ -54,7 +54,7 @@ function UnlockRequestsPage() {
             className="inline-flex items-center gap-2 rounded-full px-0 py-2 text-[13px] font-semibold text-[var(--bocar-blue-100)] transition hover:text-[var(--bocar-blue-70)]"
           >
             <BackArrowIcon />
-            Regresar
+            Back
           </button>
         </div>
 
@@ -64,7 +64,7 @@ function UnlockRequestsPage() {
           {/* Loading */}
           {state.status === 'loading' ? (
             <div className="rounded-[8px] border border-[var(--bocar-border)] bg-white px-7 py-8 text-[13px] text-[var(--bocar-blue-70)]">
-              Cargando solicitudes...
+              Loading requests...
             </div>
           ) : null}
 
@@ -82,10 +82,10 @@ function UnlockRequestsPage() {
           {state.status === 'success' && state.items.length === 0 ? (
             <div className="rounded-[8px] border border-[var(--bocar-border)] bg-white px-7 py-10 text-center">
               <p className="m-0 text-[14px] font-semibold text-[var(--bocar-text)]">
-                Sin solicitudes pendientes
+                No pending requests
               </p>
               <p className="m-0 mt-1 text-[13px] text-[var(--bocar-blue-70)]">
-                No hay solicitudes de edición activas en este momento.
+                There are no active edit requests at this time.
               </p>
             </div>
           ) : null}
@@ -96,7 +96,7 @@ function UnlockRequestsPage() {
 
               {/* Table header — desktop */}
               <div className="hidden border-b border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-6 py-3 sm:grid sm:grid-cols-[auto_1fr_1fr_180px] sm:gap-4">
-                {['RFQ', 'Solicitante / Fecha', 'Motivo', 'Acciones'].map((h) => (
+                {['RFQ', 'Requester / Date', 'Reason', 'Actions'].map((h) => (
                   <span key={h} className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]">
                     {h}
                   </span>
@@ -173,7 +173,7 @@ function UnlockRequestsPage() {
                             onClick={() => void approve(item.id, item.rfqTipo)}
                             className="rounded-[6px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[var(--bocar-blue-90)] disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {isSubmitting ? '...' : 'Aprobar'}
+                            {isSubmitting ? '...' : 'Approve'}
                           </button>
                           <button
                             type="button"
@@ -181,7 +181,7 @@ function UnlockRequestsPage() {
                             onClick={() => void reject(item.id, item.rfqTipo)}
                             className="rounded-[6px] border border-[rgba(170,0,15,0.45)] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[var(--bocar-error)] transition hover:bg-[rgba(170,0,15,0.06)] disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {isSubmitting ? '...' : 'Rechazar'}
+                            {isSubmitting ? '...' : 'Reject'}
                           </button>
                         </div>
                       )}

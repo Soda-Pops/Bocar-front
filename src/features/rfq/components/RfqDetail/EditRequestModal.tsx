@@ -28,7 +28,7 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
     e.preventDefault();
     const trimmed = reason.trim();
     if (!trimmed) {
-      setError('El motivo es requerido.');
+      setError('Reason is required.');
       return;
     }
     setIsSubmitting(true);
@@ -57,7 +57,7 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
             id="edit-request-title"
             className="m-0 text-[15px] font-semibold tracking-[0.01em] text-white"
           >
-            Solicitar edición
+            Request Edit
           </h2>
           <p className="mt-1 text-[12px] text-white/70">
             RFQ {rfqId}
@@ -68,15 +68,15 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
         <form onSubmit={handleSubmit} noValidate>
           <div className="px-7 py-6">
             <p className="m-0 text-[13px] leading-[1.6] text-[var(--bocar-blue-70)]">
-              El RFQ será devuelto a Industrialización para que realice las correcciones
-              necesarias. Comercialización recibirá tu solicitud para revisión y aprobación.
+              The RFQ will be returned to Industrialization for the necessary corrections.
+              Purchasing will receive your request for review and approval.
             </p>
 
             <label
               htmlFor="edit-reason"
               className="mt-5 block text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-50)]"
             >
-              Motivo de la solicitud <span className="text-[var(--bocar-error)]">*</span>
+              Request Reason <span className="text-[var(--bocar-error)]">*</span>
             </label>
             <textarea
               id="edit-reason"
@@ -85,7 +85,7 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
               onChange={(e) => { setReason(e.target.value); setError(null); }}
               disabled={isSubmitting}
               rows={4}
-              placeholder="Describe el motivo por el que se requiere editar este RFQ..."
+              placeholder="Describe the reason for requesting an edit on this RFQ..."
               className={[
                 'mt-2 w-full resize-none rounded-[6px] border px-4 py-3 text-[13px] leading-[1.55]',
                 'text-[var(--bocar-text)] placeholder-[var(--bocar-blue-30)]',
@@ -116,14 +116,14 @@ export function EditRequestModal({ rfqId, onConfirm, onClose }: EditRequestModal
               disabled={isSubmitting}
               className="rounded-[6px] border border-[var(--bocar-border)] bg-white px-4 py-2 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !reason.trim()}
               className="rounded-[6px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[var(--bocar-blue-90)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? 'Enviando...' : 'Solicitar edición'}
+              {isSubmitting ? 'Sending...' : 'Request Edit'}
             </button>
           </div>
         </form>
