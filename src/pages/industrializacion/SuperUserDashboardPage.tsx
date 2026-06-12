@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,19 +10,24 @@ import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/Da
 import {
   getDateOptions,
   getFilteredDashboardRows,
-  superuserMetrics,
-  superuserRowsByTab,
-  superuserTabs,
 } from '@/features/analytics/services/analyticsService';
 import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
-import type { SuperUserTabKey, SortOption } from '@/features/analytics/types';
+import type { DashboardMetric, DashboardRow, SortOption, SuperUserTabKey } from '@/features/analytics/types';
 import { CreateRfqButton } from '@/features/rfq/components/RfqActions/CreateRfqButton';
+import { useRfqList } from '@/features/rfq/hooks/useRfqList';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 import { ROUTES } from '@/app/config/routes';
 
 const PAGE_SIZE = 4;
 const RFQ_TYPE_OPTIONS = ['Trimming', 'Mold'] as const;
+
+const superuserTabs: { key: SuperUserTabKey; label: string }[] = [
+  { key: 'borradores', label: 'Drafts' },
+  { key: 'eliminadas', label: 'Deleted RFQs' },
+  { key: 'activas', label: 'Active' },
+  { key: 'historicas', label: 'Historical' },
+];
 
 function getSortLabel(sortValue: SortOption) {
   if (sortValue === 'creator') return 'Creator';
@@ -71,28 +76,49 @@ function RfqStatusBadge({ status }: { status?: string }) {
 
 function SuperUserDashboardPage() {
   const navigate = useNavigate();
+  const rfqs = useRfqList();
   const rfqHistogram = useRfqHistogramSeries();
   const [activeTab, setActiveTab] = useState<SuperUserTabKey>('borradores');
   const [searchValue, setSearchValue] = useState('');
   const [sortValue, setSortValue] = useState<SortOption>('');
   const [tipoValue, setTipoValue] = useState('');
   const [dateValue, setDateValue] = useState('');
-
   const [currentPage, setCurrentPage] = useState(1);
 
-  const rows = superuserRowsByTab[activeTab];
+  const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
+  const rowsByTab = useMemo(() => groupRowsByTab(allRows), [allRows]);
+  const dashboardMetrics = useMemo(() => buildMetrics(rowsByTab), [rowsByTab]);
+  const rows = rowsByTab[activeTab];
   const dateOptions = useMemo(() => getDateOptions(rows), [rows]);
   const filteredRows = useMemo(
     () => getFilteredDashboardRows(rows, searchValue, '', sortValue, tipoValue, dateValue),
     [rows, searchValue, sortValue, tipoValue, dateValue],
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, sortValue, tipoValue, dateValue]);
+
+  function handleTabChange(tab: SuperUserTabKey) {
+    setActiveTab(tab);
+    setSearchValue('');
+    setSortValue('');
+    setTipoValue('');
+    setDateValue('');
+    setCurrentPage(1);
+  }
+
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const hasRows = visibleRows.length > 0;
 
   const handleViewRfq = (rfqId: string) => {
-    navigate(ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId), { state: { fromAdmin: true } });
+    const row = allRows.find((item) => item.id === rfqId);
+    navigate(
+      `${ROUTES.INDUSTRIALIZATION.RFQ_DETAIL.replace(':id', rfqId)}?tipo=${row?.tipo ?? 'Mold'}`,
+      { state: { fromAdmin: true } },
+    );
   };
 
   return (
@@ -107,12 +133,12 @@ function SuperUserDashboardPage() {
 
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(405px,0.9fr)] lg:items-stretch xl:grid-cols-[minmax(0,1fr)_minmax(470px,0.96fr)]">
           <div className="grid gap-3 sm:grid-cols-2 lg:gap-3">
-            {superuserMetrics.map((metric) => (
+            {dashboardMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
                 isActive={metric.key === activeTab}
                 metric={metric}
-                onSelect={(key) => setActiveTab(key as SuperUserTabKey)}
+                onSelect={(key) => handleTabChange(key as SuperUserTabKey)}
               />
             ))}
           </div>
@@ -131,7 +157,7 @@ function SuperUserDashboardPage() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={[
                     'shrink-0 border-b-2 px-4 pb-2 text-[14px] font-medium transition lg:flex-1 lg:px-0 lg:pb-1 lg:text-[12px] lg:text-center',
                     isActive
@@ -172,150 +198,166 @@ function SuperUserDashboardPage() {
         </div>
 
         <section className="mt-6 overflow-hidden rounded-[14px] border border-[var(--bocar-border)] bg-white shadow-[0_12px_28px_rgba(0,46,93,0.06)]">
-          <div className="grid gap-3 p-4 sm:hidden">
-            {hasRows ? (
-              visibleRows.map((row) => (
-                <article
-                  key={`${row.id}-mobile`}
-                  className="rounded-[12px] border border-[rgba(217,222,229,0.84)] bg-[var(--bocar-bg)] p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
-                      <p className="mt-1 line-clamp-2 max-w-[220px] text-[13px] text-[var(--bocar-text)]" title={row.desc ?? '-'}>
-                        {row.desc ?? '-'}
-                      </p>
-                      <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
-                      <div className="mt-2"><RfqStatusBadge status={row.status} /></div>
-                    </div>
-                    <button
-                      type="button"
-                      className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
-                      onClick={() => handleViewRfq(row.id)}
-                    >
-                      View
-                    </button>
-                  </div>
-
-                  <dl className="mt-4 grid gap-3 text-[13px]">
-                    {activeTab !== 'borradores' && (
-                      <div className="grid gap-1">
-                        <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                          Created by
-                        </dt>
-                        <dd className="m-0">{row.createdBy}</dd>
-                      </div>
-                    )}
-                    <div className="grid gap-1">
-                      <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
-                        Date
-                      </dt>
-                      <dd className="m-0">{row.date}</dd>
-                    </div>
-                  </dl>
-                </article>
-              ))
-            ) : (
-              <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center text-[14px] text-[var(--bocar-blue-70)]">
-                No RFQs match the current filters.
-              </div>
-            )}
-          </div>
-
-          <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-[#eef1f5]">
-                  {(activeTab === 'borradores'
-                    ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'ACTION']
-                    : ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
-                  ).map((header) => (
-                    <th
-                      key={header}
-                      className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
-                    >
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+          {rfqs.state.status === 'loading' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]">
+              Loading RFQs...
+            </div>
+          ) : rfqs.state.status === 'error' ? (
+            <div className="px-6 py-12 text-center text-[14px] text-[var(--bocar-error)]">
+              {rfqs.state.error.message}
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 p-4 sm:hidden">
                 {hasRows ? (
                   visibleRows.map((row) => (
-                    <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
-                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
-                        {row.id}
-                      </td>
-                      <td
-                        className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-text)] lg:px-4 lg:py-4"
-                        title={row.desc ?? '-'}
-                      >
-                        <span className="block truncate">{row.desc ?? '-'}</span>
-                      </td>
-                      {activeTab === 'borradores' ? (
-                        <>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                            {row.tipo ?? '—'}
-                          </td>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
-                            <RfqStatusBadge status={row.status} />
-                          </td>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                            {row.date}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                            {row.tipo ?? '—'}
-                          </td>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
-                            <RfqStatusBadge status={row.status} />
-                          </td>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                            {row.date}
-                          </td>
-                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
-                            {row.createdBy}
-                          </td>
-                        </>
-                      )}
-                      <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                    <article
+                      key={`${row.id}-mobile`}
+                      className="rounded-[12px] border border-[rgba(217,222,229,0.84)] bg-[var(--bocar-bg)] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="m-0 text-[13px] font-semibold text-[var(--bocar-blue-100)]">{row.id}</p>
+                          <p className="mt-1 line-clamp-2 max-w-[220px] text-[13px] text-[var(--bocar-text)]" title={row.desc ?? '-'}>
+                            {row.desc ?? '-'}
+                          </p>
+                          <p className="mt-1 text-[13px] text-[var(--bocar-blue-70)]">{row.tipo ?? '—'}</p>
+                          <div className="mt-2"><RfqStatusBadge status={row.status} /></div>
+                        </div>
                         <button
                           type="button"
-                          className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] lg:h-9 lg:min-w-[58px] lg:px-4 lg:text-[13px]"
+                          className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b]"
                           onClick={() => handleViewRfq(row.id)}
                         >
                           View
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+
+                      <dl className="mt-4 grid gap-3 text-[13px]">
+                        {activeTab !== 'borradores' && (
+                          <div className="grid gap-1">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
+                              Created by
+                            </dt>
+                            <dd className="m-0">{row.createdBy}</dd>
+                          </div>
+                        )}
+                        <div className="grid gap-1">
+                          <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-30)]">
+                            Date
+                          </dt>
+                          <dd className="m-0">{row.date}</dd>
+                        </div>
+                      </dl>
+                    </article>
                   ))
                 ) : (
-                  <tr>
-                    <td
-                      colSpan={activeTab === 'borradores' ? 6 : 7}
-                      className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
-                    >
-                      No RFQs match the current filters.
-                    </td>
-                  </tr>
+                  <div className="rounded-[12px] border border-dashed border-[var(--bocar-border)] bg-[var(--bocar-bg)] px-4 py-8 text-center text-[14px] text-[var(--bocar-blue-70)]">
+                    No RFQs match the current filters.
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          <TablePagination
-            currentPage={safePage}
-            totalPages={totalPages}
-            visibleCount={visibleRows.length}
-            totalCount={filteredRows.length}
-            onPageChange={setCurrentPage}
-          />
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-[#eef1f5]">
+                      {(activeTab === 'borradores'
+                        ? ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'ACTION']
+                        : ['ID', 'DESC', 'TYPE', 'STATUS', 'DATE', 'CREATED BY', 'ACTION']
+                      ).map((header) => (
+                        <th
+                          key={header}
+                          className="border-b border-[var(--bocar-border)] px-5 py-3.5 text-left text-[11px] font-semibold tracking-[0.06em] text-[var(--bocar-blue-70)]"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hasRows ? (
+                      visibleRows.map((row) => (
+                        <tr key={row.id} className="transition hover:bg-[rgba(245,247,250,0.84)]">
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-blue-70)] lg:px-4 lg:py-4">
+                            {row.id}
+                          </td>
+                          <td
+                            className="max-w-[260px] border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] text-[var(--bocar-text)] lg:px-4 lg:py-4"
+                            title={row.desc ?? '-'}
+                          >
+                            <span className="block truncate">{row.desc ?? '-'}</span>
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.tipo ?? '—'}
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                            <RfqStatusBadge status={row.status} />
+                          </td>
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                            {row.date}
+                          </td>
+                          {activeTab !== 'borradores' && (
+                            <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 text-[13px] lg:px-4 lg:py-4">
+                              {row.createdBy}
+                            </td>
+                          )}
+                          <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-4 lg:px-4 lg:py-4">
+                            <button
+                              type="button"
+                              className="inline-flex h-9 min-w-[58px] items-center justify-center rounded-[8px] bg-[var(--bocar-blue-100)] px-4 text-[13px] font-medium text-white transition hover:bg-[#0b3b6b] lg:h-9 lg:min-w-[58px] lg:px-4 lg:text-[13px]"
+                              onClick={() => handleViewRfq(row.id)}
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={activeTab === 'borradores' ? 6 : 7}
+                          className="px-6 py-12 text-center text-[14px] text-[var(--bocar-blue-70)]"
+                        >
+                          No RFQs match the current filters.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <TablePagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                visibleCount={visibleRows.length}
+                totalCount={filteredRows.length}
+                onPageChange={setCurrentPage}
+              />
+            </>
+          )}
         </section>
       </div>
     </MainLayout>
   );
+}
+
+function groupRowsByTab(rows: DashboardRow[]): Record<SuperUserTabKey, DashboardRow[]> {
+  return {
+    borradores: rows.filter((row) => row.status === 'Draft'),
+    eliminadas: rows.filter((row) => row.status === 'Deleted'),
+    activas: rows.filter((row) => row.status === 'Active'),
+    historicas: rows.filter((row) => row.status === 'Closed'),
+  };
+}
+
+function buildMetrics(rowsByTab: ReturnType<typeof groupRowsByTab>): DashboardMetric[] {
+  return [
+    { key: 'borradores', label: 'DRAFT RFQs', value: String(rowsByTab.borradores.length), valueColor: 'var(--bocar-blue-100)' },
+    { key: 'eliminadas', label: 'DELETED RFQs', value: String(rowsByTab.eliminadas.length), valueColor: '#AA000F' },
+    { key: 'activas', label: 'ACTIVE RFQs', value: String(rowsByTab.activas.length), valueColor: '#5a8a1f' },
+    { key: 'historicas', label: 'HISTORICAL RFQs', value: String(rowsByTab.historicas.length), valueColor: 'var(--bocar-blue-50)' },
+  ];
 }
 
 function getChartStatusText(status: ReturnType<typeof useRfqHistogramSeries>['status']) {

@@ -86,6 +86,13 @@ export async function deleteRfq(tipo: RfqTipo, id: number): Promise<void> {
   });
 }
 
+export async function logicalDeleteRfq(tipo: RfqTipo, id: number): Promise<void> {
+  await request(`${GENERAL_BASE}/rfq/${id}/delete/${tipoQ(tipo)}`, {
+    method: 'PATCH',
+    schema: z.object({ message: z.string() }),
+  });
+}
+
 export async function requestEdit(tipo: RfqTipo, id: number, reason: string): Promise<void> {
   const key = tipo === 'Mold' ? 'rfq_mold' : 'rfq_trimming';
   await request(`${INDUSTRIALIZACION_BASE}/edit-requests/${tipoQ(tipo)}`, {
@@ -145,6 +152,22 @@ export async function closeRfq(
     method: 'POST',
     body,
     schema: detailMsgDto,
+  });
+}
+
+export async function extendRfqDeadline(
+  tipo: RfqTipo,
+  id: number,
+  body: { due_date: string },
+): Promise<void> {
+  await request(`${COMERCIALIZACION_BASE}/rfq/${id}/deadline/${tipoQ(tipo)}`, {
+    method: 'PATCH',
+    body,
+    schema: z.object({
+      detail: z.string(),
+      due_date: z.string(),
+      assignments_reopened: z.number(),
+    }),
   });
 }
 

@@ -6,11 +6,7 @@ import type {
   DashboardTabKey,
   DashboardUser,
   SortOption,
-  SuperUserTabKey,
 } from '@/features/analytics/types';
-
-type SuperUserMetric = { key: SuperUserTabKey; label: string; value: string; valueColor: string };
-type SuperUserTab = { key: SuperUserTabKey; label: string };
 
 export const dashboardUser: DashboardUser = {
   initials: 'AR',
@@ -66,32 +62,6 @@ export const dashboardRowsByTab: Record<DashboardTabKey, DashboardRow[]> = {
     { id: 'RFQ-039', createdBy: 'Valeria Cruz', date: '10/05/2024', supplier: 'Metalsa', tipo: 'Trimming', status: 'Closed' },
     { id: 'RFQ-040', createdBy: 'Ricardo Soto', date: '07/05/2024', supplier: 'Nemak', tipo: 'Mold', status: 'Closed' },
   ],
-};
-
-export const superuserTabs: SuperUserTab[] = [
-  { key: 'borradores', label: 'Drafts' },
-  { key: 'eliminadas', label: 'Deleted RFQs' },
-  { key: 'activas', label: 'Active' },
-  { key: 'historicas', label: 'Historical' },
-];
-
-export const superuserMetrics: SuperUserMetric[] = [
-  { key: 'borradores', label: 'RFQs Drafts', value: '2', valueColor: 'var(--bocar-blue-100)' },
-  { key: 'eliminadas', label: 'Deleted RFQs', value: '4', valueColor: '#AA000F' },
-  { key: 'activas', label: 'RFQs Active', value: '3', valueColor: 'var(--bocar-done)' },
-  { key: 'historicas', label: 'RFQs Historical', value: '10', valueColor: 'var(--bocar-neutral)' },
-];
-
-export const superuserRowsByTab: Record<SuperUserTabKey, DashboardRow[]> = {
-  borradores: dashboardRowsByTab.borradores,
-  eliminadas: [
-    { id: 'RFQ-051', createdBy: 'Ricardo Soto', date: '19/06/2024', supplier: 'Magna', status: 'Deleted', tipo: 'Mold' },
-    { id: 'RFQ-052', createdBy: 'Sofia Lara', date: '15/06/2024', supplier: 'Nemak', status: 'Deleted', tipo: 'Trimming' },
-    { id: 'RFQ-053', createdBy: 'Antonio Leon', date: '10/06/2024', supplier: 'Bosch', status: 'Deleted', tipo: 'Mold' },
-    { id: 'RFQ-054', createdBy: 'Karina Diaz', date: '08/06/2024', supplier: 'Metalsa', status: 'Deleted', tipo: 'Trimming' },
-  ],
-  activas: dashboardRowsByTab.activas,
-  historicas: dashboardRowsByTab.historicas,
 };
 
 function parseDateValue(value: string) {

@@ -22,7 +22,7 @@ import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum } from '../shared/formulas';
 import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
 
-// ─── Inherited RFQ data (mock) ────────────────────────────────────────────────
+// ─── Inherited RFQ data (from Industrialization, via the API) ─────────────────
 
 type ConsiderationItem = {
   label: string;
@@ -39,15 +39,17 @@ export type InheritedMoldRfq = {
   part_number: string;
   project_life: string;
   deliver_by: string;
-  // Tool Engineering
-  te_machine: string;
-  te_num_cavities: string;
-  te_num_hydraulic_slides: string;
-  te_num_mech_slides: string;
-  te_three_plate_mold: string;
-  te_num_gates_per_part: string;
-  // DCM (Die Casting Machine)
-  dcm_model: string;
+  // Tool Engineering — captured by Industrialization (labels: PNUM/DTQ/PRLF/ELAB/TT).
+  te_pnum: string;
+  te_dtq: string;
+  te_prlf: string;
+  te_elab: string;
+  te_tt: string;
+  // DCM (Die Casting Machine) — the 18 specs captured by Industrialization, each
+  // with its exact label, shown readonly on the DCM page.
+  dcm_specs: { label: string; value: string }[];
+  // Industrialization comments (RFQ "Comments" page), shown readonly to the supplier.
+  industrialization_comments: string;
   // DCM SPECS captured by Industrialization (obfuscated keys), carried into the
   // Cost Breakdown Unit column as readonly values.
   dcm_no_hs: string; // No.ofHS (C15)
@@ -97,13 +99,13 @@ function getEmptyInheritedMoldRfq(): InheritedMoldRfq {
     part_number: '',
     project_life: '',
     deliver_by: '',
-    te_machine: '',
-    te_num_cavities: '',
-    te_num_hydraulic_slides: '',
-    te_num_mech_slides: '',
-    te_three_plate_mold: '',
-    te_num_gates_per_part: '',
-    dcm_model: '',
+    te_pnum: '',
+    te_dtq: '',
+    te_prlf: '',
+    te_elab: '',
+    te_tt: '',
+    dcm_specs: [],
+    industrialization_comments: '',
     dcm_no_hs: '',
     dcm_jco: '',
     dcm_ihtcs: '',
@@ -146,6 +148,34 @@ const moneyCell = z.string().refine(
 const hRow = z.object({ h: moneyCell, price: moneyCell, weeks: moneyCell });
 const unitRow = z.object({ unit: moneyCell, price_unit: moneyCell, weeks: moneyCell });
 const qRow = z.object({ q: moneyCell, price_q: moneyCell, weeks: moneyCell });
+
+// CTBD (Cost and Timing Breakdown): celda con Pr (precio) y Weeks (semanas).
+const ctbdCell = z.object({ pr: z.string(), weeks: z.string() });
+const ctbdSchema = z.object({
+  m1: z.object({
+    dfab_matcst: ctbdCell,
+    dfab_accs: ctbdCell,
+    dfab_mancst: ctbdCell,
+    act_corr: ctbdCell,
+    act_log: ctbdCell,
+    gr_tot: ctbdCell,
+    samp: ctbdCell,
+    sp_pt: ctbdCell,
+    curr: z.string(),
+  }),
+  tool_rep: z.array(ctbdCell),
+  set_of_cav: z.array(ctbdCell),
+  meta: z.object({
+    supp: z.string(),
+    sign: z.string(),
+    date: z.string(),
+    qt_no: z.string(),
+    prep: z.string(),
+    inc: z.string(),
+  }),
+});
+
+const CTBD_ROWS = 8;
 
 const moldBasicDataSchema = z.object({
   company: z.string(),
@@ -280,6 +310,7 @@ const moldQuotationSchema = z.object({
   supplier: z.string().trim().min(1, 'Enter the supplier name.'),
   ts_max_weight_mold: z.string().trim().min(1, 'Enter the maximum mold weight.'),
   comments: z.string(),
+  ctbd: ctbdSchema,
   basic_data: moldBasicDataSchema,
   accessories_costs: moldAccessoriesCostsSchema,
   material_costs: moldMaterialCostsSchema,
@@ -569,12 +600,31 @@ function emptyUnitRow() {
 function emptyQRow() {
   return { q: '', price_q: '', weeks: '' };
 }
+function emptyCtbdCell() {
+  return { pr: '', weeks: '' };
+}
 
 function getCreateDefaultValues(): MoldQuotationValues {
   return {
     supplier: '',
     ts_max_weight_mold: '',
     comments: '',
+    ctbd: {
+      m1: {
+        dfab_matcst: emptyCtbdCell(),
+        dfab_accs: emptyCtbdCell(),
+        dfab_mancst: emptyCtbdCell(),
+        act_corr: emptyCtbdCell(),
+        act_log: emptyCtbdCell(),
+        gr_tot: emptyCtbdCell(),
+        samp: emptyCtbdCell(),
+        sp_pt: emptyCtbdCell(),
+        curr: '',
+      },
+      tool_rep: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
+      set_of_cav: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
+      meta: { supp: '', sign: '', date: '', qt_no: '', prep: '', inc: '' },
+    },
     basic_data: {
       company: '',
       elaborated_by: '',
@@ -829,12 +879,13 @@ function MoldRfqPage({ inherited }: { inherited: InheritedMoldRfq }) {
   return (
     <SectionCard subtitle={PAGE_META.rfq.subtitle} title={PAGE_META.rfq.title}>
       <FormGrid>
-        <ReadOnlyField label="DESCRIPTION" value={inherited.description} />
-        <ReadOnlyField label="PART N°" value={inherited.part_number} />
-        <ReadOnlyField label="PARTS PER YEAR" value={inherited.parts_per_year} />
-        <ReadOnlyField label="PROJECT LIFE" value={inherited.project_life} />
-        <ReadOnlyField label="CUSTOMER" value={inherited.customer} />
-        <ReadOnlyField label="DELIVER THIS QUOTE BY" value={inherited.deliver_by} />
+        <ReadOnlyField label="DESC" value={inherited.description} />
+        <ReadOnlyField label="PT" value={inherited.part_tech} />
+        <ReadOnlyField label="PNUM" value={inherited.part_number} />
+        <ReadOnlyField label="PRLF" value={inherited.project_life} />
+        <ReadOnlyField label="PPY" value={inherited.parts_per_year} />
+        <ReadOnlyField label="DTQ" value={inherited.deliver_by} />
+        <ReadOnlyField label="CUST" value={inherited.customer} />
         <TextField
           hint="Legal name or trade name under which you quote."
           label="SUPPLIER"
@@ -849,12 +900,11 @@ function MoldRfqPage({ inherited }: { inherited: InheritedMoldRfq }) {
 
 function ToolEngPage({ inherited }: { inherited: InheritedMoldRfq }) {
   const rows: { label: string; value: ReactNode }[] = [
-    { label: 'Machine', value: inherited.te_machine },
-    { label: 'No. of cavities', value: inherited.te_num_cavities },
-    { label: 'No. of hydraulic slides', value: inherited.te_num_hydraulic_slides },
-    { label: 'No. of mechanical slides', value: inherited.te_num_mech_slides },
-    { label: 'Three plate mold', value: inherited.te_three_plate_mold },
-    { label: 'No. of gates per part', value: inherited.te_num_gates_per_part },
+    { label: 'PNUM', value: inherited.te_pnum },
+    { label: 'DTQ', value: inherited.te_dtq },
+    { label: 'PRLF', value: inherited.te_prlf },
+    { label: 'ELAB', value: inherited.te_elab },
+    { label: 'TT', value: inherited.te_tt },
   ];
 
   return (
@@ -873,15 +923,11 @@ function ToolEngPage({ inherited }: { inherited: InheritedMoldRfq }) {
 }
 
 function DcmPage({ inherited }: { inherited: InheritedMoldRfq }) {
-  const rows: { label: string; value: ReactNode }[] = [
-    { label: 'Machine model', value: inherited.dcm_model },
-  ];
-
   return (
     <SectionCard subtitle={PAGE_META.dcm.subtitle} title={PAGE_META.dcm.title}>
-      <SectionTableHeader col2="From RFQ" />
+      <SectionTableHeader col1="Deliverable / requirement" col2="Specifications" />
       <div className="divide-y divide-[rgba(236,240,245,0.9)]">
-        {rows.map((row) => (
+        {inherited.dcm_specs.map((row) => (
           <div key={row.label} className={ROW_CLASS}>
             <div className={LABEL_CLASS}>{row.label}</div>
             <ReadOnlyValueCell value={row.value} />
@@ -917,8 +963,9 @@ function OtInfPage({ inherited }: { inherited: InheritedMoldRfq }) {
 }
 
 function CtbdPage() {
-  const { control } = useFormContext<MoldQuotationValues>();
-  const currency = useWatch({ control, name: 'basic_data.base_currency' }) as string | undefined;
+  const { register } = useFormContext<MoldQuotationValues>();
+  const metaInputClass =
+    'w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]';
 
   const bd = '1px solid rgba(217,222,229,0.92)';
   const RH = 34;
@@ -968,52 +1015,53 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}>
                 <td rowSpan={3} style={secWrap}>D FAB</td>
                 <td style={lbl}>Mat cst (pur pt &amp; rw mat)</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_matcst.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_matcst.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Accs</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_accs.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_accs.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Man cst</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_mancst.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_mancst.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td rowSpan={2} style={secWrap}>ACT REQ POST-F</td>
                 <td style={lbl}>Corr, opt and meas</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.act_corr.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.act_corr.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Log cst</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.act_log.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.act_log.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={tot}>GR TOT</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.gr_tot.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.gr_tot.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>SAMP IN SUPP FAC</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.samp.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.samp.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>SP PT</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.sp_pt.pr')} /></td>
+                <td style={dat}><input style={inp} {...register('ctbd.m1.sp_pt.weeks')} /></td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>CURR</td>
                 <td colSpan={2} style={dat}>
                   <select
                     className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
-                    defaultValue={currency ?? 'USD'}
+                    {...register('ctbd.m1.curr')}
                   >
+                    <option value="">—</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                   </select>
@@ -1034,10 +1082,10 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: CTBD_ROWS }).map((_, i) => (
                 <tr key={i} style={{ height: RH }}>
-                  <td style={dat}><input style={inp} /></td>
-                  <td style={dat}><input style={inp} /></td>
+                  <td style={dat}><input style={inp} {...register(`ctbd.tool_rep.${i}.pr` as const)} /></td>
+                  <td style={dat}><input style={inp} {...register(`ctbd.tool_rep.${i}.weeks` as const)} /></td>
                 </tr>
               ))}
               <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
@@ -1056,10 +1104,10 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: CTBD_ROWS }).map((_, i) => (
                 <tr key={i} style={{ height: RH }}>
-                  <td style={dat}><input style={inp} /></td>
-                  <td style={dat}><input style={inp} /></td>
+                  <td style={dat}><input style={inp} {...register(`ctbd.set_of_cav.${i}.pr` as const)} /></td>
+                  <td style={dat}><input style={inp} {...register(`ctbd.set_of_cav.${i}.weeks` as const)} /></td>
                 </tr>
               ))}
               <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
@@ -1077,33 +1125,33 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SUPP</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3} style={{ minWidth: 300 }}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.supp')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SIGN</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.sign')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">DATE</td>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] p-2" style={{ minWidth: 130 }}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.date')} />
                 </td>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">QT No</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" style={{ minWidth: 130 }}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.qt_no')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">PREP</td>
                 <td className="border-r border-[rgba(217,222,229,0.92)] p-2">
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.prep')} />
                 </td>
                 <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">INC.</td>
                 <td className="p-2">
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.inc')} />
                 </td>
               </tr>
             </tbody>
@@ -1183,7 +1231,7 @@ function MoldToolSpecPage({ inherited }: { inherited: InheritedMoldRfq }) {
     <SectionCard subtitle={PAGE_META.tool_spec.subtitle} title={PAGE_META.tool_spec.title}>
       <FormGrid>
         <ReadOnlyField label="Bühler Machine Ton" value={inherited.ts_buhler_machine_ton} />
-        <ReadOnlyField label="Number of cavities/sets" value={inherited.ts_num_cavities_sets} />
+        <ReadOnlyField label="Number of cavities / sets" value={inherited.ts_num_cavities_sets} />
         <ReadOnlyField label="Three plate mold" value={inherited.ts_three_plate_mold} />
         <ReadOnlyField label="Number of gates per part" value={inherited.ts_num_gates_per_part} />
         <ReadOnlyField label="Number of mech. slides" value={inherited.ts_num_mech_slides} />
@@ -1203,10 +1251,19 @@ function MoldToolSpecPage({ inherited }: { inherited: InheritedMoldRfq }) {
   );
 }
 
-function MoldCommentsPage() {
+function MoldCommentsPage({ inherited }: { inherited: InheritedMoldRfq }) {
   const { register } = useFormContext<MoldQuotationValues>();
   return (
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
+      <div className="mb-6">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+          Comments from Industrialization
+        </div>
+        <ReadOnlyValueCell value={inherited.industrialization_comments || null} />
+      </div>
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+        Your comments
+      </div>
       <textarea
         className={`${inputBaseClasses(false)} resize-y`}
         placeholder="Additional comments for Purchasing..."
@@ -1729,7 +1786,7 @@ export function buildMoldQuotationDefinition(
     if (page === 'basic_data') return <MoldBasicDataPage inherited={inherited} />;
     if (page === 'part_geometry') return <MoldPartGeometryPage inherited={inherited} />;
     if (page === 'tool_spec') return <MoldToolSpecPage inherited={inherited} />;
-    if (page === 'comments') return <MoldCommentsPage />;
+    if (page === 'comments') return <MoldCommentsPage inherited={inherited} />;
     if (page === 'accessories_costs') return <MoldAccessoriesCostsPage />;
     if (page === 'material_costs') return <MoldMaterialCostsPage />;
     if (page === 'manufacturing_costs') return <MoldManufacturingCostsPage />;

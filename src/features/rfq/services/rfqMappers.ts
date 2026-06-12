@@ -49,7 +49,9 @@ export function mapIndustrializacionRow(dto: RfqListItemDto, tipo: RfqTipo): Das
   });
 
   const displayStatus =
-    status === 'DRAFT'
+    status === 'CANCELLED'
+      ? 'Deleted'
+      : status === 'DRAFT'
       ? 'Draft'
       : status === 'CLOSED'
       ? 'Closed'
@@ -81,13 +83,17 @@ export function mapComercializacionRow(
   const rawStatus = mapBackendStatus({
     status: dto.status,
     complete: dto.complete,
+    logicalDelete: dto.logical_delete,
     allAssignmentsClosed: dto.progreso_proveedores === 'Completo',
     hasReceivedQuote: progress.quoted > 0,
     progreso: dto.progreso_proveedores,
     deadlineExpired: parsedDeadline.expired,
   });
   // ANSWERED es exclusivo de la vista de proveedor; nunca se produce aquí.
-  const status: PurchasingRfqStatus = dto.operational_status ?? (rawStatus === 'ANSWERED' ? 'QUOTING' : rawStatus);
+  const status: PurchasingRfqStatus =
+    rawStatus === 'CANCELLED'
+      ? 'CANCELLED'
+      : dto.operational_status ?? (rawStatus === 'ANSWERED' ? 'QUOTING' : rawStatus);
 
   const supplierProgress =
     progress.total > 0

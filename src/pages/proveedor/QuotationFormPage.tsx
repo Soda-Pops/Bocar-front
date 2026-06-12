@@ -22,7 +22,7 @@ function QuotationFormPage() {
   const handleBack = () =>
     navigate(`${ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', rfqId ?? '')}?tipo=${tipo ?? 'Mold'}`);
 
-  if (!tipo) {
+  if (!tipo || !rfqId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-[14px] text-[var(--bocar-blue-70)]">Invalid RFQ type.</p>
@@ -33,7 +33,7 @@ function QuotationFormPage() {
   return (
     <QuotationWorkspace
       mode="create"
-      rfqId={rfqId ?? 'RFQ-001'}
+      rfqId={rfqId}
       tipo={tipo}
       onBack={handleBack}
     />

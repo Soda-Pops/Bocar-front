@@ -14,7 +14,7 @@ import { resolveFileUrl } from '@/features/rfq/services/rfqMappers';
 import { useResource } from '@/shared/hooks/useResource';
 import type { FileInfo } from '@/shared/components/ui/MultiFileUploadField';
 import { extractApiError } from '@/shared/utils/extractApiError';
-import { parseId } from '@/shared/utils/rfqId';
+import { formatId, parseId } from '@/shared/utils/rfqId';
 
 import {
   buildMoldQuotationDefinition,
@@ -48,6 +48,9 @@ export function QuotationWorkspace({
   );
   const resourceData = inheritedResource.state.status === 'success' ? inheritedResource.state.data : null;
   const inheritedValues = resourceData?.formValues ?? null;
+  // rfqId es el id de la ASIGNACIÓN (viene de la URL) y se usa para las llamadas
+  // API. Para mostrar al proveedor el id real del RFQ usamos rfqDbId del detalle.
+  const displayRfqId = resourceData?.rfqDbId ? formatId(resourceData.rfqDbId) : rfqId;
 
   // hasDraftUser: se activa en esta sesión cuando el proveedor crea un borrador nuevo.
   // tiene_borrador: viene del backend — true si ya existe un borrador guardado previamente.
@@ -156,6 +159,7 @@ export function QuotationWorkspace({
         onSubmit={handleSubmit}
         quotationId={quotationId}
         rfqId={rfqId}
+        displayRfqId={displayRfqId}
         tipo={tipo}
         onBack={onBack}
       />
@@ -170,6 +174,7 @@ export function QuotationWorkspace({
       onSubmit={handleSubmit}
       quotationId={quotationId}
       rfqId={rfqId}
+      displayRfqId={displayRfqId}
       tipo={tipo}
       onBack={onBack}
     />
@@ -194,13 +199,34 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
     part_number: values.part_number || values.pnum,
     project_life: values.prlf,
     deliver_by: values.dtq,
-    te_machine: values.buhler,
-    te_num_cavities: values.num_cav,
-    te_num_hydraulic_slides: values.hydr_slides,
-    te_num_mech_slides: values.mech_slides,
-    te_three_plate_mold: values.three_plate,
-    te_num_gates_per_part: values.gates,
-    dcm_model: values.buhler,
+    // Tool Engineering: mismos campos que captura Industrialización.
+    te_pnum: values.pnum,
+    te_dtq: values.dtq,
+    te_prlf: values.prlf,
+    te_elab: values.elab,
+    te_tt: values.tt,
+    // DCM: las 18 specs con sus labels exactos del formulario de Industrialización.
+    dcm_specs: [
+      { label: 'Smash', value: c.smach?.notes ?? '' },
+      { label: 'No.CAV', value: c.no_cav?.notes ?? '' },
+      { label: 'No.ofHS', value: c.no_hs?.notes ?? '' },
+      { label: 'No.ofMS', value: c.no_ms?.notes ?? '' },
+      { label: '3thPSupp', value: c.third_p_supp?.notes ?? '' },
+      { label: 'No.subc', value: c.no_subc?.notes ?? '' },
+      { label: 'Jco', value: c.jco?.notes ?? '' },
+      { label: 'QcSys', value: c.qc_sys?.notes ?? '' },
+      { label: 'Ihtcs', value: c.ihtcs?.notes ?? '' },
+      { label: 'Spin', value: c.spin?.notes ?? '' },
+      { label: 'HICS', value: c.hics?.notes ?? '' },
+      { label: 'CMGOM', value: c.cm_gom?.notes ?? '' },
+      { label: 'SPforThermoR', value: c.sp_thermo?.notes ?? '' },
+      { label: 'NReturnV', value: c.n_return_v?.notes ?? '' },
+      { label: 'VacV', value: c.vac_v?.notes ?? '' },
+      { label: 'ChillBl', value: c.chill_bl?.notes ?? '' },
+      { label: 'No.Pl.Jco sys', value: c.no_pl_jco?.notes ?? '' },
+      { label: 'Oth', value: c.ctbd?.notes ?? '' },
+    ],
+    industrialization_comments: values.comments,
     // SPECS del DCM capturados por Industrialización (claves ofuscadas en el
     // backend: No_ofHS, Jco, Ihtcs, Spin, VacV, ChillBl, Oth).
     dcm_no_hs: c.no_hs?.notes || values.hydr_slides,
@@ -220,7 +246,7 @@ function moldFormToInherited(values: MoldFormValues): InheritedMoldRfq {
       item('Add of mach st.', c.add_mach?.checked, c.add_mach?.notes ?? ''),
       item('Sketch d conc, inc s dim', c.sketch?.checked, c.sketch?.notes ?? ''),
       item('2D Dr DesPDF and CNFl', c.drw_2d?.checked, c.drw_2d?.notes ?? ''),
-      item('3D D. Mod. solid. Native Format', c.drw_3d?.checked, c.drw_3d?.notes ?? ''),
+      item('3D D. Mod. solid. (Native Format)', c.drw_3d?.checked, c.drw_3d?.notes ?? ''),
     ],
     other_items: [
       item('Eyeb', c.eyeb?.checked, c.eyeb?.notes ?? ''),
@@ -290,6 +316,7 @@ function trimmingFormToInherited(values: TrimmingFormValues): InheritedRfq {
     customer: values.customer,
     part_number: values.part_number,
     project_life: values.project_life,
+    previous_job: values.previous_job,
     deliver_by: values.deliver_by,
     press: values.press,
     num_cavities: values.num_cavities,
@@ -345,6 +372,7 @@ function trimmingFormToInherited(values: TrimmingFormValues): InheritedRfq {
     ts_qty_punch_pins: values.ts_qty_punch_pins,
     ts_temp_trimmed: values.ts_temp_trimmed,
     ts_ejector_fixed_side: values.ts_ejector_fixed_side,
+    industrialization_comments: values.comments,
     rfq_files: values.files,
   };
 }
