@@ -19,7 +19,8 @@ const BASE = '/api_proveedores/v1/asginaciones';
 const tipoQ = (tipo: RfqTipo) => `?tipo=${tipoParam(tipo)}`;
 
 export async function misAsignaciones(signal?: AbortSignal): Promise<{
-  assignedRows: SupplierRfqRow[];
+  pendingRows: SupplierRfqRow[];
+  quotedRows: SupplierRfqRow[];
   historicalRows: SupplierRfqRow[];
   metrics: SupplierMetric[];
 }> {

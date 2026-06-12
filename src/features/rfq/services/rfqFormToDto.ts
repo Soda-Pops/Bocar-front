@@ -94,11 +94,13 @@ const moldConsiderationMap: Record<string, string> = {
   sp_pt: 'Sp_Pt',
 };
 
+// NOTA: smach/no_cav/no_hs/no_ms NO van aquí. Comparten columna de backend
+// (SMACH, No_CAV, No_ofHS, No_ofMS) con los campos dedicados de la página
+// "Tool Specification" (buhler, num_cav, hydr_slides, mech_slides), que son los
+// numéricos que consume la predicción IA. Se escriben explícitamente más abajo
+// con prioridad al campo dedicado; si se incluyeran aquí, el loop (que corre al
+// final) sobrescribiría el valor numérico con la nota de DCM y se perdería.
 const moldSpecMap: Record<string, string> = {
-  smach: 'SMACH',
-  no_cav: 'No_CAV',
-  no_hs: 'No_ofHS',
-  no_ms: 'No_ofMS',
   third_p_supp: 'ThirdPSupp',
   no_subc: 'No_subc',
   jco: 'Jco',
@@ -115,7 +117,7 @@ const moldSpecMap: Record<string, string> = {
   ctbd: 'Oth',
 };
 
-const numericMoldSpecKeys = new Set(['no_hs', 'no_ms']);
+const numericMoldSpecKeys = new Set<string>();
 
 const trimmingConsiderationMap: Record<string, string> = {
   // Data Information (sección 3)
@@ -153,10 +155,11 @@ function moldToFormData(values: MoldFormValues, mode: RfqPayloadMode): FormData 
   appendNumber(fd, 'PRLF', values.prlf, mode);
   appendString(fd, 'TT', values.tt, mode);
   appendString(fd, 'ELAB', values.elab, mode);
-  appendString(fd, 'SMACH', values.buhler, mode);
-  appendString(fd, 'No_CAV', values.num_cav, mode);
+  // Campo dedicado primero; cae a la nota de DCM solo si el dedicado está vacío.
+  appendString(fd, 'SMACH', values.buhler || values.considerations.smach?.notes, mode);
+  appendString(fd, 'No_CAV', values.num_cav || values.considerations.no_cav?.notes, mode);
   appendNumber(fd, 'No_ofHS', values.hydr_slides || values.considerations.no_hs?.notes, mode);
-  appendNumber(fd, 'No_ofMS', values.mech_slides, mode);
+  appendNumber(fd, 'No_ofMS', values.mech_slides || values.considerations.no_ms?.notes, mode);
   appendString(fd, 'alloy', values.alloy, mode);
   const [length, width, height] = splitDimension(values.part_dim);
   appendNumber(fd, 'part_dim_length_mm', length, mode);

@@ -21,6 +21,7 @@ import type { FileInfo } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum, parseNum } from '../shared/formulas';
 import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
+import { deepMerge } from '@shared/utils/deepMerge';
 
 // ─── Inherited RFQ data (from Industrialization, via the API) ─────────────────
 
@@ -1854,6 +1855,7 @@ export function buildMoldQuotationDefinition(
   rfqId: string,
   inheritedOverride?: InheritedMoldRfq,
   draftFiles: FileInfo[] = [],
+  draftValues?: Record<string, unknown>,
 ): RfqWorkspaceDefinition<MoldQuotationValues> {
   const inherited = inheritedOverride ?? getEmptyInheritedMoldRfq();
   void rfqId;
@@ -1939,8 +1941,10 @@ export function buildMoldQuotationDefinition(
     resolver: zodResolver(moldQuotationSchema),
     draftResolver: zodResolver(moldQuotationSchema),
     submitResolver: zodResolver(moldQuotationSchema),
-    getCreateDefaultValues: () => withInheritedUnits(getCreateDefaultValues()),
-    getEditDefaultValues: (id?: string) => withInheritedUnits(getEditDefaultValues(id)),
+    // El draft guardado (si existe) se fusiona sobre los defaults; withInheritedUnits
+    // corre al final para que las celdas readonly heredadas del RFQ siempre ganen.
+    getCreateDefaultValues: () => withInheritedUnits(deepMerge(getCreateDefaultValues(), draftValues)),
+    getEditDefaultValues: (id?: string) => withInheritedUnits(deepMerge(getEditDefaultValues(id), draftValues)),
     pages: PAGES,
     navGroups: NAV_GROUPS,
     pageMeta: PAGE_META,
