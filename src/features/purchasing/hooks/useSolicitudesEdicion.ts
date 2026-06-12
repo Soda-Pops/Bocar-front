@@ -43,7 +43,7 @@ export function useSolicitudesEdicion() {
     setMutation(id, { status: 'submitting', message: '' });
     try {
       await approveEdit(tipo, id);
-      setMutation(id, { status: 'success', message: 'Aprobada. RFQ devuelta a Industrialización.' });
+      setMutation(id, { status: 'success', message: 'Approved. RFQ returned to Industrialization.' });
       // Remove from list after brief delay
       setTimeout(() => {
         setState((prev) =>
@@ -64,7 +64,7 @@ export function useSolicitudesEdicion() {
     setMutation(id, { status: 'submitting', message: '' });
     try {
       await rejectEdit(tipo, id);
-      setMutation(id, { status: 'success', message: 'Rechazada. RFQ permanece en Comercialización.' });
+      setMutation(id, { status: 'success', message: 'Rejected. RFQ remains in Purchasing.' });
       setTimeout(() => {
         setState((prev) =>
           prev.status === 'success'

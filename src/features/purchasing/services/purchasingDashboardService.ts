@@ -106,8 +106,8 @@ export function buildUnlockRequestItems(requests: ExtensionRequestItem[]): Purch
   return requests.map((req) => ({
     id: String(req.id),
     title: req.rfqId > 0 ? formatId(req.rfqId) : req.rfqNombre,
-    subtitle: `${req.proveedorNombre} solicita reabrir su asignación`,
-    meta: req.motivo ? `Motivo: ${req.motivo}` : '',
+    subtitle: `${req.proveedorNombre} requests to reopen their assignment`,
+    meta: req.motivo ? `Reason: ${req.motivo}` : '',
     href:
       req.rfqId > 0
         ? `${ROUTES.PURCHASING.RFQ_DETAIL.replace(':id', formatId(req.rfqId))}?tipo=${req.rfqTipo}`
