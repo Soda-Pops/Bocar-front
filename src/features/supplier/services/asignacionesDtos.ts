@@ -42,6 +42,9 @@ export const quotationResponseDto = z.object({
 
 export const costBreakdownDto = z.record(z.string(), z.unknown());
 
+// El backend responde 201 { detail } al solicitar una extensión.
+export const extensionSolicitadaDto = detailMsgDto;
+
 export type AsignacionDto = z.infer<typeof asignacionDto>;
 export type MisAsignacionesDto = z.infer<typeof misAsignacionesDto>;
 export type QuotationSendResponseDto = z.infer<typeof quotationResponseDto>;

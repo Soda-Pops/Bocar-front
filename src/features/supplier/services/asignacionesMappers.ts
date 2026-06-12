@@ -1,7 +1,7 @@
 import type { RfqTipo } from '@/features/analytics/types';
 import type { AsignacionDto, MisAsignacionesDto } from '@/features/supplier/services/asignacionesDtos';
 import type { SupplierMetric, SupplierRfqRow } from '@/features/supplier/types';
-import { formatDateForDisplay } from '@/shared/utils/deadline';
+import { formatDateForDisplay, parseBackendDeadline } from '@/shared/utils/deadline';
 import { formatId } from '@/shared/utils/rfqId';
 
 function mapAssignment(dto: AsignacionDto, tipo: RfqTipo, answered: boolean): SupplierRfqRow {
@@ -12,6 +12,8 @@ function mapAssignment(dto: AsignacionDto, tipo: RfqTipo, answered: boolean): Su
     status: answered ? 'DONE' : dto.tiene_borrador ? 'QUOTED' : 'PENDING',
     tipo,
     deadline: formatDateForDisplay(dto.due_date),
+    dueDate: dto.due_date,
+    expired: dto.en_tiempo === false || parseBackendDeadline(dto.deadline).expired,
   };
 }
 

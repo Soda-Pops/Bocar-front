@@ -3,14 +3,18 @@ import { TablePagination } from '@/shared/components/ui/TablePagination';
 import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/app/config/routes';
+import type { RfqTipo } from '@/features/analytics/types';
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import { FilterSelect } from '@/features/analytics/components/Filters/FilterSelect';
 import { SearchField } from '@/features/analytics/components/Filters/SearchField';
 import {
   getFilteredRows,
 } from '@/features/supplier/services/supplierDashboardService';
+import { solicitarExtension } from '@/features/supplier/services/asignacionesService';
 import { useMisAsignaciones } from '@/features/supplier/hooks/useMisAsignaciones';
+import { RequestExtensionModal } from '@/features/supplier/components/RequestExtensionModal';
 import { SupplierProfileCard } from '@/features/supplier/components/SupplierProfileCard';
+import { useMutation } from '@/shared/hooks/useMutation';
 import type { SupplierMetricKey, SupplierRfqRow, SupplierRfqStatus, SupplierTab } from '@/features/supplier/types';
 
 const TABS: { key: SupplierTab; label: string }[] = [
@@ -72,10 +76,12 @@ function RfqTable({
   rows,
   tab,
   onView,
+  onRequestExtension,
 }: {
   rows: SupplierRfqRow[];
   tab: SupplierTab;
   onView: (row: SupplierRfqRow) => void;
+  onRequestExtension: (row: SupplierRfqRow) => void;
 }) {
   const dateHeader = tab === 'historical' ? 'DATE' : 'DEADLINE';
 
@@ -120,10 +126,28 @@ function RfqTable({
                   {row.tipo}
                 </td>
                 <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5 text-[13px] text-[var(--bocar-text)]">
-                  {row.deadline}
+                  <span className="inline-flex items-center gap-2">
+                    {row.deadline}
+                    {tab !== 'historical' && row.expired ? (
+                      <span className="inline-flex items-center rounded-xl border border-[rgba(170,0,15,0.22)] bg-[rgba(170,0,15,0.08)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--bocar-error)]">
+                        Expired
+                      </span>
+                    ) : null}
+                  </span>
                 </td>
                 <td className="border-b border-[rgba(217,222,229,0.72)] px-5 py-3.5">
-                  <ViewButton onClick={() => onView(row)} />
+                  <div className="flex items-center gap-2">
+                    <ViewButton onClick={() => onView(row)} />
+                    {tab !== 'historical' && row.expired ? (
+                      <button
+                        type="button"
+                        onClick={() => onRequestExtension(row)}
+                        className="inline-flex h-8 items-center rounded-[8px] border border-[var(--bocar-blue-100)] px-3 text-[12px] font-medium text-[var(--bocar-blue-100)] transition hover:bg-[var(--bocar-blue-100)] hover:text-white focus:outline-none"
+                      >
+                        Request extension
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ))
@@ -142,6 +166,21 @@ function SupplierDashboardPage() {
   const [deadlineValue, setDeadlineValue] = useState('');
   const [tipoValue, setTipoValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [extensionRow, setExtensionRow] = useState<SupplierRfqRow | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const extensionMutation = useMutation(solicitarExtension);
+
+  async function handleRequestExtension(data: { motivo: string; nueva_fecha: string }) {
+    if (!extensionRow?.assignmentId) return;
+    await extensionMutation.mutate(
+      extensionRow.tipo as RfqTipo,
+      extensionRow.assignmentId,
+      data,
+    );
+    setExtensionRow(null);
+    setSuccessMsg('Extension request sent. Purchasing will review it shortly.');
+    assignments.reload();
+  }
 
   const realData =
     assignments.state.status === 'success'
@@ -209,6 +248,22 @@ function SupplierDashboardPage() {
         <h1 className="m-0 text-[20px] font-bold uppercase tracking-[0.04em] text-[var(--bocar-blue-100)]">
           DASHBOARD
         </h1>
+
+        {successMsg ? (
+          <div
+            role="status"
+            className="mt-4 flex items-center justify-between gap-4 rounded-[10px] border border-[rgba(141,198,63,0.4)] bg-[rgba(141,198,63,0.12)] px-4 py-3 text-[13px] text-[#4a7a10]"
+          >
+            <span>{successMsg}</span>
+            <button
+              type="button"
+              onClick={() => setSuccessMsg(null)}
+              className="text-[12px] font-semibold text-[#4a7a10] underline-offset-2 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
 
         {/* KPI cards */}
         <section className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -285,6 +340,10 @@ function SupplierDashboardPage() {
               const id = row.assignmentId ? String(row.assignmentId) : row.id;
               navigate(`${ROUTES.SUPPLIER.RFQ_DETAIL.replace(':id', id)}?tipo=${row.tipo}`);
             }}
+            onRequestExtension={(row) => {
+              setSuccessMsg(null);
+              setExtensionRow(row);
+            }}
           />
 
           <TablePagination
@@ -299,6 +358,15 @@ function SupplierDashboardPage() {
         </section>
 
       </div>
+
+      {extensionRow ? (
+        <RequestExtensionModal
+          rfqId={extensionRow.id}
+          dueDate={extensionRow.dueDate}
+          onConfirm={handleRequestExtension}
+          onClose={() => setExtensionRow(null)}
+        />
+      ) : null}
     </MainLayout>
   );
 }

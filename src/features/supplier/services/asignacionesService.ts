@@ -6,6 +6,7 @@ import type { RfqDetail } from '@/features/rfq/services/rfqDetailService';
 import {
   asignacionDetalleConBorradorDto,
   costBreakdownDto,
+  extensionSolicitadaDto,
   misAsignacionesDto,
   quotationResponseDto,
   type QuotationSendResponseDto,
@@ -103,5 +104,23 @@ export async function enviarCotizacion(tipo: RfqTipo, id: number): Promise<Quota
   return request(`${BASE}/responder/${id}/enviar/${tipoQ(tipo)}`, {
     method: 'POST',
     schema: quotationResponseDto,
+  });
+}
+
+/**
+ * El proveedor solicita ampliar el plazo de una asignación vencida.
+ * `nueva_fecha` debe ser posterior al due_date actual de la asignación.
+ * Solo puede haber una solicitud Pendiente por asignación a la vez (el backend
+ * responde 400 si ya existe una).
+ */
+export async function solicitarExtension(
+  tipo: RfqTipo,
+  id: number,
+  body: { motivo: string; nueva_fecha: string },
+): Promise<void> {
+  await request(`${BASE}/extension/solicitar/${id}/${tipoQ(tipo)}`, {
+    method: 'POST',
+    body,
+    schema: extensionSolicitadaDto,
   });
 }

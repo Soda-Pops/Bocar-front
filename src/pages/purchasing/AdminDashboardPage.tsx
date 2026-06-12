@@ -15,10 +15,10 @@ import {
   purchasingDeadlineRangeOptions,
 } from '@/features/purchasing/constants';
 import {
-  buildUnlockRequestItems,
   buildUpcomingDeadlineItems,
   getFilteredDashboardRows,
 } from '@/features/purchasing/services/purchasingDashboardService';
+import { ExtensionRequestsPanel } from '@/features/purchasing/components/ExtensionRequestsPanel';
 import { PurchasingWidgetPanel } from '@/features/purchasing/components/PurchasingWidgetPanel';
 import { useRfqHistogramSeries } from '@/features/analytics/hooks/useRfqHistogramSeries';
 import {
@@ -126,13 +126,6 @@ function AdminDashboardPage() {
   const upcomingDeadlineItems = useMemo(
     () => buildUpcomingDeadlineItems(allRows),
     [allRows],
-  );
-  const unlockRequestItems = useMemo(
-    () =>
-      buildUnlockRequestItems(
-        extensionRequests.state.status === 'success' ? extensionRequests.state.data : [],
-      ),
-    [extensionRequests.state],
   );
   const [activeTab, setActiveTab] = useState<AdminTab>('pending');
   const [activeStatusFilter, setActiveStatusFilter] = useState<PurchasingRfqStatus | ''>('');
@@ -496,13 +489,10 @@ function AdminDashboardPage() {
             emptyLabel="No RFQs with upcoming deadlines."
             pageSize={2}
           />
-          <PurchasingWidgetPanel
-            title="PENDING UNLOCK REQUESTS"
-            caption="Reopening requests received from suppliers."
-            items={unlockRequestItems}
+          <ExtensionRequestsPanel
+            requests={extensionRequests.state.status === 'success' ? extensionRequests.state.data : []}
             isLoading={extensionRequests.state.status === 'loading'}
-            emptyLabel="No pending unlock requests."
-            pageSize={2}
+            onResolved={extensionRequests.reload}
           />
         </section>
       </div>

@@ -15,6 +15,10 @@ export type SupplierRfqRow = {
   status: SupplierRfqStatus;
   tipo: string;
   deadline: string;
+  /** Fecha límite cruda (ISO) usada como mínimo al solicitar una extensión. */
+  dueDate: string;
+  /** True cuando la asignación está vencida (due_date < hoy). Habilita "Request extension". */
+  expired: boolean;
 };
 
 export type SupplierMetric = {

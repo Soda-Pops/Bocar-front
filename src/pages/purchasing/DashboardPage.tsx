@@ -8,6 +8,7 @@ import { DashboardHeader } from '@/features/analytics/components/DashboardHeader
 import { DashboardMetricCard } from '@/features/analytics/components/KpiCards/DashboardMetricCard';
 import { FilterSelect } from '@/features/analytics/components/Filters/FilterSelect';
 import { SearchField } from '@/features/analytics/components/Filters/SearchField';
+import { ExtensionRequestsPanel } from '@/features/purchasing/components/ExtensionRequestsPanel';
 import { PurchasingStatusBadge } from '@/features/purchasing/components/PurchasingStatusBadge';
 import { PurchasingWidgetPanel } from '@/features/purchasing/components/PurchasingWidgetPanel';
 import {
@@ -16,7 +17,6 @@ import {
   purchasingDeadlineRangeOptions,
 } from '@/features/purchasing/constants';
 import {
-  buildUnlockRequestItems,
   buildUpcomingDeadlineItems,
   getFilteredDashboardRows,
 } from '@/features/purchasing/services/purchasingDashboardService';
@@ -112,13 +112,6 @@ function DashboardPage() {
   const extensionRequests = useSolicitudesExtension();
   const allRows = rfqs.state.status === 'success' ? rfqs.state.data : [];
   const upcomingDeadlineItems = useMemo(() => buildUpcomingDeadlineItems(allRows), [allRows]);
-  const unlockRequestItems = useMemo(
-    () =>
-      buildUnlockRequestItems(
-        extensionRequests.state.status === 'success' ? extensionRequests.state.data : [],
-      ),
-    [extensionRequests.state],
-  );
   const purchasingMetrics = useMemo(
     () =>
       buildPurchasingMetrics(
@@ -447,13 +440,10 @@ function DashboardPage() {
             emptyLabel="No RFQs with upcoming deadlines."
             pageSize={2}
           />
-          <PurchasingWidgetPanel
-            title="PENDING UNLOCK REQUESTS"
-            caption="Reopening requests received from suppliers."
-            items={unlockRequestItems}
+          <ExtensionRequestsPanel
+            requests={extensionRequests.state.status === 'success' ? extensionRequests.state.data : []}
             isLoading={extensionRequests.state.status === 'loading'}
-            emptyLabel="No pending unlock requests."
-            pageSize={2}
+            onResolved={extensionRequests.reload}
           />
         </section>
 
