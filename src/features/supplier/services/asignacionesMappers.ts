@@ -16,28 +16,32 @@ function mapAssignment(dto: AsignacionDto, tipo: RfqTipo, answered: boolean): Su
 }
 
 export function mapMisAsignaciones(dto: MisAsignacionesDto): {
-  assignedRows: SupplierRfqRow[];
+  pendingRows: SupplierRfqRow[];
+  quotedRows: SupplierRfqRow[];
   historicalRows: SupplierRfqRow[];
   metrics: SupplierMetric[];
 } {
+  // Asignadas (is_answered=False): se separan en PENDING (sin borrador) y
+  // QUOTED (con borrador guardado). Contestadas (is_answered=True) = historical.
   const assignedRows = [
     ...dto.pendientes.mold.map((item) => mapAssignment(item, 'Mold', false)),
     ...dto.pendientes.trimming.map((item) => mapAssignment(item, 'Trimming', false)),
   ];
+  const pendingRows = assignedRows.filter((row) => row.status === 'PENDING');
+  const quotedRows = assignedRows.filter((row) => row.status === 'QUOTED');
   const historicalRows = [
     ...dto.contestadas.mold.map((item) => mapAssignment(item, 'Mold', true)),
     ...dto.contestadas.trimming.map((item) => mapAssignment(item, 'Trimming', true)),
   ];
-  const pending = assignedRows.filter((row) => row.status === 'PENDING').length;
-  const quoted = assignedRows.filter((row) => row.status === 'QUOTED').length;
 
   return {
-    assignedRows,
+    pendingRows,
+    quotedRows,
     historicalRows,
+    // 3 cards que coinciden 1:1 con los 3 tabs.
     metrics: [
-      { key: 'assigned', label: 'ASSIGNED RFQs', value: String(assignedRows.length), valueColor: 'var(--bocar-blue-100)' },
-      { key: 'pending', label: 'PENDING RFQs', value: String(pending), valueColor: '#c8970a' },
-      { key: 'quoted', label: 'QUOTED RFQs', value: String(quoted), valueColor: '#5a8a1f' },
+      { key: 'pending', label: 'PENDING RFQs', value: String(pendingRows.length), valueColor: '#c8970a' },
+      { key: 'quoted', label: 'QUOTED RFQs', value: String(quotedRows.length), valueColor: '#5a8a1f' },
       { key: 'historical', label: 'HISTORICAL RFQs', value: String(historicalRows.length), valueColor: 'var(--bocar-blue-50)' },
     ],
   };

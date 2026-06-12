@@ -47,14 +47,13 @@ function consideration(raw: RawRfq, backendKey: string) {
   };
 }
 
-function splitDimension(value: string): [string, string, string] {
-  const parts = value.split(/[xX,* ]+/).filter(Boolean);
-  return [parts[0] ?? '', parts[1] ?? '', parts[2] ?? ''];
-}
-
 export function mapDetailToMoldFormValues(dto: RfqDetailDto): MoldFormValues {
   const raw = dto as RawRfq;
-  const [length, width, height] = splitDimension(text(raw, 'part_dim'));
+  // El backend guarda la dimensión en tres columnas float separadas, no en un
+  // único campo "part_dim". Reconstruimos "L x W x H" desde esas columnas.
+  const length = text(raw, 'part_dim_length_mm');
+  const width = text(raw, 'part_dim_width_mm');
+  const height = text(raw, 'part_dim_height_mm');
 
   return {
     alloy: text(raw, 'alloy'),

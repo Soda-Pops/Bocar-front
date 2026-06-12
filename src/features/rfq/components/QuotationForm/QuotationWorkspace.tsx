@@ -11,6 +11,7 @@ import {
   verRespuesta,
 } from '@/features/supplier/services/asignacionesService';
 import { resolveFileUrl } from '@/features/rfq/services/rfqMappers';
+import { quotationDtoToFormValues } from '@/features/supplier/services/quotationDtoToFormValues';
 import { useResource } from '@/shared/hooks/useResource';
 import type { FileInfo } from '@/shared/components/ui/MultiFileUploadField';
 import { extractApiError } from '@/shared/utils/extractApiError';
@@ -57,22 +58,28 @@ export function QuotationWorkspace({
   // hasDraft = cualquiera de los dos → usar PATCH en lugar de POST.
   const [hasDraftUser, setHasDraftUser] = useState(false);
   const [draftFiles, setDraftFiles] = useState<FileInfo[]>([]);
+  // Valores del cost breakdown guardado, mapeados a la forma del formulario.
+  // Permiten "continuar" un borrador al volver: rehidratan las celdas capturadas.
+  const [draftValues, setDraftValues] = useState<Record<string, unknown> | undefined>(undefined);
   const hasDraft = hasDraftUser || (resourceData?.tiene_borrador ?? false);
 
   useEffect(() => {
     setHasDraftUser(false);
     setDraftFiles([]);
+    setDraftValues(undefined);
   }, [mode, rfqId, tipo]);
 
   useEffect(() => {
     let cancelled = false;
     setDraftFiles([]);
+    setDraftValues(undefined);
 
     if (!resourceData?.tiene_borrador) return;
 
     void verRespuesta(tipo, parseId(rfqId)).then((response) => {
       if (cancelled || !response) return;
       setDraftFiles(mapQuotationFiles(response));
+      setDraftValues(quotationDtoToFormValues(tipo, response));
     });
 
     return () => {
@@ -97,12 +104,12 @@ export function QuotationWorkspace({
   );
 
   const trimmingDef = useMemo(
-    () => buildTrimmingQuotationDefinition(rfqId, trimmingInherited, draftFiles),
-    [rfqId, trimmingInherited, draftFiles],
+    () => buildTrimmingQuotationDefinition(rfqId, trimmingInherited, draftFiles, draftValues),
+    [rfqId, trimmingInherited, draftFiles, draftValues],
   );
   const moldDef = useMemo(
-    () => buildMoldQuotationDefinition(rfqId, moldInherited, draftFiles),
-    [rfqId, moldInherited, draftFiles],
+    () => buildMoldQuotationDefinition(rfqId, moldInherited, draftFiles, draftValues),
+    [rfqId, moldInherited, draftFiles, draftValues],
   );
 
 

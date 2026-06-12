@@ -12,6 +12,12 @@ import {
 import { useMisAsignaciones } from '@/features/supplier/hooks/useMisAsignaciones';
 import { SupplierProfileCard } from '@/features/supplier/components/SupplierProfileCard';
 import type { SupplierMetricKey, SupplierRfqRow, SupplierRfqStatus, SupplierTab } from '@/features/supplier/types';
+
+const TABS: { key: SupplierTab; label: string }[] = [
+  { key: 'pending', label: 'Pending' },
+  { key: 'quoted', label: 'Quoted' },
+  { key: 'historical', label: 'Historical' },
+];
 import { MainLayout } from '@/layouts/MainLayout';
 import { Header } from '@/layouts/components/Header';
 
@@ -71,7 +77,7 @@ function RfqTable({
   tab: SupplierTab;
   onView: (row: SupplierRfqRow) => void;
 }) {
-  const dateHeader = tab === 'assigned' ? 'DEADLINE' : 'DATE';
+  const dateHeader = tab === 'historical' ? 'DATE' : 'DEADLINE';
 
   return (
     <div className="overflow-x-auto">
@@ -131,8 +137,7 @@ function RfqTable({
 function SupplierDashboardPage() {
   const navigate = useNavigate();
   const assignments = useMisAsignaciones();
-  const [activeTab, setActiveTab] = useState<SupplierTab>('assigned');
-  const [statusFilter, setStatusFilter] = useState<'PENDING' | 'QUOTED' | ''>('');
+  const [activeTab, setActiveTab] = useState<SupplierTab>('pending');
   const [searchValue, setSearchValue] = useState('');
   const [deadlineValue, setDeadlineValue] = useState('');
   const [tipoValue, setTipoValue] = useState('');
@@ -141,8 +146,13 @@ function SupplierDashboardPage() {
   const realData =
     assignments.state.status === 'success'
       ? assignments.state.data
-      : { assignedRows: [], historicalRows: [], metrics: [] };
-  const sourceRows = activeTab === 'assigned' ? realData.assignedRows : realData.historicalRows;
+      : { pendingRows: [], quotedRows: [], historicalRows: [], metrics: [] };
+  const sourceRows =
+    activeTab === 'pending'
+      ? realData.pendingRows
+      : activeTab === 'quoted'
+        ? realData.quotedRows
+        : realData.historicalRows;
   const supplierMetrics = realData.metrics;
 
   const deadlineOptions = useMemo(
@@ -156,14 +166,11 @@ function SupplierDashboardPage() {
 
   const filteredRows = useMemo(() => {
     let rows = getFilteredRows(sourceRows, searchValue, deadlineValue);
-    if (activeTab === 'assigned' && statusFilter) {
-      rows = rows.filter((r) => r.status === statusFilter);
-    }
     if (tipoValue) {
       rows = rows.filter((r) => r.tipo === tipoValue);
     }
     return rows;
-  }, [sourceRows, searchValue, deadlineValue, statusFilter, tipoValue, activeTab]);
+  }, [sourceRows, searchValue, deadlineValue, tipoValue]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -173,7 +180,6 @@ function SupplierDashboardPage() {
     setSearchValue('');
     setDeadlineValue('');
     setTipoValue('');
-    setStatusFilter('');
     setCurrentPage(1);
   }
 
@@ -182,20 +188,9 @@ function SupplierDashboardPage() {
     resetFilters();
   }
 
+  // Card ↔ tab es 1:1: cada métrica selecciona su tab homónimo.
   function handleMetricSelect(key: SupplierMetricKey) {
-    if (key === 'assigned') {
-      handleTabChange('assigned');
-    } else if (key === 'historical') {
-      handleTabChange('historical');
-    } else if (key === 'pending') {
-      setActiveTab('assigned');
-      setStatusFilter((prev) => (prev === 'PENDING' ? '' : 'PENDING'));
-      setCurrentPage(1);
-    } else if (key === 'quoted') {
-      setActiveTab('assigned');
-      setStatusFilter((prev) => (prev === 'QUOTED' ? '' : 'QUOTED'));
-      setCurrentPage(1);
-    }
+    handleTabChange(key);
   }
 
   function handleFilterChange(setter: (v: string) => void) {
@@ -205,14 +200,7 @@ function SupplierDashboardPage() {
     };
   }
 
-  const activeMetricKey: SupplierMetricKey | null =
-    activeTab === 'historical'
-      ? 'historical'
-      : statusFilter === 'PENDING'
-        ? 'pending'
-        : statusFilter === 'QUOTED'
-          ? 'quoted'
-          : 'assigned';
+  const activeMetricKey: SupplierMetricKey = activeTab;
 
   return (
     <MainLayout header={<Header areaLabel="Suppliers" />}>
@@ -224,7 +212,7 @@ function SupplierDashboardPage() {
 
         {/* KPI cards */}
         <section className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {supplierMetrics.map((metric) => (
               <DashboardMetricCard
                 key={metric.key}
@@ -239,32 +227,23 @@ function SupplierDashboardPage() {
           </div>
         </section>
 
-        {/* Tabs */}
+        {/* Tabs — 1:1 con los cards */}
         <div className="mt-8 flex justify-center border-b border-[var(--bocar-border)]">
-          <button
-            type="button"
-            onClick={() => handleTabChange('assigned')}
-            className={[
-              'mr-6 px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'assigned'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            Assigned
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTabChange('historical')}
-            className={[
-              'px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
-              activeTab === 'historical'
-                ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
-                : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
-            ].join(' ')}
-          >
-            Historical
-          </button>
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => handleTabChange(tab.key)}
+              className={[
+                'mx-3 px-1 pb-3 pt-1 text-[14px] transition focus:outline-none',
+                activeTab === tab.key
+                  ? 'border-b-2 border-[var(--bocar-blue-100)] font-semibold text-[var(--bocar-text)]'
+                  : 'border-b-2 border-transparent font-medium text-[var(--bocar-blue-70)] hover:text-[var(--bocar-text)]',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Filter bar */}

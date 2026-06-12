@@ -21,6 +21,7 @@ import type { FileInfo } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
 import { formatNum, mul, parseNum } from '../shared/formulas';
 import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
+import { deepMerge } from '@shared/utils/deepMerge';
 
 // ─── Inherited RFQ data (mock) ────────────────────────────────────────────────
 
@@ -1486,13 +1487,16 @@ export function buildTrimmingQuotationDefinition(
   rfqId: string,
   inheritedOverride?: InheritedRfq,
   draftFiles: FileInfo[] = [],
+  draftValues?: Record<string, unknown>,
 ): RfqWorkspaceDefinition<TrimmingQuotationValues> {
   const inherited = inheritedOverride ?? getEmptyInheritedRfq();
   void rfqId;
 
   function getCreateDefaultValuesWithFiles(): TrimmingQuotationValues {
+    // El draft guardado (si existe) se fusiona sobre los defaults; los archivos
+    // del draft se aplican al final.
     return {
-      ...getCreateDefaultValues(),
+      ...deepMerge(getCreateDefaultValues(), draftValues),
       files: draftFiles,
     };
   }

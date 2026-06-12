@@ -1,8 +1,12 @@
 export type SupplierRfqStatus = 'PENDING' | 'QUOTED' | 'DONE';
 
-export type SupplierTab = 'assigned' | 'historical';
+// Tabs y métricas comparten las mismas 3 categorías (mapeo 1:1):
+//  - pending:    asignada sin borrador todavía.
+//  - quoted:     borrador guardado, aún no enviado.
+//  - historical: respuesta enviada (is_answered=True).
+export type SupplierTab = 'pending' | 'quoted' | 'historical';
 
-export type SupplierMetricKey = 'assigned' | 'pending' | 'quoted' | 'historical';
+export type SupplierMetricKey = SupplierTab;
 
 export type SupplierRfqRow = {
   id: string;
