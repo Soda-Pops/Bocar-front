@@ -26,7 +26,7 @@ function MenuIcon() {
   );
 }
 
-export function ActionMenu({ actions, buttonLabel = 'Abrir acciones', dark = false, align = 'right' }: ActionMenuProps) {
+export function ActionMenu({ actions, buttonLabel = 'Open actions', dark = false, align = 'right' }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left?: number; right?: number }>({ top: 0, right: 0 });
   const buttonRef = useRef<HTMLButtonElement | null>(null);

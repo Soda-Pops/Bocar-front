@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import { queryChatbot } from './chatbotService';
 import type { HistorialItem } from './chatbotService';
 import { NetworkError } from '@shared/http/errors';
+import { useAuth } from '@/features/auth';
+import type { AppRole } from '@/features/auth/types';
 
 type MessageRole = 'user' | 'assistant' | 'error';
 
@@ -14,12 +16,22 @@ type ChatMessage = {
   sources?: string[];
 };
 
-const WELCOME: ChatMessage = {
-  id: 'welcome',
-  role: 'assistant',
-  content:
-    'Hi, I\'m the BOCAR assistant.\nYou can ask me about your RFQs and assignments, for example:\n• "How many RFQs do I have in draft?"\n• "List my RFQs awaiting authorization"\n• "Show me the history of RFQ 5"\n• "List my assignments"',
+const WELCOME_BY_ROLE: Record<AppRole, string> = {
+  industrializacion:
+    'Hi, I\'m the BOCAR assistant.\nYou can ask me about your RFQs, for example:\n• "How many RFQs do I have in draft?"\n• "List my RFQs awaiting authorization"\n• "List my mold RFQs"\n• "How many trimming RFQs do I have?"\n• "Show me the history of RFQ 3"\n• "List my RFQs in quoting process"',
+  compras:
+    'Hi, I\'m the BOCAR assistant.\nYou can ask me about RFQs, suppliers and assignments, for example:\n• "How many RFQs are awaiting authorization?"\n• "List all RFQs in quoting process"\n• "How are RFQs distributed by status?"\n• "List all suppliers"\n• "List all pending assignments"\n• "List answered mold assignments"\n• "How many trimming RFQs are there in total?"',
+  proveedor:
+    'Hi, I\'m the BOCAR assistant.\nYou can ask me about your assignments, for example:\n• "List my assignments"\n• "List my mold assignments"\n• "List my trimming assignments"\n• "How many assignments do I have pending?"\n• "List my answered assignments"',
 };
+
+function buildWelcome(role: AppRole | undefined): ChatMessage {
+  return {
+    id: 'welcome',
+    role: 'assistant',
+    content: role ? WELCOME_BY_ROLE[role] : WELCOME_BY_ROLE['industrializacion'],
+  };
+}
 
 function buildHistorial(messages: ChatMessage[]): HistorialItem[] {
   return messages
@@ -97,8 +109,10 @@ function TypingIndicator() {
 // ── Widget ───────────────────────────────────────────────────────────────────
 
 export function ChatbotWidget() {
+  const auth = useAuth();
+  const role = auth.status === 'authenticated' ? auth.user.role : undefined;
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [buildWelcome(role)]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

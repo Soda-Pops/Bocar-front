@@ -12,18 +12,18 @@ type ConfirmEditModalProps = {
 
 const COPY = {
   approve: {
-    title: 'Aprobar solicitud de edición',
+    title: 'Approve Edit Request',
     description:
-      'El RFQ volverá al estado En Industrialización y el equipo podrá realizar las correcciones solicitadas.',
-    confirmLabel: 'Aprobar',
+      'The RFQ will return to Industrialization status and the team will be able to make the requested corrections.',
+    confirmLabel: 'Approve',
     confirmStyle:
       'bg-[var(--bocar-blue-100)] border-[var(--bocar-blue-100)] text-white hover:bg-[var(--bocar-blue-90)]',
   },
   reject: {
-    title: 'Rechazar solicitud de edición',
+    title: 'Reject Edit Request',
     description:
-      'El RFQ permanecerá en Comercialización. La solicitud de edición quedará registrada como rechazada.',
-    confirmLabel: 'Rechazar',
+      'The RFQ will remain in Purchasing. The edit request will be recorded as rejected.',
+    confirmLabel: 'Reject',
     confirmStyle:
       'bg-white border-[rgba(170,0,15,0.5)] text-[var(--bocar-error)] hover:bg-[rgba(170,0,15,0.06)]',
   },
@@ -80,7 +80,7 @@ export function ConfirmEditModal({ variant, rfqId, onConfirm, onClose }: Confirm
             {copy.description}
           </p>
           <p className="mt-3 text-[13px] leading-[1.6] text-[var(--bocar-text)]">
-            ¿Confirmas esta acción?
+            Do you confirm this action?
           </p>
 
           {error ? (
@@ -101,7 +101,7 @@ export function ConfirmEditModal({ variant, rfqId, onConfirm, onClose }: Confirm
             disabled={isSubmitting}
             className="rounded-[6px] border border-[var(--bocar-border)] bg-white px-4 py-2 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="button"
@@ -113,7 +113,7 @@ export function ConfirmEditModal({ variant, rfqId, onConfirm, onClose }: Confirm
               copy.confirmStyle,
             ].join(' ')}
           >
-            {isSubmitting ? 'Procesando...' : copy.confirmLabel}
+            {isSubmitting ? 'Processing...' : copy.confirmLabel}
           </button>
         </div>
       </div>

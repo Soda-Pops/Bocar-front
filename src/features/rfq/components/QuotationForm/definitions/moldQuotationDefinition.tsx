@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import type {
 import { MultiFileUploadField } from '@shared/components/ui/MultiFileUploadField';
 import type { FileInfo } from '@shared/components/ui/MultiFileUploadField';
 import { CostTable, computeBranchSubtotal } from '../shared/CostTable';
-import { formatNum } from '../shared/formulas';
+import { formatNum, parseNum } from '../shared/formulas';
 import { InheritedRfqFilesList } from '../shared/InheritedRfqFilesList';
 
 // ─── Inherited RFQ data (from Industrialization, via the API) ─────────────────
@@ -173,6 +173,9 @@ const ctbdSchema = z.object({
     prep: z.string(),
     inc: z.string(),
   }),
+  m1_gr_tot_pr: z.number(),
+  tool_rep_gr_tot_pr: z.number(),
+  set_of_cav_gr_tot_pr: z.number(),
 });
 
 const CTBD_ROWS = 8;
@@ -624,6 +627,9 @@ function getCreateDefaultValues(): MoldQuotationValues {
       tool_rep: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
       set_of_cav: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
       meta: { supp: '', sign: '', date: '', qt_no: '', prep: '', inc: '' },
+      m1_gr_tot_pr: 0,
+      tool_rep_gr_tot_pr: 0,
+      set_of_cav_gr_tot_pr: 0,
     },
     basic_data: {
       company: '',
@@ -868,11 +874,6 @@ function ConsiderationTableReadonly({ items }: { items: ConsiderationItem[] }) {
   );
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  return `${Math.round(bytes / 1024)} KB`;
-}
-
 // ─── MOLD group pages ─────────────────────────────────────────────────────────
 
 function MoldRfqPage({ inherited }: { inherited: InheritedMoldRfq }) {
@@ -963,9 +964,89 @@ function OtInfPage({ inherited }: { inherited: InheritedMoldRfq }) {
 }
 
 function CtbdPage() {
-  const { register } = useFormContext<MoldQuotationValues>();
+  const { control, register, setValue } = useFormContext<MoldQuotationValues>();
   const metaInputClass =
     'w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]';
+
+  const matCosts    = useWatch({ control, name: 'material_costs' });
+  const accsCosts   = useWatch({ control, name: 'accessories_costs' });
+  const mfg         = useWatch({ control, name: 'manufacturing' });
+  const corrections = useWatch({ control, name: 'corrections_optimizations' });
+  const logistics   = useWatch({ control, name: 'logistics' });
+  const toolRep     = useWatch({ control, name: 'tool_replacement' });
+  const sampling    = useWatch({ control, name: 'sampling' });
+  const spareParts  = useWatch({ control, name: 'spare_parts' });
+
+  const socMatCosts    = useWatch({ control, name: 'soc_material_costs' });
+  const socAccsCosts   = useWatch({ control, name: 'soc_accessories_costs' });
+  const socMfg         = useWatch({ control, name: 'soc_manufacturing' });
+  const socCorrections = useWatch({ control, name: 'soc_corrections_optimizations' });
+  const socLogistics   = useWatch({ control, name: 'soc_logistics' });
+  const socSpareParts  = useWatch({ control, name: 'soc_spare_parts' });
+
+  // ── M1 ──────────────────────────────────────────────────────────────────────
+  const mat  = computeBranchSubtotal(matCosts,  'unit', 'price_unit');
+  const accs = computeBranchSubtotal(accsCosts, 'unit', 'price_unit');
+
+  const machining  = computeBranchSubtotal(mfg?.machining,         'h', 'price');
+  const manualWork = computeBranchSubtotal(mfg?.manual_work,       'h', 'price');
+  const heatSurf   = computeBranchSubtotal(mfg?.heat_surface,      'h', 'price');
+  const engDesign  = computeBranchSubtotal(mfg?.engineering_design, 'h', 'price');
+  const man = {
+    total: machining.total + manualWork.total + heatSurf.total + engDesign.total,
+    weeks: machining.weeks + manualWork.weeks + heatSurf.weeks + engDesign.weeks,
+  };
+
+  const corr = computeBranchSubtotal(corrections, 'h',    'price');
+  const log  = computeBranchSubtotal(logistics,   'unit', 'price_unit');
+  const grTot = {
+    total: mat.total + accs.total + man.total + corr.total + log.total,
+    weeks: mat.weeks + accs.weeks + man.weeks + corr.weeks + log.weeks,
+  };
+  const samp = computeBranchSubtotal(sampling,   'q',    'price_q');
+  const sp   = computeBranchSubtotal(spareParts, 'unit', 'price_unit');
+
+  // ── TOOL REP ─────────────────────────────────────────────────────────────────
+  const toolRepSub = computeBranchSubtotal(toolRep, 'unit', 'price_unit');
+  const toolRepMan = {
+    total: machining.total + manualWork.total + heatSurf.total + toolRepSub.total,
+    weeks: machining.weeks + manualWork.weeks + heatSurf.weeks + toolRepSub.weeks,
+  };
+  const meas = corrections?.measurement as { h?: string; price?: string; weeks?: string } | undefined;
+  const toolRepCorr = {
+    total: parseNum(meas?.h) * parseNum(meas?.price),
+    weeks: parseNum(meas?.weeks),
+  };
+  const toolRepGrTot = {
+    total: mat.total + accs.total + toolRepMan.total + toolRepCorr.total + log.total,
+    weeks: mat.weeks + accs.weeks + toolRepMan.weeks + toolRepCorr.weeks + log.weeks,
+  };
+
+  // ── SET OF CAV ───────────────────────────────────────────────────────────────
+  const socMat  = computeBranchSubtotal(socMatCosts,  'unit', 'price_unit');
+  const socAccs = computeBranchSubtotal(socAccsCosts, 'unit', 'price_unit');
+
+  const socMachining  = computeBranchSubtotal(socMfg?.machining,         'h', 'price');
+  const socManualWork = computeBranchSubtotal(socMfg?.manual_work,       'h', 'price');
+  const socHeatSurf   = computeBranchSubtotal(socMfg?.heat_surface,      'h', 'price');
+  const socEngDesign  = computeBranchSubtotal(socMfg?.engineering_design, 'h', 'price');
+  const socMan = {
+    total: socMachining.total + socManualWork.total + socHeatSurf.total + socEngDesign.total,
+    weeks: socMachining.weeks + socManualWork.weeks + socHeatSurf.weeks + socEngDesign.weeks,
+  };
+  const socCorr = computeBranchSubtotal(socCorrections, 'h',    'price');
+  const socLog  = computeBranchSubtotal(socLogistics,   'unit', 'price_unit');
+  const socGrTot = {
+    total: socMat.total + socAccs.total + socMan.total + socCorr.total + socLog.total,
+    weeks: socMat.weeks + socAccs.weeks + socMan.weeks + socCorr.weeks + socLog.weeks,
+  };
+  const socSp = computeBranchSubtotal(socSpareParts, 'unit', 'price_unit');
+
+  useEffect(() => {
+    setValue('ctbd.m1_gr_tot_pr', grTot.total);
+    setValue('ctbd.tool_rep_gr_tot_pr', toolRepGrTot.total);
+    setValue('ctbd.set_of_cav_gr_tot_pr', socGrTot.total);
+  }, [grTot.total, toolRepGrTot.total, socGrTot.total, setValue]);
 
   const bd = '1px solid rgba(217,222,229,0.92)';
   const RH = 34;
@@ -978,9 +1059,15 @@ function CtbdPage() {
   const tot = { border: bd, background: 'rgba(0,46,93,0.06)', fontSize: 12, fontWeight: 700, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
   const lbl = { border: bd, background: '#ffffff', fontSize: 13, color: 'var(--bocar-text)', padding: '0 12px', overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const };
   const dat = { border: bd, background: '#ffffff', padding: 0 };
-const spa = { border: 'none' as const, background: 'transparent' };
+  const datTot = { border: bd, background: 'rgba(0,46,93,0.06)', padding: 0 };
+  const spa = { border: 'none' as const, background: 'transparent' };
   const th0 = { border: 'none' as const, background: 'transparent' };
   const inp = { width: '100%', height: RH, border: 'none' as const, outline: 'none', padding: '0 10px', fontSize: 13, color: 'var(--bocar-text)', background: 'transparent', display: 'block' as const, boxSizing: 'border-box' as const };
+  const roInp = { ...inp, cursor: 'not-allowed' as const, color: 'var(--bocar-blue-70)' };
+
+  function cell(v: number, isTotal = false) {
+    return <input readOnly disabled style={isTotal ? { ...roInp, fontWeight: 700, color: 'var(--bocar-blue-100)' } : roInp} value={formatNum(v)} />;
+  }
 
   return (
     <SectionCard subtitle={PAGE_META.ctbd.subtitle} title={PAGE_META.ctbd.title}>
@@ -1015,44 +1102,44 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}>
                 <td rowSpan={3} style={secWrap}>D FAB</td>
                 <td style={lbl}>Mat cst (pur pt &amp; rw mat)</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_matcst.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_matcst.weeks')} /></td>
+                <td style={dat}>{cell(mat.total)}</td>
+                <td style={dat}>{cell(mat.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Accs</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_accs.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_accs.weeks')} /></td>
+                <td style={dat}>{cell(accs.total)}</td>
+                <td style={dat}>{cell(accs.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Man cst</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_mancst.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.dfab_mancst.weeks')} /></td>
+                <td style={dat}>{cell(man.total)}</td>
+                <td style={dat}>{cell(man.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td rowSpan={2} style={secWrap}>ACT REQ POST-F</td>
                 <td style={lbl}>Corr, opt and meas</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.act_corr.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.act_corr.weeks')} /></td>
+                <td style={dat}>{cell(corr.total)}</td>
+                <td style={dat}>{cell(corr.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Log cst</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.act_log.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.act_log.weeks')} /></td>
+                <td style={dat}>{cell(log.total)}</td>
+                <td style={dat}>{cell(log.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={tot}>GR TOT</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.gr_tot.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.gr_tot.weeks')} /></td>
+                <td style={datTot}>{cell(grTot.total, true)}</td>
+                <td style={datTot}>{cell(grTot.weeks, true)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>SAMP IN SUPP FAC</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.samp.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.samp.weeks')} /></td>
+                <td style={dat}>{cell(samp.total)}</td>
+                <td style={dat}>{cell(samp.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>SP PT</td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.sp_pt.pr')} /></td>
-                <td style={dat}><input style={inp} {...register('ctbd.m1.sp_pt.weeks')} /></td>
+                <td style={dat}>{cell(sp.total)}</td>
+                <td style={dat}>{cell(sp.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>CURR</td>
@@ -1082,12 +1169,32 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: CTBD_ROWS }).map((_, i) => (
-                <tr key={i} style={{ height: RH }}>
-                  <td style={dat}><input style={inp} {...register(`ctbd.tool_rep.${i}.pr` as const)} /></td>
-                  <td style={dat}><input style={inp} {...register(`ctbd.tool_rep.${i}.weeks` as const)} /></td>
-                </tr>
-              ))}
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(mat.total)}</td>
+                <td style={dat}>{cell(mat.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(accs.total)}</td>
+                <td style={dat}>{cell(accs.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(toolRepMan.total)}</td>
+                <td style={dat}>{cell(toolRepMan.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(toolRepCorr.total)}</td>
+                <td style={dat}>{cell(toolRepCorr.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(log.total)}</td>
+                <td style={dat}>{cell(log.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={datTot}>{cell(toolRepGrTot.total, true)}</td>
+                <td style={datTot}>{cell(toolRepGrTot.weeks, true)}</td>
+              </tr>
+              <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
+              <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
               <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
             </tbody>
           </table>
@@ -1104,12 +1211,35 @@ const spa = { border: 'none' as const, background: 'transparent' };
               <tr style={{ height: RH }}><th style={th3}>Pr BD</th><th style={th3}>T BD</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: CTBD_ROWS }).map((_, i) => (
-                <tr key={i} style={{ height: RH }}>
-                  <td style={dat}><input style={inp} {...register(`ctbd.set_of_cav.${i}.pr` as const)} /></td>
-                  <td style={dat}><input style={inp} {...register(`ctbd.set_of_cav.${i}.weeks` as const)} /></td>
-                </tr>
-              ))}
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socMat.total)}</td>
+                <td style={dat}>{cell(socMat.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socAccs.total)}</td>
+                <td style={dat}>{cell(socAccs.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socMan.total)}</td>
+                <td style={dat}>{cell(socMan.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socCorr.total)}</td>
+                <td style={dat}>{cell(socCorr.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socLog.total)}</td>
+                <td style={dat}>{cell(socLog.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={datTot}>{cell(socGrTot.total, true)}</td>
+                <td style={datTot}>{cell(socGrTot.weeks, true)}</td>
+              </tr>
+              <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(socSp.total)}</td>
+                <td style={dat}>{cell(socSp.weeks)}</td>
+              </tr>
               <tr style={{ height: RH }}><td style={spa} /><td style={spa} /></tr>
             </tbody>
           </table>

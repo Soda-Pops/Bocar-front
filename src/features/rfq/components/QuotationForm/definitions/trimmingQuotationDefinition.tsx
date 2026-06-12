@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
@@ -226,6 +226,16 @@ const trimmingQuotationSchema = z.object({
   logistics: logisticsSchema,
   tool_replacement: toolReplacementSchema,
   spare_parts: z.array(sparePartSchema),
+  ctbd: z.object({
+    trim_die_1_gr_tot_pr: z.number(),
+    trim_die_2_gr_tot_pr: z.number(),
+    meta: z.object({
+      supplier_name: z.string(),
+      signature: z.string(),
+      date: z.string(),
+      prepared_by: z.string(),
+    }),
+  }),
   files: z.array(
     z.object({
       name: z.string(),
@@ -492,6 +502,7 @@ function getCreateDefaultValues(): TrimmingQuotationValues {
       { concept: 'Spare Parts (Punch pins)', unit: '', price_unit: '', weeks: '' },
       { concept: 'Other', unit: '', price_unit: '', weeks: '' },
     ],
+    ctbd: { trim_die_1_gr_tot_pr: 0, trim_die_2_gr_tot_pr: 0, meta: { supplier_name: '', signature: '', date: '', prepared_by: '' } },
     files: [],
   };
 }
@@ -608,10 +619,6 @@ function ConsiderationTableReadonly({
   );
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  return `${Math.round(bytes / 1024)} KB`;
-}
 
 // ─── Page components ──────────────────────────────────────────────────────────
 
@@ -1210,8 +1217,63 @@ function SparePartsPage() {
 // ─── Cost and Timing Breakdown page ──────────────────────────────────────────
 
 function CostAndTimingBreakdownPage() {
-  const { control } = useFormContext<TrimmingQuotationValues>();
-  const currency = useWatch({ control, name: 'basic_data.currency' }) as string | undefined;
+  const { control, setValue, register } = useFormContext<TrimmingQuotationValues>();
+  const metaInputClass = 'w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]';
+
+  const matCosts    = useWatch({ control, name: 'material_costs' });
+  const accsCosts   = useWatch({ control, name: 'accessories_costs' });
+  const mfg         = useWatch({ control, name: 'manufacturing' });
+  const adjustment  = useWatch({ control, name: 'trim_die_adjustment' });
+  const logistics   = useWatch({ control, name: 'logistics' });
+  const toolRep     = useWatch({ control, name: 'tool_replacement' });
+  const spareParts  = useWatch({ control, name: 'spare_parts' }) as
+    Array<{ unit?: string; price_unit?: string; weeks?: string }> | undefined;
+
+  // ── TRIM DIE 1 ───────────────────────────────────────────────────────────────
+  const mat  = computeBranchSubtotal(matCosts,  'unit', 'price_unit');
+  const accs = computeBranchSubtotal(accsCosts, 'unit', 'price_unit');
+
+  const machining  = computeBranchSubtotal(mfg?.machining,          'h', 'price');
+  const manualWork = computeBranchSubtotal(mfg?.manual_work,        'h', 'price');
+  const heatSurf   = computeBranchSubtotal(mfg?.heat_surface,       'h', 'price');
+  const engDesign  = computeBranchSubtotal(mfg?.engineering_design,  'h', 'price');
+  const man1 = {
+    total: machining.total + manualWork.total + heatSurf.total + engDesign.total,
+    weeks: machining.weeks + manualWork.weeks + heatSurf.weeks + engDesign.weeks,
+  };
+
+  const adj = computeBranchSubtotal(adjustment, 'h',    'price');
+  const log = computeBranchSubtotal(logistics,  'unit', 'price_unit');
+
+  const grandTotal1 = {
+    total: mat.total + accs.total + man1.total + adj.total + log.total,
+    weeks: mat.weeks + accs.weeks + man1.weeks + adj.weeks + log.weeks,
+  };
+
+  const sp = (spareParts ?? []).reduce(
+    (acc, row) => ({
+      total: acc.total + parseNum(row?.unit) * parseNum(row?.price_unit),
+      weeks: acc.weeks + parseNum(row?.weeks),
+    }),
+    { total: 0, weeks: 0 },
+  );
+
+  // ── TRIM DIE 2 (Manufacturing includes Tool Replacement) ──────────────────────
+  const toolRepSub = computeBranchSubtotal(toolRep, 'unit', 'price_unit');
+  const man2 = {
+    total: machining.total + manualWork.total + heatSurf.total + engDesign.total + toolRepSub.total,
+    weeks: machining.weeks + manualWork.weeks + heatSurf.weeks + engDesign.weeks + toolRepSub.weeks,
+  };
+
+  const grandTotal2 = {
+    total: mat.total + accs.total + man2.total + adj.total + log.total,
+    weeks: mat.weeks + accs.weeks + man2.weeks + adj.weeks + log.weeks,
+  };
+
+  useEffect(() => {
+    setValue('ctbd.trim_die_1_gr_tot_pr', grandTotal1.total);
+    setValue('ctbd.trim_die_2_gr_tot_pr', grandTotal2.total);
+  }, [grandTotal1.total, grandTotal2.total, setValue]);
 
   const bd = '1px solid rgba(217,222,229,0.92)';
   const RH = 34;
@@ -1224,8 +1286,14 @@ function CostAndTimingBreakdownPage() {
   const tot = { border: bd, background: 'rgba(0,46,93,0.06)', fontSize: 12, fontWeight: 700, color: 'var(--bocar-blue-100)', textAlign: 'center' as const, padding: '0 10px', verticalAlign: 'middle' as const, whiteSpace: 'nowrap' as const };
   const lbl = { border: bd, background: '#ffffff', fontSize: 13, color: 'var(--bocar-text)', padding: '0 12px', overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const };
   const dat = { border: bd, background: '#ffffff', padding: 0 };
+  const datTot = { border: bd, background: 'rgba(0,46,93,0.06)', padding: 0 };
   const th0 = { border: 'none' as const, background: 'transparent' };
   const inp = { width: '100%', height: RH, border: 'none' as const, outline: 'none', padding: '0 10px', fontSize: 13, color: 'var(--bocar-text)', background: 'transparent', display: 'block' as const, boxSizing: 'border-box' as const };
+  const roInp = { ...inp, cursor: 'not-allowed' as const, color: 'var(--bocar-blue-70)' };
+
+  function cell(v: number, isTotal = false) {
+    return <input readOnly disabled style={isTotal ? { ...roInp, fontWeight: 700, color: 'var(--bocar-blue-100)' } : roInp} value={formatNum(v)} />;
+  }
 
   return (
     <SectionCard subtitle={PAGE_META.cost_and_timing_breakdown.subtitle} title={PAGE_META.cost_and_timing_breakdown.title}>
@@ -1260,46 +1328,46 @@ function CostAndTimingBreakdownPage() {
               <tr style={{ height: RH }}>
                 <td rowSpan={3} style={secWrap}>DIE FAB</td>
                 <td style={lbl}>Material cost</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(mat.total)}</td>
+                <td style={dat}>{cell(mat.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Accessories</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(accs.total)}</td>
+                <td style={dat}>{cell(accs.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Manufacturing cost</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(man1.total)}</td>
+                <td style={dat}>{cell(man1.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td rowSpan={2} style={secWrap}>ACT REQ POST-F</td>
                 <td style={lbl}>Adjustment</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(adj.total)}</td>
+                <td style={dat}>{cell(adj.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td style={lbl}>Logistic cost</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(log.total)}</td>
+                <td style={dat}>{cell(log.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={tot}>GRAND TOTAL</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={datTot}>{cell(grandTotal1.total, true)}</td>
+                <td style={datTot}>{cell(grandTotal1.weeks, true)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>SPARE PARTS</td>
-                <td style={dat}><input style={inp} /></td>
-                <td style={dat}><input style={inp} /></td>
+                <td style={dat}>{cell(sp.total)}</td>
+                <td style={dat}>{cell(sp.weeks)}</td>
               </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={sec}>CURRENCY</td>
                 <td colSpan={2} style={dat}>
                   <select
                     className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
-                    defaultValue={currency ?? 'USD'}
+                    defaultValue="USD"
                   >
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -1321,17 +1389,39 @@ function CostAndTimingBreakdownPage() {
               <tr style={{ height: RH }}><th style={th3}>Price Breakdown</th><th style={th3}>Time Breakdown</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: 7 }).map((_, i) => (
-                <tr key={i} style={{ height: RH }}>
-                  <td style={dat}><input style={inp} /></td>
-                  <td style={dat}><input style={inp} /></td>
-                </tr>
-              ))}
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(mat.total)}</td>
+                <td style={dat}>{cell(mat.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(accs.total)}</td>
+                <td style={dat}>{cell(accs.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(man2.total)}</td>
+                <td style={dat}>{cell(man2.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(adj.total)}</td>
+                <td style={dat}>{cell(adj.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(log.total)}</td>
+                <td style={dat}>{cell(log.weeks)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={datTot}>{cell(grandTotal2.total, true)}</td>
+                <td style={datTot}>{cell(grandTotal2.weeks, true)}</td>
+              </tr>
+              <tr style={{ height: RH }}>
+                <td style={dat}>{cell(sp.total)}</td>
+                <td style={dat}>{cell(sp.weeks)}</td>
+              </tr>
               <tr style={{ height: RH }}>
                 <td colSpan={2} style={dat}>
                   <select
                     className="w-full h-full border-none bg-transparent text-[13px] text-[var(--bocar-text)] outline-none cursor-pointer px-3"
-                    defaultValue={currency ?? 'USD'}
+                    defaultValue="USD"
                   >
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -1352,25 +1442,25 @@ function CostAndTimingBreakdownPage() {
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SUPPLIER NAME</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3} style={{ minWidth: 300 }}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.supplier_name')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">SIGNATURE</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.signature')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-b border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">DATE</td>
                 <td className="border-b border-[rgba(217,222,229,0.92)] p-2" colSpan={3}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.date')} />
                 </td>
               </tr>
               <tr>
                 <td className="border-r border-[rgba(217,222,229,0.92)] bg-[rgba(0,46,93,0.05)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--bocar-blue-70)] whitespace-nowrap">PREPARED BY</td>
                 <td className="p-2" colSpan={3}>
-                  <input className="w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]" />
+                  <input className={metaInputClass} {...register('ctbd.meta.prepared_by')} />
                 </td>
               </tr>
             </tbody>
