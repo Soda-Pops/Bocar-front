@@ -145,6 +145,15 @@ function SupplierDashboardPage() {
   const sourceRows = activeTab === 'assigned' ? realData.assignedRows : realData.historicalRows;
   const supplierMetrics = realData.metrics;
 
+  const deadlineOptions = useMemo(
+    () =>
+      Array.from(new Set(sourceRows.map((r) => r.deadline).filter(Boolean))).map((d) => ({
+        label: d,
+        value: d,
+      })),
+    [sourceRows],
+  );
+
   const filteredRows = useMemo(() => {
     let rows = getFilteredRows(sourceRows, searchValue, deadlineValue);
     if (activeTab === 'assigned' && statusFilter) {
@@ -263,11 +272,7 @@ function SupplierDashboardPage() {
           <SearchField value={searchValue} onChange={handleFilterChange(setSearchValue)} />
           <FilterSelect
             label="Deadline"
-            options={[
-              { label: '20/06/2024', value: '20/06/2024' },
-              { label: '25/06/2024', value: '25/06/2024' },
-              { label: '28/06/2024', value: '28/06/2024' },
-            ]}
+            options={deadlineOptions}
             value={deadlineValue}
             onChange={handleFilterChange(setDeadlineValue)}
           />

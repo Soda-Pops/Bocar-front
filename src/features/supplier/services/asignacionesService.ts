@@ -53,7 +53,11 @@ export async function detalleAsignacionParaCotizar(
   tipo: RfqTipo,
   id: number,
   signal?: AbortSignal,
-): Promise<{ formValues: ReturnType<typeof mapDetailToFormValues>; tiene_borrador: boolean }> {
+): Promise<{
+  formValues: ReturnType<typeof mapDetailToFormValues>;
+  tiene_borrador: boolean;
+  rfqDbId: number;
+}> {
   const dto = await request(`${BASE}/detalle/${id}/${tipoQ(tipo)}`, {
     method: 'GET',
     schema: asignacionDetalleConBorradorDto,
@@ -62,6 +66,7 @@ export async function detalleAsignacionParaCotizar(
   return {
     formValues: mapDetailToFormValues(tipo, dto.rfq),
     tiene_borrador: dto.tiene_borrador,
+    rfqDbId: dto.rfq.id,
   };
 }
 

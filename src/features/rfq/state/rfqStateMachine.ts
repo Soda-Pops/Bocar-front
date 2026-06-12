@@ -34,6 +34,7 @@ export type RfqActionKey =
   | 'extend_deadline'
   | 'cancel_early'
   | 'cancel_late'
+  | 'logical_delete_rfq'
   | 'create_quotation';
 
 export type RfqActionDescriptor = {
@@ -147,6 +148,13 @@ const A: Record<RfqActionKey, RfqActionDescriptor> = {
     icon: 'trash',
     requiresConfirmation: true,
   },
+  logical_delete_rfq: {
+    key: 'logical_delete_rfq',
+    label: 'Delete RFQ',
+    tone: 'destructive',
+    icon: 'trash',
+    requiresConfirmation: true,
+  },
   create_quotation: {
     key: 'create_quotation',
     label: 'Create quotation',
@@ -193,9 +201,7 @@ export function resolveAllowedActions(input: {
   const { status, role, isCreator, isAssignedSupplier = false } = input;
   const isSuperUser = role === 'industrializacion_admin' || role === 'compras_admin';
   const isPurchasing = role === 'compras' || role === 'compras_admin';
-  const isPurchasingAdmin = role === 'compras_admin';
   const isIndustrialization = role === 'industrializacion' || role === 'industrializacion_admin';
-  const isIndustrializationAdmin = role === 'industrializacion_admin';
   const isSupplier = role === 'proveedor';
 
   const actions: RfqActionDescriptor[] = [];
@@ -206,9 +212,8 @@ export function resolveAllowedActions(input: {
       actions.push({ ...A.open_rfq });
       actions.push({ ...A.edit_draft });
       actions.push({ ...A.submit_draft });
-      actions.push({ ...A.delete_draft });
-      if (isIndustrializationAdmin || isPurchasingAdmin) {
-        actions.push({ ...A.cancel_early });
+      if (!isSuperUser) {
+        actions.push({ ...A.delete_draft });
       }
       break;
     }
@@ -225,9 +230,6 @@ export function resolveAllowedActions(input: {
       if (isCreator && isIndustrialization) {
         actions.push({ ...A.request_edit });
       }
-      if (isSuperUser) {
-        actions.push({ ...A.cancel_early });
-      }
       break;
     }
 
@@ -241,9 +243,6 @@ export function resolveAllowedActions(input: {
           disabled: true,
           disabledReason: 'There is a pending edit request awaiting resolution.',
         });
-      }
-      if (isSuperUser) {
-        actions.push({ ...A.cancel_early });
       }
       // Industrialization creator: no CTAs (banner explains status)
       break;
@@ -282,17 +281,21 @@ export function resolveAllowedActions(input: {
       if (isPurchasing) {
         // close_rfq is the primary CTA in EXPIRED (no competing primary action)
         actions.push({ ...A.close_rfq, tone: 'primary' });
-        if (isPurchasingAdmin) {
-          actions.push({ ...A.extend_deadline });
-        }
+        actions.push({ ...A.extend_deadline });
       }
       break;
     }
 
     case 'CLOSED':
     case 'CANCELLED':
-      // Fully readonly — no CTAs
+      if (isSuperUser) {
+        actions.push({ ...A.view_full_detail, label: 'View RFQ' });
+      }
       break;
+  }
+
+  if (isSuperUser && status !== 'CANCELLED') {
+    actions.push({ ...A.logical_delete_rfq });
   }
 
   return actions;

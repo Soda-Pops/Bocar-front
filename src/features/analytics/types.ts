@@ -5,7 +5,7 @@ export type SuperUserTabKey = 'borradores' | 'eliminadas' | 'activas' | 'histori
 export type SortOption = '' | 'recent' | 'creator';
 
 export type DashboardMetric = {
-  key: DashboardTabKey;
+  key: DashboardTabKey | SuperUserTabKey;
   label: string;
   value: string;
   valueColor: string;

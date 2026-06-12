@@ -55,6 +55,7 @@ export const rfqComercializacionListItemDto = z.object({
   creado_por: z.string().nullable().optional(),
   progreso_proveedores: z.string().optional(),
   operational_status: operationalRfqStatusDto.optional(),
+  logical_delete: z.boolean().default(false),
 });
 
 export const rfqComercializacionListResponseDto = z.object({

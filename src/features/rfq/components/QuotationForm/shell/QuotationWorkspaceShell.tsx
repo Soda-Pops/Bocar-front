@@ -141,7 +141,10 @@ type QuotationWorkspaceShellProps<TValues extends FieldValues> = {
   onSubmit?: (values: TValues) => Promise<{ rfqCompleted?: boolean } | void>;
   onBack: () => void;
   quotationId?: string;
+  /** Id de la asignación; se usa para las llamadas API. */
   rfqId: string;
+  /** Id real del RFQ para mostrar al usuario (RFQ-XXXX). Default: rfqId. */
+  displayRfqId?: string;
   tipo: RfqTipo;
 };
 
@@ -153,11 +156,13 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
   onBack,
   quotationId,
   rfqId,
+  displayRfqId,
   tipo,
 }: QuotationWorkspaceShellProps<TValues>) {
+  const shownRfqId = displayRfqId ?? rfqId;
   const [currentPage, setCurrentPage] = useState<string>(definition.pages[0] ?? 'basic');
   const [feedback, setFeedback] = useState<{ text: string; tone: FeedbackTone }>(() =>
-    getInitialFeedback(mode, rfqId, quotationId)
+    getInitialFeedback(mode, shownRfqId, quotationId)
   );
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [visiblePageErrors, setVisiblePageErrors] = useState<Partial<Record<string, boolean>>>({});
@@ -197,13 +202,13 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
         : definition.getCreateDefaultValues()) as DefaultValues<TValues>
     );
     setCurrentPage(definition.pages[0] ?? 'basic');
-    setFeedback(getInitialFeedback(mode, rfqId, quotationId));
+    setFeedback(getInitialFeedback(mode, shownRfqId, quotationId));
     setAttemptedSubmit(false);
     setVisiblePageErrors({});
     setActionPending(false);
     setCreatedSuccessfully(false);
     actionPendingRef.current = false;
-  }, [mode, reset, rfqId, quotationId, tipo, definition]);
+  }, [mode, reset, rfqId, shownRfqId, quotationId, tipo, definition]);
 
   currentPageRef.current = currentPage;
 
@@ -230,9 +235,9 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     if (Object.keys(errors).length === 0) {
       setAttemptedSubmit(false);
       setVisiblePageErrors({});
-      setFeedback(getInitialFeedback(mode, rfqId, quotationId));
+      setFeedback(getInitialFeedback(mode, shownRfqId, quotationId));
     }
-  }, [errors, attemptedSubmit, mode, rfqId, quotationId, pageErrorSignature]);
+  }, [errors, attemptedSubmit, mode, rfqId, shownRfqId, quotationId, pageErrorSignature]);
 
   const meta = definition.pageMeta[currentPage];
   const headerTitle = mode === 'edit' ? 'EDIT QUOTATION' : 'CREATE QUOTATION';
@@ -318,8 +323,8 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
       setFeedback({
         text:
           mode === 'edit'
-            ? `${(quotationId ?? 'COT-001').toUpperCase()} was saved as an editable draft.`
-            : `Quotation draft saved for ${rfqId.toUpperCase()}.`,
+            ? `${(quotationId ?? shownRfqId).toUpperCase()} was saved as an editable draft.`
+            : `Quotation draft saved for ${shownRfqId.toUpperCase()}.`,
         tone: 'success',
       });
     } catch (error) {
@@ -344,8 +349,8 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
           text: rfqCompleted
             ? 'Quotation submitted. RFQ closed.'
             : mode === 'edit'
-              ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
-              : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,
+              ? `${(quotationId ?? shownRfqId).toUpperCase()} was updated and submitted to Purchasing.`
+              : `Your quotation for ${shownRfqId.toUpperCase()} was submitted to Purchasing for review.`,
           tone: 'success',
         });
       } catch (error) {
@@ -359,8 +364,8 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
     setFeedback({
       text:
         mode === 'edit'
-          ? `${(quotationId ?? 'COT-001').toUpperCase()} was updated and submitted to Purchasing.`
-          : `Your quotation for ${rfqId.toUpperCase()} was submitted to Purchasing for review.`,
+          ? `${(quotationId ?? shownRfqId).toUpperCase()} was updated and submitted to Purchasing.`
+          : `Your quotation for ${shownRfqId.toUpperCase()} was submitted to Purchasing for review.`,
       tone: 'success',
     });
   }
@@ -414,7 +419,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
                         aria-hidden="true"
                         className="inline-block h-1 w-1 rounded-full bg-[var(--bocar-blue-30)]"
                       />
-                      <span className="text-[var(--bocar-blue-100)]">{rfqId.toUpperCase()}</span>
+                      <span className="text-[var(--bocar-blue-100)]">{shownRfqId.toUpperCase()}</span>
                     </div>
                     <h1 className="m-0 mt-2 text-[28px] font-bold tracking-[-0.02em] text-[var(--bocar-text)] sm:text-[30px]">
                       {headerTitle}
@@ -535,7 +540,7 @@ export function QuotationWorkspaceShell<TValues extends FieldValues>({
 function getInitialFeedback(mode: 'create' | 'edit', rfqId: string, quotationId?: string) {
   if (mode === 'edit') {
     return {
-      text: `You are editing ${(quotationId ?? 'COT-001').toUpperCase()} for RFQ ${rfqId.toUpperCase()}.`,
+      text: `You are editing ${(quotationId ?? rfqId).toUpperCase()} for RFQ ${rfqId.toUpperCase()}.`,
       tone: 'neutral' as const,
     };
   }

@@ -37,6 +37,7 @@ export type InheritedRfq = {
   customer: string;
   part_number: string;
   project_life: string;
+  previous_job: string;
   deliver_by: string;
   // Section 2 — Trim Die
   press: string;
@@ -70,6 +71,8 @@ export type InheritedRfq = {
   ts_qty_punch_pins: string;
   ts_temp_trimmed: string;
   ts_ejector_fixed_side: string;
+  // Industrialization comments (RFQ "Comments"), shown readonly to the supplier.
+  industrialization_comments: string;
   rfq_files: FileInfo[];
 };
 
@@ -80,6 +83,7 @@ function getEmptyInheritedRfq(): InheritedRfq {
     customer: '',
     part_number: '',
     project_life: '',
+    previous_job: '',
     deliver_by: '',
     press: '',
     num_cavities: '',
@@ -108,6 +112,7 @@ function getEmptyInheritedRfq(): InheritedRfq {
     ts_qty_punch_pins: '',
     ts_temp_trimmed: '',
     ts_ejector_fixed_side: '',
+    industrialization_comments: '',
     rfq_files: [],
   };
 }
@@ -619,6 +624,7 @@ function BasicPage({ inherited }: { inherited: InheritedRfq }) {
         <ReadOnlyField label="PARTS PER YEAR" value={inherited.parts_per_year} />
         <ReadOnlyField label="PROJECT LIFE" value={inherited.project_life} />
         <ReadOnlyField label="CUSTOMER" value={inherited.customer} />
+        <ReadOnlyField label="PREVIOUS JOB" value={inherited.previous_job} />
         <ReadOnlyField label="DELIVER THIS QUOTE BY" value={inherited.deliver_by} />
         <TextField
           hint="Legal name or trade name under which you quote."
@@ -794,10 +800,19 @@ function ToolSpecPage({ inherited }: { inherited: InheritedRfq }) {
   );
 }
 
-function CommentsPage() {
+function CommentsPage({ inherited }: { inherited: InheritedRfq }) {
   const { register } = useFormContext<TrimmingQuotationValues>();
   return (
     <SectionCard subtitle={PAGE_META.comments.subtitle} title={PAGE_META.comments.title}>
+      <div className="mb-6">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+          Comments from Industrialization
+        </div>
+        <ReadOnlyValueCell value={inherited.industrialization_comments || null} />
+      </div>
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--bocar-blue-50)]">
+        Your comments
+      </div>
       <textarea
         className={`${inputBaseClasses(false)} resize-y`}
         placeholder="Additional comments for Purchasing..."
@@ -1401,7 +1416,7 @@ export function buildTrimmingQuotationDefinition(
     if (page === 'basic_data') return <BasicDataPage />;
     if (page === 'part_geometry') return <PartGeometryPage inherited={inherited} />;
     if (page === 'tool_spec') return <ToolSpecPage inherited={inherited} />;
-    if (page === 'comments') return <CommentsPage />;
+    if (page === 'comments') return <CommentsPage inherited={inherited} />;
     if (page === 'material_costs') return <MaterialCostsPage />;
     if (page === 'accessories_costs') return <AccessoriesCostsPage />;
     if (page === 'manufacturing_costs') return <ManufacturingCostsPage />;

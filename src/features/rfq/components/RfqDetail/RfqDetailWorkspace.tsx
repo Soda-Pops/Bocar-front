@@ -22,6 +22,8 @@ import { useProveedores } from '@/features/purchasing/hooks/useProveedores';
 import {
   closeRfq,
   deleteRfq,
+  extendRfqDeadline,
+  logicalDeleteRfq,
   requestEdit,
   sendRfqToCom,
   approveEditRequest,
@@ -29,6 +31,7 @@ import {
   getPendingEditRequestId,
 } from '@/features/rfq/services/rfqLifecycleService';
 import { CloseRfqModal } from '@/features/rfq/components/RfqDetail/CloseRfqModal';
+import { ExtendDeadlineModal } from '@/features/rfq/components/RfqDetail/ExtendDeadlineModal';
 import { BenchmarkComparativaChart } from '@/features/rfq/components/RfqDetail/BenchmarkComparativaChart';
 import type { RfqUploadedFile } from '@/features/rfq/services/rfqDetailService';
 import type { RfqActionKey, RfqBannerConfig, UserRole } from '@/features/rfq/state/rfqStateMachine';
@@ -165,6 +168,7 @@ export function RfqDetailWorkspace({
   const [showEditRequestModal, setShowEditRequestModal] = useState(false);
   const [confirmEditVariant, setConfirmEditVariant] = useState<'approve' | 'reject' | null>(null);
   const [showCloseRfqModal, setShowCloseRfqModal] = useState(false);
+  const [showExtendDeadlineModal, setShowExtendDeadlineModal] = useState(false);
   const assignmentRef = useRef<HTMLDivElement>(null);
   const assignSuppliers = useAssignSuppliers();
   const proveedores = useProveedores();
@@ -254,11 +258,17 @@ export function RfqDetailWorkspace({
     const rfqId = rfq!.id;
     switch (key) {
       case 'view_full_detail':
-        navigate(
-          isSupplierPath
-            ? `${ROUTES.SUPPLIER.RFQ_DETAIL_FULL.replace(':id', referenceId)}?tipo=${tipo}`
-            : `${ROUTES.PURCHASING.RFQ_DETAIL_FULL.replace(':id', rfqId)}?tipo=${tipo}`,
-        );
+        if (pathname.startsWith('/industrializacion')) {
+          navigate(`/industrializacion/rfq/${rfqId}/editar?view=true&tipo=${tipo}`, {
+            state: { fromAdmin: true },
+          });
+        } else if (isSupplierPath) {
+          navigate(`${ROUTES.SUPPLIER.RFQ_DETAIL_FULL.replace(':id', referenceId)}?tipo=${tipo}`);
+        } else {
+          navigate(`${ROUTES.PURCHASING.RFQ_DETAIL_FULL.replace(':id', rfqId)}?tipo=${tipo}`, {
+            state: { fromAdmin: true },
+          });
+        }
         break;
       case 'assign_suppliers':
         setShowAssignment(true);
@@ -316,6 +326,28 @@ export function RfqDetailWorkspace({
           .finally(() => setIsMutating(false));
         break;
       }
+      case 'logical_delete_rfq': {
+        setIsMutating(true);
+        setFeedbackBanner(null);
+        logicalDeleteRfq(tipo, parseId(rfqId))
+          .then(() => {
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'RFQ eliminado correctamente. Redirigiendo...',
+            });
+            setTimeout(() => navigate(backHref), 2500);
+          })
+          .catch((err: unknown) => {
+            setFeedbackBanner({
+              tone: 'danger',
+              icon: 'alert',
+              message: extractApiError(err),
+            });
+          })
+          .finally(() => setIsMutating(false));
+        break;
+      }
       case 'request_edit':
         setShowEditRequestModal(true);
         break;
@@ -327,6 +359,9 @@ export function RfqDetailWorkspace({
         break;
       case 'close_rfq':
         setShowCloseRfqModal(true);
+        break;
+      case 'extend_deadline':
+        setShowExtendDeadlineModal(true);
         break;
       case 'create_quotation':
         navigate(
@@ -656,6 +691,24 @@ export function RfqDetailWorkspace({
               tone: 'success',
               icon: 'check',
               message: 'RFQ formally closed. Redirecting...',
+            });
+            setTimeout(() => navigate(backHref), 2500);
+          }}
+        />
+      ) : null}
+
+      {/* Modal: extender deadline de RFQ expirado */}
+      {showExtendDeadlineModal ? (
+        <ExtendDeadlineModal
+          rfqId={rfq.id}
+          onClose={() => setShowExtendDeadlineModal(false)}
+          onConfirm={async (formData) => {
+            await extendRfqDeadline(tipo, parseId(rfq.id), formData);
+            setShowExtendDeadlineModal(false);
+            setFeedbackBanner({
+              tone: 'success',
+              icon: 'check',
+              message: 'Deadline extendido correctamente. Redirigiendo...',
             });
             setTimeout(() => navigate(backHref), 2500);
           }}

@@ -391,6 +391,11 @@ function mapMoldSetOfCavities(values: Values): Record<string, Primitive> {
 function moldFormToPayload(values: Values): QuotationDto {
   const out: QuotationDto = {};
   addString(out, 'base_currency_exchange_rate', child(child(values, 'basic_data'), 'base_currency'));
+  addString(out, 'supplier_name', child(values, 'supplier'));
+  addNumber(out, 'max_weight_for_mold', child(values, 'ts_max_weight_mold'));
+  addString(out, 'comments', child(values, 'comments'));
+  const ctbd = child(values, 'ctbd');
+  if (isRecord(ctbd)) out.ctbd = ctbd as Record<string, Primitive>;
 
   mapUnitSection(
     out,
