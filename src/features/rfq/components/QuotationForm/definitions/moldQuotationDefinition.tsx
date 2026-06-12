@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import { z } from 'zod';
@@ -173,6 +173,9 @@ const ctbdSchema = z.object({
     prep: z.string(),
     inc: z.string(),
   }),
+  m1_gr_tot_pr: z.number(),
+  tool_rep_gr_tot_pr: z.number(),
+  set_of_cav_gr_tot_pr: z.number(),
 });
 
 const CTBD_ROWS = 8;
@@ -624,6 +627,9 @@ function getCreateDefaultValues(): MoldQuotationValues {
       tool_rep: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
       set_of_cav: Array.from({ length: CTBD_ROWS }, emptyCtbdCell),
       meta: { supp: '', sign: '', date: '', qt_no: '', prep: '', inc: '' },
+      m1_gr_tot_pr: 0,
+      tool_rep_gr_tot_pr: 0,
+      set_of_cav_gr_tot_pr: 0,
     },
     basic_data: {
       company: '',
@@ -958,7 +964,7 @@ function OtInfPage({ inherited }: { inherited: InheritedMoldRfq }) {
 }
 
 function CtbdPage() {
-  const { control, register } = useFormContext<MoldQuotationValues>();
+  const { control, register, setValue } = useFormContext<MoldQuotationValues>();
   const metaInputClass =
     'w-full rounded-[8px] border border-[rgba(217,222,229,0.92)] bg-white px-3 py-1.5 text-[13px] text-[var(--bocar-text)] outline-none transition focus:border-[var(--bocar-blue-70)] focus:shadow-[0_0_0_3px_rgba(31,58,97,0.08)]';
 
@@ -1035,6 +1041,12 @@ function CtbdPage() {
     weeks: socMat.weeks + socAccs.weeks + socMan.weeks + socCorr.weeks + socLog.weeks,
   };
   const socSp = computeBranchSubtotal(socSpareParts, 'unit', 'price_unit');
+
+  useEffect(() => {
+    setValue('ctbd.m1_gr_tot_pr', grTot.total);
+    setValue('ctbd.tool_rep_gr_tot_pr', toolRepGrTot.total);
+    setValue('ctbd.set_of_cav_gr_tot_pr', socGrTot.total);
+  }, [grTot.total, toolRepGrTot.total, socGrTot.total, setValue]);
 
   const bd = '1px solid rgba(217,222,229,0.92)';
   const RH = 34;
