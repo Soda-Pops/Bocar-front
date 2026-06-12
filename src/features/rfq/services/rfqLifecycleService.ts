@@ -125,7 +125,7 @@ export async function getPendingEditRequestId(tipo: RfqTipo, rfqNumericId: numbe
       ? (r as { rfq_mold?: number }).rfq_mold === rfqNumericId
       : (r as { rfq_trimming?: number }).rfq_trimming === rfqNumericId,
   );
-  if (!match) throw new Error('No se encontró la solicitud de edición pendiente.');
+  if (!match) throw new Error('Pending edit request not found.');
   return match.id;
 }
 

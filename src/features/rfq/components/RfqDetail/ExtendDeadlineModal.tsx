@@ -37,12 +37,12 @@ export function ExtendDeadlineModal({ rfqId, onConfirm, onClose }: ExtendDeadlin
 
   async function handleConfirm() {
     if (!dueDate) {
-      setError('Selecciona una nueva fecha límite.');
+      setError('Select a new deadline.');
       return;
     }
 
     if (dueDate < minDate) {
-      setError('La nueva fecha límite debe ser futura.');
+      setError('The new deadline must be in the future.');
       return;
     }
 
@@ -72,14 +72,14 @@ export function ExtendDeadlineModal({ rfqId, onConfirm, onClose }: ExtendDeadlin
             id="extend-deadline-title"
             className="m-0 text-[15px] font-semibold text-[var(--bocar-text)]"
           >
-            Extender deadline
+            Extend Deadline
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--bocar-blue-50)]">RFQ {rfqId}</p>
         </div>
 
         <div className="grid gap-5 px-7 py-6">
           <p className="m-0 text-[13px] leading-[1.6] text-[var(--bocar-blue-70)]">
-            Define una nueva fecha límite para reabrir el ciclo de cotización de este RFQ.
+            Set a new deadline to reopen the quoting cycle for this RFQ.
           </p>
 
           <div className="grid gap-1.5">
@@ -87,7 +87,7 @@ export function ExtendDeadlineModal({ rfqId, onConfirm, onClose }: ExtendDeadlin
               htmlFor="extend-deadline-date"
               className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--bocar-blue-50)]"
             >
-              Nueva fecha límite
+              New Deadline
             </label>
             <input
               id="extend-deadline-date"
@@ -118,7 +118,7 @@ export function ExtendDeadlineModal({ rfqId, onConfirm, onClose }: ExtendDeadlin
             disabled={isSubmitting}
             className="rounded-[6px] border border-[var(--bocar-border)] bg-white px-4 py-2 text-[13px] font-semibold text-[var(--bocar-blue-70)] transition hover:border-[var(--bocar-blue-70)] hover:text-[var(--bocar-blue-100)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="button"
@@ -126,7 +126,7 @@ export function ExtendDeadlineModal({ rfqId, onConfirm, onClose }: ExtendDeadlin
             onClick={() => { void handleConfirm(); }}
             className="rounded-[6px] border border-[var(--bocar-blue-100)] bg-[var(--bocar-blue-100)] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[var(--bocar-blue-90)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? 'Extendiendo...' : 'Extender deadline'}
+            {isSubmitting ? 'Extending...' : 'Extend Deadline'}
           </button>
         </div>
       </div>
