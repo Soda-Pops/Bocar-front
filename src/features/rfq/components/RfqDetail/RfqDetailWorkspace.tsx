@@ -369,6 +369,7 @@ export function RfqDetailWorkspace({
         );
         break;
       default:
+        // DEV-ONLY: no subir a producción
         console.log('[RfqDetail] action triggered:', key, rfqId);
     }
   }

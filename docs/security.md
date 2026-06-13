@@ -190,7 +190,26 @@ El servidor valida el contenido MIME real del archivo al recibirlo, independient
 
 ---
 
-## 8. Recomendaciones pendientes
+## 8. Elementos Dev-Only
+
+Código presente en el repositorio que **no debe llegar a producción** o que se elimina automáticamente en el build.
+
+| Elemento | Archivo | Línea | Protección | Acción requerida |
+|----------|---------|:-----:|-----------|-----------------|
+| Query params `?status=`, `?role=`, `?creator=` — permiten forzar estado de RFQ y rol sin autenticación real | `src/features/rfq/hooks/useRfqDetail.ts` | 196 | `import.meta.env.DEV` — Vite los elimina automáticamente en producción | Ninguna |
+| `console.log('[RfqDetail] action triggered:', key, rfqId)` — expone nombres de acciones e IDs de RFQs en la consola del navegador | `src/features/rfq/components/RfqDetail/RfqDetailWorkspace.tsx` | 372 | Comentado como `// DEV-ONLY` — requiere intervención manual antes de deploy | Eliminar o envolver con `import.meta.env.DEV` antes de subir a producción |
+
+### Criterio de clasificación
+
+Un elemento se considera **Dev-Only** si cumple alguna de estas condiciones:
+
+- Expone información interna (IDs, estados, roles) en interfaces accesibles al usuario final.
+- Permite saltarse o modificar comportamiento de autenticación o autorización.
+- Solo tiene utilidad durante desarrollo o pruebas y no aporta valor en producción.
+
+---
+
+## 9. Recomendaciones pendientes
 
 **Content Security Policy:**
 Configurar el encabezado `Content-Security-Policy` en el servidor de producción para restringir fuentes de scripts, estilos y conexiones a orígenes conocidos.
